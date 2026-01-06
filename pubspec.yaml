@@ -1,0 +1,36 @@
+name: hifdh
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0
+  path: ^1.9.0
+  shared_preferences: ^2.2.2
+  provider: ^6.1.5+1
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/quran.db
+
+  fonts:
+    - family: QuranFont
+      fonts:
+        - asset: assets/quran.ttf
+    - family: SurahFont
+      fonts:
+        - asset: assets/surah.ttf
