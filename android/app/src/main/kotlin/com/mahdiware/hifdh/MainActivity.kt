@@ -1,4 +1,4 @@
-package com.example.hifdh
+package com.mahdiware.hifdh
 
 import io.flutter.embedding.android.FlutterActivity
 
