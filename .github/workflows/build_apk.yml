@@ -50,6 +50,18 @@ jobs:
             mv "$file" "../../../../HifdhTracker_${{ env.VERSION }}_${ABI}_release.apk"
           done
 
+      - name: Build Universal APK
+        run: flutter build apk --release
+
+      - name: Rename Universal APK
+        run: mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
+
+      - name: Upload APK (Universal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HifdhTracker-universal
+          path: "HifdhTracker_*_universal_release.apk"
+
       - name: Upload APK (armeabi-v7a)
         uses: actions/upload-artifact@v4
         with:
