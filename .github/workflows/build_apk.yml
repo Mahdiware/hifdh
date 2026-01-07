@@ -51,7 +51,7 @@ jobs:
 
       - name: Build APKs (split per ABI)
         env:
-          # FIX: Use ${{ github.workspace }} to provide the absolute path
+          # FIX: Absolute path to prevent Gradle "file not found" errors
           KEYSTORE_PATH: ${{ github.workspace }}/android/app/hifdh-release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -71,7 +71,7 @@ jobs:
 
       - name: Build universal APK
         env:
-          # FIX: Use ${{ github.workspace }} to provide the absolute path
+          # FIX: Absolute path here as well
           KEYSTORE_PATH: ${{ github.workspace }}/android/app/hifdh-release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -108,3 +108,15 @@ jobs:
         with:
           name: HifdhTracker-x86_64
           path: "HifdhTracker_*_x86_64_release.apk"
+
+      # NEW STEP: Send to Telegram
+      - name: Send APKs via Telegram
+        if: success()  # Only run if build succeeded
+        run: |
+          for apk in HifdhTracker_*_release.apk; do
+            echo "Sending $apk"
+            curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+              -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+              -F document=@"$apk" \
+              -F caption="📦 New build: $apk"
+          done
