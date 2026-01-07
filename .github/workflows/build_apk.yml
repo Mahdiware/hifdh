@@ -12,10 +12,10 @@ jobs:
     name: Build Signed APKs
     runs-on: ubuntu-latest
     env:
-      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: Checkout code
@@ -23,8 +23,8 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > ./hifdh-release.keystore
-          chmod 600 ./hifdh-release.keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/hifdh-release.keystore
+          chmod 600 android/app/hifdh-release.keystore
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -32,7 +32,7 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -41,17 +41,22 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Extract Version
+      - name: Extract version
         id: extract_version
         run: |
           VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Build APKs (split per ABI)
+        env:
+          KEYSTORE_PATH: android/app/hifdh-release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           flutter build apk --release --split-per-abi \
-          --build-name=$(echo $VERSION | cut -d '+' -f1) \
-          --build-number=$(echo $VERSION | cut -d '+' -f2)
+            --build-name=$(echo $VERSION | cut -d '+' -f1) \
+            --build-number=$(echo $VERSION | cut -d '+' -f2)
 
       - name: Rename APKs
         run: |
@@ -59,13 +64,19 @@ jobs:
           for file in app-*-release.apk; do
             ABI=$(echo "$file" | sed 's/app-\(.*\)-release.apk/\1/')
             mv "$file" "../../../../HifdhTracker_${{ env.VERSION }}_${ABI}_release.apk"
+          done
 
-      - name: Build Universal APK
+      - name: Build universal APK
+        env:
+          KEYSTORE_PATH: android/app/hifdh-release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: flutter build apk --release \
           --build-name=$(echo $VERSION | cut -d '+' -f1) \
           --build-number=$(echo $VERSION | cut -d '+' -f2)
 
-      - name: Rename Universal APK
+      - name: Rename universal APK
         run: mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
 
       - name: Upload APK (Universal)
