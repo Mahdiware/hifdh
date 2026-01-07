@@ -23,6 +23,7 @@ jobs:
 
       - name: Decode keystore
         run: |
+          mkdir -p android/app
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/hifdh-release.keystore
           chmod 600 android/app/hifdh-release.keystore
 
@@ -78,6 +79,16 @@ jobs:
 
       - name: Rename universal APK
         run: mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
+
+      - name: Send APKs via Telegram
+        run: |
+          for apk in HifdhTracker_*_release.apk; do
+            echo "Sending $apk"
+            curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+              -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+              -F document=@"$apk" \
+              -F caption="📦 New build: $apk"
+          done
 
       - name: Upload APK (Universal)
         uses: actions/upload-artifact@v4
