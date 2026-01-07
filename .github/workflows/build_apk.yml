@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build Signed APK
+    name: Build Signed APKs
     runs-on: ubuntu-latest
     env:
       KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -47,19 +47,47 @@ jobs:
           VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Build APK (armeabi-v7a)
+      - name: Build APKs (split per ABI)
         run: |
-          flutter build apk --release --target-platform android-arm \
+          flutter build apk --release --split-per-abi \
           --build-name=$(echo $VERSION | cut -d '+' -f1) \
           --build-number=$(echo $VERSION | cut -d '+' -f2)
 
-      - name: Rename APK
+      - name: Rename APKs
         run: |
           cd build/app/outputs/flutter-apk/
-          mv app-armeabi-v7a-release.apk ../../../../HifdhTracker_${{ env.VERSION }}_armeabi-v7a.apk
+          for file in app-*-release.apk; do
+            ABI=$(echo "$file" | sed 's/app-\(.*\)-release.apk/\1/')
+            mv "$file" "../../../../HifdhTracker_${{ env.VERSION }}_${ABI}_release.apk"
 
-      - name: Upload APK
+      - name: Build Universal APK
+        run: flutter build apk --release \
+          --build-name=$(echo $VERSION | cut -d '+' -f1) \
+          --build-number=$(echo $VERSION | cut -d '+' -f2)
+
+      - name: Rename Universal APK
+        run: mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
+
+      - name: Upload APK (Universal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HifdhTracker-universal
+          path: "HifdhTracker_*_universal_release.apk"
+
+      - name: Upload APK (armeabi-v7a)
         uses: actions/upload-artifact@v4
         with:
           name: HifdhTracker-armeabi-v7a
-          path: HifdhTracker_${{ env.VERSION }}_armeabi-v7a.apk
+          path: "HifdhTracker_*_armeabi-v7a_release.apk"
+
+      - name: Upload APK (arm64-v8a)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HifdhTracker-arm64-v8a
+          path: "HifdhTracker_*_arm64-v8a_release.apk"
+
+      - name: Upload APK (x86_64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HifdhTracker-x86_64
+          path: "HifdhTracker_*_x86_64_release.apk"

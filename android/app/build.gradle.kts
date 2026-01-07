@@ -52,9 +52,9 @@ android {
 
             signingConfig = signingConfigs.getByName("release")
 
-            v1SigningEnabled = true   // JAR signature
-            v2SigningEnabled = true   // Full APK signature
-            v3SigningEnabled = true   // APK Signature v3 (Android 9+)
+            this.isV1SigningEnabled = true
+            this.isV2SigningEnabled = true
+            this.isV3SigningEnabled = true
         }
     }
 }
