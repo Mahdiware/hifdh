@@ -2,19 +2,17 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   build:
     name: Build Signed APK
     runs-on: ubuntu-latest
-
     env:
-      # Keystore secrets stored in GitHub Secrets
-      KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -23,12 +21,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ------------------------------
-      # Decode keystore
-      # ------------------------------
       - name: Decode keystore
         run: |
-          echo "$KEYSTORE_PATH" | base64 --decode > ./hifdh-release.keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > ./hifdh-release.keystore
           chmod 600 ./hifdh-release.keystore
 
       - name: Setup Java
@@ -46,67 +41,25 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      # ------------------------------
-      # Build APKs (split per ABI)
-      # ------------------------------
-      - name: Build APKs (all ABIs)
-        run: flutter build apk --release --split-per-abi \
-          --build-name=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | cut -d '+' -f1) \
-          --build-number=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | cut -d '+' -f2)
-
-      # ------------------------------
-      # Extract version from pubspec.yaml
-      # ------------------------------
       - name: Extract Version
         id: extract_version
         run: |
           VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Detected version: $VERSION"
 
-      # ------------------------------
-      # Rename APKs for clarity
-      # ------------------------------
-      - name: Rename APKs
+      - name: Build APK (armeabi-v7a)
+        run: |
+          flutter build apk --release --target-platform android-arm \
+          --build-name=$(echo $VERSION | cut -d '+' -f1) \
+          --build-number=$(echo $VERSION | cut -d '+' -f2)
+
+      - name: Rename APK
         run: |
           cd build/app/outputs/flutter-apk/
-          for file in app-*-release.apk; do
-            ABI=$(echo "$file" | sed 's/app-\(.*\)-release.apk/\1/')
-            mv "$file" "../../../../HifdhTracker_${{ env.VERSION }}_${ABI}_release.apk"
-          done
+          mv app-armeabi-v7a-release.apk ../../../../HifdhTracker_${{ env.VERSION }}_armeabi-v7a.apk
 
-      # ------------------------------
-      # Build Universal APK
-      # ------------------------------
-      - name: Build Universal APK
-        run: flutter build apk --release
-
-      - name: Rename Universal APK
-        run: mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
-
-      # ------------------------------
-      # Upload APK artifacts
-      # ------------------------------
-      - name: Upload APK (Universal)
-        uses: actions/upload-artifact@v4
-        with:
-          name: HifdhTracker-universal
-          path: "HifdhTracker_*_universal_release.apk"
-
-      - name: Upload APK (armeabi-v7a)
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: HifdhTracker-armeabi-v7a
-          path: "HifdhTracker_*_armeabi-v7a_release.apk"
-
-      - name: Upload APK (arm64-v8a)
-        uses: actions/upload-artifact@v4
-        with:
-          name: HifdhTracker-arm64-v8a
-          path: "HifdhTracker_*_arm64-v8a_release.apk"
-
-      - name: Upload APK (x86_64)
-        uses: actions/upload-artifact@v4
-        with:
-          name: HifdhTracker-x86_64
-          path: "HifdhTracker_*_x86_64_release.apk"
+          path: HifdhTracker_${{ env.VERSION }}_armeabi-v7a.apk
