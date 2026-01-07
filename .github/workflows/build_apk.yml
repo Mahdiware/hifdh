@@ -11,6 +11,7 @@ jobs:
   build:
     name: Build Signed APKs
     runs-on: ubuntu-latest
+
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -73,42 +74,44 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: flutter build apk --release \
-          --build-name=$(echo $VERSION | cut -d '+' -f1) \
-          --build-number=$(echo $VERSION | cut -d '+' -f2)
+        run: |
+          flutter build apk --release \
+            --build-name=$(echo $VERSION | cut -d '+' -f1) \
+            --build-number=$(echo $VERSION | cut -d '+' -f2)
 
       - name: Rename universal APK
-        run: mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
 
       - name: Send APKs via Telegram
+        if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
         run: |
           for apk in HifdhTracker_*_release.apk; do
-            echo "Sending $apk"
             curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
-              -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+              -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
               -F document=@"$apk" \
-              -F caption="📦 New build: $apk"
+              -F caption="New build: $apk"
           done
 
-      - name: Upload APK (Universal)
+      - name: Upload Universal APK
         uses: actions/upload-artifact@v4
         with:
           name: HifdhTracker-universal
           path: "HifdhTracker_*_universal_release.apk"
 
-      - name: Upload APK (armeabi-v7a)
+      - name: Upload armeabi-v7a
         uses: actions/upload-artifact@v4
         with:
           name: HifdhTracker-armeabi-v7a
           path: "HifdhTracker_*_armeabi-v7a_release.apk"
 
-      - name: Upload APK (arm64-v8a)
+      - name: Upload arm64-v8a
         uses: actions/upload-artifact@v4
         with:
           name: HifdhTracker-arm64-v8a
           path: "HifdhTracker_*_arm64-v8a_release.apk"
 
-      - name: Upload APK (x86_64)
+      - name: Upload x86_64
         uses: actions/upload-artifact@v4
         with:
           name: HifdhTracker-x86_64
