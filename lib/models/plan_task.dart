@@ -107,6 +107,7 @@ class TaskNote {
   final int taskId;
   final String content;
   final NoteType type;
+  final int? ayahId;
   final DateTime createdAt;
 
   TaskNote({
@@ -114,6 +115,7 @@ class TaskNote {
     required this.taskId,
     required this.content,
     required this.type,
+    this.ayahId,
     required this.createdAt,
   });
 
@@ -123,6 +125,7 @@ class TaskNote {
       'taskId': taskId,
       'content': content,
       'type': type.index,
+      'ayahId': ayahId,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -133,6 +136,7 @@ class TaskNote {
       taskId: map['taskId'],
       content: map['content'],
       type: NoteType.values[map['type'] ?? 0],
+      ayahId: map['ayahId'],
       createdAt: DateTime.parse(map['createdAt']),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/surah.dart';
 import '../../models/plan_task.dart';
 import '../../services/database_helper.dart';
@@ -185,16 +186,40 @@ class _AssignPageState extends State<AssignPage> {
 
   Future<void> _selectDate() async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: now.add(const Duration(days: 7)),
       firstDate: now,
       lastDate: now.add(const Duration(days: 365 * 5)),
     );
-    if (picked != null) {
-      setState(() {
-        _targetDate = picked;
-      });
+
+    if (pickedDate != null && mounted) {
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _targetDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      } else {
+        setState(() {
+          _targetDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            23,
+            59,
+          );
+        });
+      }
     }
   }
 
@@ -318,7 +343,9 @@ class _AssignPageState extends State<AssignPage> {
                     Text(
                       _targetDate == null
                           ? "Select Deadline"
-                          : "${_targetDate!.day}/${_targetDate!.month}/${_targetDate!.year}",
+                          : DateFormat(
+                              'EEE, MMM d, yyyy - h:mm a',
+                            ).format(_targetDate!),
                       style: TextStyle(
                         fontSize: 16,
                         color: _targetDate == null

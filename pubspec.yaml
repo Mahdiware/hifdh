@@ -1,7 +1,7 @@
 name: hifdh
-description: "A new Flutter project."
+description: "A Quran memorization tracking app."
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.1+101
 
 environment:
   sdk: ^3.9.2
@@ -20,6 +20,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo.png"
 
 flutter:
   uses-material-design: true

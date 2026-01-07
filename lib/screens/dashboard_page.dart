@@ -3,7 +3,10 @@ import '../widgets/theme_toggle_button.dart';
 import 'planner/assign_page.dart';
 import '../models/plan_task.dart';
 import '../services/planner_database_helper.dart';
+import '../services/database_helper.dart';
 import '../theme/app_colors.dart';
+import '../utils/ayah_search_query.dart';
+import '../widgets/collapsible_note_card.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -56,7 +59,7 @@ class _DashboardPageState extends State<DashboardPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => NotesSheet(taskId: task.id!, taskTitle: task.title),
+      builder: (context) => NotesSheet(task: task),
     );
   }
 
@@ -284,9 +287,13 @@ class PlanTaskCard extends StatelessWidget {
                 _buildInfoPill(
                   Icons.flag,
                   task.type == TaskType.memorize ? "Memorize" : "Revision",
-                  isDark,
+                  isDark ? Colors.grey[400] : Colors.grey[700],
                 ),
-                _buildInfoPill(Icons.event, _formatDate(task.deadline), isDark),
+                _buildInfoPill(
+                  Icons.event,
+                  _formatDate(task.deadline),
+                  isDark ? Color(0xFFF0C33D) : Color(0xFFFF0000),
+                ),
               ],
             ),
             const Padding(
@@ -339,29 +346,52 @@ class PlanTaskCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoPill(IconData icon, String text, bool isDark) {
+  Widget _buildInfoPill(IconData icon, String text, Color? color) {
     return Row(
       children: [
         Icon(icon, size: 14, color: Colors.grey),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: isDark ? Colors.grey[400] : Colors.grey[700],
-          ),
-        ),
+        Text(text, style: TextStyle(fontSize: 12, color: color)),
       ],
     );
   }
 
-  String _formatDate(DateTime d) => "${d.day}/${d.month}";
+  String _monthAbbr(int month) {
+    const months = [
+      "", // Placeholder for 0 index
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    return months[month];
+  }
+
+  String _formatTime(DateTime d) {
+    final hour = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
+    final minute = d.minute.toString().padLeft(2, '0');
+    final ampm = d.hour >= 12 ? "PM" : "AM";
+    return "$hour:$minute $ampm";
+  }
+
+  // 07 Jan 2026 10:30 AM
+  String _formatDate(DateTime d) =>
+      "${d.day.toString().padLeft(2, '0')} "
+      "${_monthAbbr(d.month)} ${d.year} "
+      "${_formatTime(d)}";
 }
 
 class NotesSheet extends StatefulWidget {
-  final int taskId;
-  final String taskTitle;
-  const NotesSheet({super.key, required this.taskId, required this.taskTitle});
+  final PlanTask task;
+  const NotesSheet({super.key, required this.task});
 
   @override
   State<NotesSheet> createState() => _NotesSheetState();
@@ -373,27 +403,110 @@ class _NotesSheetState extends State<NotesSheet> {
   List<TaskNote> _notes = [];
   bool _loading = true;
 
+  // Ayah Selection
+  List<Map<String, dynamic>> _availableAyahs = [];
+  int? _selectedAyahId;
+
   @override
   void initState() {
     super.initState();
     _loadNotes();
+    _loadAvailableAyahs();
   }
 
   Future<void> _loadNotes() async {
-    final notes = await PlannerDatabaseHelper().getTaskNotes(widget.taskId);
-    if (mounted)
+    final notes = await PlannerDatabaseHelper().getTaskNotes(widget.task.id!);
+    if (mounted) {
       setState(() {
         _notes = notes;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _loadAvailableAyahs() async {
+    final db = await DatabaseHelper().database;
+    String whereClause = "";
+    List<dynamic> args = [];
+
+    // Construct query based on task unit
+    if (widget.task.unitType == PlanUnitType.surah) {
+      whereClause = "surahNumber = ?";
+      args.add(widget.task.unitId);
+      if (widget.task.startAyah != null && widget.task.endAyah != null) {
+        whereClause += " AND ayahNumber BETWEEN ? AND ?";
+        args.add(widget.task.startAyah);
+        args.add(widget.task.endAyah);
+      }
+    } else if (widget.task.unitType == PlanUnitType.page) {
+      whereClause = "pageNumber BETWEEN ? AND ?";
+      args.add(widget.task.unitId);
+      args.add(widget.task.endUnitId ?? widget.task.unitId);
+    } else if (widget.task.unitType == PlanUnitType.juz) {
+      // Logic for Juz tasks (handling partial if needed, but assuming full juz for simplicity or using ranges)
+      whereClause = "juzNumber = ?";
+      args.add(widget.task.unitId);
+    } else {
+      // Custom/Other - maybe show nothing or fetch nothing
+      return;
+    }
+
+    final List<Map<String, dynamic>> rows = await db.rawQuery('''
+      SELECT qm.id, qm.surahNumber, qm.ayahNumber, SUBSTR(qt.text, 1, 50) as text
+      FROM quran_meta qm
+      JOIN quran_text qt ON qm.id = qt.id
+      WHERE $whereClause
+      ORDER BY qm.surahNumber, qm.ayahNumber
+      ''', args);
+
+    if (mounted) {
+      setState(() {
+        _availableAyahs = rows;
+        if (_availableAyahs.isNotEmpty) {
+          _selectedAyahId = _availableAyahs.first['id'] as int;
+        }
+      });
+    }
+  }
+
+  String _getSelectedAyahLabel() {
+    if (_selectedAyahId == null) return "Select/Search Ayah...";
+    final match = _availableAyahs.firstWhere(
+      (e) => e['id'] == _selectedAyahId,
+      orElse: () => {},
+    );
+    if (match.isEmpty) return "Unknown Ayah";
+    return "${match['surahNumber']}:${match['ayahNumber']} - ${match['text']}";
+  }
+
+  void _showAyahSearchDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return _AyahSearchDialog(
+          ayahs: _availableAyahs,
+          onSelected: (id) {
+            setState(() => _selectedAyahId = id);
+          },
+        );
+      },
+    );
   }
 
   Future<void> _addNote() async {
-    if (_noteController.text.trim().isEmpty) return;
+    // Description is optional, but we need an ayah selected
+    if (_selectedAyahId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please select an Ayah")));
+      return;
+    }
+
     await PlannerDatabaseHelper().addNote(
-      widget.taskId,
+      widget.task.id!,
       _noteController.text.trim(),
       _selectedType,
+      ayahId: _selectedAyahId,
     );
     _noteController.clear();
     _loadNotes();
@@ -402,7 +515,8 @@ class _NotesSheetState extends State<NotesSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
+      height:
+          MediaQuery.of(context).size.height * 0.85, // Taller for more inputs
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -411,7 +525,7 @@ class _NotesSheetState extends State<NotesSheet> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              "Notes: ${widget.taskTitle}",
+              "Notes: ${widget.task.title}",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
@@ -434,8 +548,9 @@ class _NotesSheetState extends State<NotesSheet> {
               border: Border(top: BorderSide(color: Colors.grey.shade200)),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Type Selector
+                // 1. Type Selector
                 Row(
                   children: [
                     _buildTypeChip("Note", NoteType.note, Colors.blue),
@@ -445,15 +560,86 @@ class _NotesSheetState extends State<NotesSheet> {
                     _buildTypeChip("Mistake", NoteType.mistake, Colors.red),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
+
+                // 2. Ayah Selector (Searchable)
+                if (_availableAyahs.isNotEmpty)
+                  InkWell(
+                    onTap: _showAyahSearchDialog,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white10
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search,
+                            size: 18,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _getSelectedAyahLabel(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontFamily: 'QuranFont',
+                                color: _selectedAyahId == null
+                                    ? Colors.grey
+                                    : (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      "Loading Ayahs...",
+                      style: TextStyle(
+                        fontFamily: 'QuranFont',
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 12),
+
+                // 3. Input & Send
                 Row(
                   children: [
                     Expanded(
                       child: TextField(
                         controller: _noteController,
                         decoration: const InputDecoration(
-                          hintText: "Add entry...",
+                          hintText: "Description (Optional)...",
                           border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 0),
                         ),
                       ),
                     ),
@@ -494,51 +680,156 @@ class _NotesSheetState extends State<NotesSheet> {
   }
 
   Widget _buildNoteItem(TaskNote note) {
-    Color color;
-    IconData icon;
-    switch (note.type) {
-      case NoteType.note:
-        color = Colors.blue;
-        icon = Icons.note;
-        break;
-      case NoteType.doubt:
-        color = Colors.orange;
-        icon = Icons.help;
-        break;
-      case NoteType.mistake:
-        color = Colors.red;
-        icon = Icons.warning;
-        break;
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(note.content, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${note.createdAt.day}/${note.createdAt.month} ${note.createdAt.hour}:${note.createdAt.minute}",
-                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+      child: CollapsibleNoteCard(note: note),
+    );
+  }
+}
+
+class _AyahSearchDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> ayahs;
+  final Function(int) onSelected;
+
+  const _AyahSearchDialog({required this.ayahs, required this.onSelected});
+
+  @override
+  State<_AyahSearchDialog> createState() => _AyahSearchDialogState();
+}
+
+class _AyahSearchDialogState extends State<_AyahSearchDialog> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _filteredAyahs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredAyahs = widget.ayahs;
+    _searchController.addListener(_filter);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filter() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      setState(() => _filteredAyahs = widget.ayahs);
+      return;
+    }
+
+    final search = AyahSearchQuery.parse(query);
+
+    setState(() {
+      _filteredAyahs = widget.ayahs.where((row) {
+        final surah = row['surahNumber'] as int;
+        final ayah = row['ayahNumber'] as int;
+
+        // 1. AyahSearchQuery Logic (e.g. 2:200)
+        if (search != null) {
+          if (search.isSpecificAyah()) {
+            return surah == search.surahNumber && ayah == search.ayahNumber;
+          }
+          if (search.surahNumber != null && search.ayahNumber == null) {
+            // If searched "2", matches all ayahs in Surah 2
+            if (surah == search.surahNumber) return true;
+          }
+        }
+
+        // 2. Text Search
+        final text = (row['text'] as String).toLowerCase();
+        final q = query.toLowerCase();
+        return text.contains(q) ||
+            "$surah:$ayah".contains(q) ||
+            "$ayah".contains(q);
+      }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Theme aware
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Dialog(
+      backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              autofocus: true,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                hintText: "Search (e.g. 2:200, 2 200, content)...",
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.grey : Colors.grey[600],
+                ),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white12 : Colors.grey[300]!,
                   ),
-                ],
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
             ),
-          ],
-        ),
+          ),
+          SizedBox(
+            height: 300,
+            child: _filteredAyahs.isEmpty
+                ? Center(
+                    child: Text(
+                      "No matches",
+                      style: TextStyle(
+                        color: isDark ? Colors.grey : Colors.black54,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: _filteredAyahs.length,
+                    separatorBuilder: (c, i) => Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: isDark ? Colors.white10 : Colors.grey[200],
+                    ),
+                    itemBuilder: (context, index) {
+                      final row = _filteredAyahs[index];
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          "${row['surahNumber']}:${row['ayahNumber']}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        subtitle: Text(
+                          row['text'],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'QuranFont',
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        onTap: () {
+                          widget.onSelected(row['id'] as int);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

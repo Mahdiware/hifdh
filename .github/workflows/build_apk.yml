@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "main" ]
+  pull_request:
+    branches: [ "main", "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release --split-per-abi
+
+      - name: Extract Version
+        id: extract_version
+        run: |
+          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Detected version: $VERSION"
+
+      - name: Rename APKs
+        run: |
+          cd build/app/outputs/flutter-apk/
+          for file in app-*-release.apk; do
+            # Extract ABI (e.g. app-armeabi-v7a-release.apk -> armeabi-v7a)
+            ABI=$(echo "$file" | sed 's/app-\(.*\)-release.apk/\1/')
+            mv "$file" "../../../../HifdhTracker_${{ env.VERSION }}_${ABI}_release.apk"
+          done
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HifdhTracker-APKs
+          path: "HifdhTracker_*_release.apk"

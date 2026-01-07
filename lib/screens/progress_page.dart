@@ -5,6 +5,8 @@ import '../models/plan_task.dart';
 import '../models/surah.dart';
 import '../services/database_helper.dart';
 import '../theme/app_colors.dart';
+import '../utils/ayah_search_query.dart';
+import '../widgets/collapsible_note_card.dart';
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
@@ -52,6 +54,19 @@ class _ProgressPageState extends State<ProgressPage>
   // Cache for Surah Page Ranges
   Map<int, Map<String, int>> _surahPageRanges = {};
 
+  // Note Caches
+  Map<int, List<TaskNote>> _surahNotes = {};
+  Map<int, List<TaskNote>> _juzNotes = {};
+  Map<int, List<TaskNote>> _hizbNotes = {};
+
+  // Search State
+  final TextEditingController _searchController = TextEditingController();
+  List<PlanTask> _filteredActiveTasks = [];
+  List<Surah> _filteredSurahs = [];
+  List<int> _filteredJuzNumbers = [];
+  List<int> _filteredHizbNumbers = [];
+  bool _isSearching = false;
+
   @override
   void initState() {
     super.initState();
@@ -59,13 +74,90 @@ class _ProgressPageState extends State<ProgressPage>
     _loadData();
     // Listen for data changes from other tabs
     PlannerDatabaseHelper().dataUpdateNotifier.addListener(_loadData);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     PlannerDatabaseHelper().dataUpdateNotifier.removeListener(_loadData);
+    _searchController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.trim();
+    setState(() {
+      _isSearching = query.isNotEmpty;
+      if (!_isSearching) {
+        _filteredActiveTasks = List.from(_activeTasks);
+        _filteredSurahs = List.from(_surahs);
+        _filteredJuzNumbers = List.generate(30, (i) => i + 1);
+        _filteredHizbNumbers = List.generate(60, (i) => i + 1);
+        return;
+      }
+
+      final search = AyahSearchQuery.parse(query);
+
+      // Filter Active Tasks
+      _filteredActiveTasks = _activeTasks.where((task) {
+        bool matchesRange = false;
+
+        // 1. Structural/Range Search
+        if (search != null) {
+          if (search.isSpecificAyah()) {
+            if (task.unitType == PlanUnitType.surah &&
+                task.unitId == search.surahNumber) {
+              final start = task.startAyah ?? 1;
+              final end = task.endAyah ?? 9999;
+              if (search.ayahNumber! >= start && search.ayahNumber! <= end)
+                matchesRange = true;
+            }
+          } else if (search.surahNumber != null && search.ayahNumber == null) {
+            if (task.unitType == PlanUnitType.surah &&
+                task.unitId == search.surahNumber)
+              matchesRange = true;
+          }
+        }
+
+        if (matchesRange) return true;
+
+        // 2. Text Search
+        final q = query.toLowerCase();
+        return task.title.toLowerCase().contains(q) ||
+            (task.subtitle?.toLowerCase().contains(q) ?? false) ||
+            (task.note?.toLowerCase().contains(q) ?? false);
+      }).toList();
+
+      // Filter Surahs (Quran Status Tab)
+      _filteredSurahs = _surahs.where((s) {
+        if (search != null && search.surahNumber != null) {
+          return s.number == search.surahNumber;
+        }
+        final q = query.toLowerCase();
+        return s.englishName.toLowerCase().contains(q) || s.name.contains(q);
+      }).toList();
+
+      // Filter Juz
+      final qLower = query.toLowerCase();
+      _filteredJuzNumbers = List.generate(30, (i) => i + 1).where((j) {
+        if (qLower == "$j" || qLower == "juz $j") return true;
+        // Check if any filtered active task belongs to this Juz
+        return _filteredActiveTasks.any(
+          (t) => t.unitType == PlanUnitType.juz && t.unitId == j,
+        );
+      }).toList();
+
+      // Filter Hizb
+      _filteredHizbNumbers = List.generate(60, (i) => i + 1).where((h) {
+        if (qLower == "$h" || qLower == "hizb $h") return true;
+        // Check regex for Hizb active task
+        return _filteredActiveTasks.any((t) {
+          final sub = t.subtitle?.toLowerCase() ?? "";
+          return sub.contains("hizb $h");
+        });
+      }).toList();
+    });
   }
 
   Future<void> _loadData() async {
@@ -120,6 +212,40 @@ class _ProgressPageState extends State<ProgressPage>
       final coveredAyahs = await ayahsFuture;
       final quranMeta = await metaFuture;
 
+      // Fetch and Map Notes
+      final allNotes = await PlannerDatabaseHelper().getAllNotesWithTasks();
+      final metaMap = {for (var m in quranMeta) m['id'] as int: m};
+
+      final sNotes = <int, List<TaskNote>>{};
+      final jNotes = <int, List<TaskNote>>{};
+      final hNotes = <int, List<TaskNote>>{};
+
+      for (var row in allNotes) {
+        final note = TaskNote.fromMap(row);
+
+        if (note.ayahId != null && metaMap.containsKey(note.ayahId)) {
+          final m = metaMap[note.ayahId]!;
+          final surah = m['surahNumber'] as int;
+          final juz = m['juzNumber'] as int;
+          final rub = m['rubNumber'] as int;
+          final hizb = ((rub - 1) ~/ 4) + 1;
+
+          sNotes.putIfAbsent(surah, () => []).add(note);
+          jNotes.putIfAbsent(juz, () => []).add(note);
+          hNotes.putIfAbsent(hizb, () => []).add(note);
+        } else {
+          final uTypeVal = row['unitType'] as int;
+          final uId = row['unitId'] as int;
+          final uType = PlanUnitType.values[uTypeVal];
+
+          if (uType == PlanUnitType.surah) {
+            sNotes.putIfAbsent(uId, () => []).add(note);
+          } else if (uType == PlanUnitType.juz) {
+            jNotes.putIfAbsent(uId, () => []).add(note);
+          }
+        }
+      }
+
       // Compute Granular Progress per Surah
       final Map<int, double> granularProgress = {};
       final Map<int, List<int>> surahAyahIds = {};
@@ -147,7 +273,14 @@ class _ProgressPageState extends State<ProgressPage>
           _activeTasks = basicFutures[5] as List<PlanTask>;
           _pageCoverage = coverage;
           _surahExactProgress = granularProgress;
+          _surahNotes = sNotes;
+          _juzNotes = jNotes;
+          _hizbNotes = hNotes;
           _isLoading = false;
+          _filteredActiveTasks = List.from(_activeTasks);
+          _filteredSurahs = List.from(_surahs);
+          _filteredJuzNumbers = List.generate(30, (i) => i + 1);
+          _filteredHizbNumbers = List.generate(60, (i) => i + 1);
         });
       }
     } catch (e) {
@@ -280,6 +413,12 @@ class _ProgressPageState extends State<ProgressPage>
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxScrolled) {
           return [
+            SliverAppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              pinned: false,
+              title: _buildSearchField(isDark),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -447,6 +586,52 @@ class _ProgressPageState extends State<ProgressPage>
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
       ],
+    );
+  }
+
+  Widget _buildSearchField(bool isDark) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.grey[200],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.transparent : Colors.grey[300]!,
+        ),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: TextStyle(
+          color: isDark
+              ? AppColors.textPrimaryDark
+              : AppColors.textPrimaryLight,
+          fontSize: 14,
+        ),
+        decoration: InputDecoration(
+          hintText: "Search (e.g. 2:200, Al-Baqarah)...",
+          hintStyle: TextStyle(
+            color: isDark ? Colors.grey[500] : Colors.grey[600],
+            fontSize: 13,
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 18,
+            color: isDark ? Colors.grey[500] : Colors.grey[600],
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  color: Colors.grey,
+                  onPressed: () {
+                    _searchController.clear();
+                    FocusScope.of(context).unfocus();
+                  },
+                )
+              : null,
+        ),
+      ),
     );
   }
 
@@ -661,11 +846,23 @@ class _ProgressPageState extends State<ProgressPage>
   }
 
   Widget _buildSurahList(bool isDark) {
+    // Determine list based on search
+    final displayList = _isSearching ? _filteredSurahs : _surahs;
+
+    if (displayList.isEmpty) {
+      return Center(
+        child: Text(
+          "No Surahs match",
+          style: TextStyle(color: Colors.grey[400]),
+        ),
+      );
+    }
+
     return ListView.builder(
-      itemCount: _surahs.length,
+      itemCount: displayList.length,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemBuilder: (context, index) {
-        final surah = _surahs[index];
+        final surah = displayList[index];
         final progress = _surahProgress.firstWhere(
           (p) => p.unitId == surah.number,
           orElse: () => QuranProgress(
@@ -703,163 +900,171 @@ class _ProgressPageState extends State<ProgressPage>
               width: 1,
             ),
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 4,
-              bottom: 4,
-            ),
-            leading: Builder(
-              builder: (context) {
-                final pct = _calculateSurahProgress(surah.number);
-                final isFull = progress.isMemorized || pct >= 0.999;
+          child: Column(
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 4,
+                  bottom: 4,
+                ),
+                leading: Builder(
+                  builder: (context) {
+                    final pct = _calculateSurahProgress(surah.number);
+                    final isFull = progress.isMemorized || pct >= 0.999;
 
-                if (isFull) {
-                  return Container(
-                    width: 42,
-                    height: 42,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.successGreen,
-                          AppColors.successGreenDark,
-                        ],
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  );
-                } else if (pct > 0.0) {
-                  // Partial progress indicator
-                  return SizedBox(
-                    width: 42,
-                    height: 42,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: pct,
-                          backgroundColor: isDark
-                              ? Colors.white10
-                              : Colors.grey.withOpacity(0.1),
-                          color: AppColors.accentOrange,
-                          strokeWidth: 3,
+                    if (isFull) {
+                      return Container(
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.successGreen,
+                              AppColors.successGreenDark,
+                            ],
+                          ),
                         ),
-                        Text(
-                          "${(pct * 100).toInt()}%",
+                        child: const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      );
+                    } else if (pct > 0.0) {
+                      // Partial progress indicator
+                      return SizedBox(
+                        width: 42,
+                        height: 42,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: pct,
+                              backgroundColor: isDark
+                                  ? Colors.white10
+                                  : Colors.grey.withOpacity(0.1),
+                              color: AppColors.accentOrange,
+                              strokeWidth: 3,
+                            ),
+                            Text(
+                              "${(pct * 100).toInt()}%",
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textPrimaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      // Normal Number
+                      return Container(
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? AppColors.backgroundDark
+                              : AppColors.backgroundLight,
+                        ),
+                        child: Text(
+                          "${surah.number}",
                           style: TextStyle(
-                            fontSize: 10,
                             fontWeight: FontWeight.bold,
+                            fontSize: 14,
                             color: isDark
                                 ? AppColors.textSecondaryDark
-                                : AppColors.textPrimaryLight,
+                                : AppColors.textSecondaryLight,
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                } else {
-                  // Normal Number
-                  return Container(
-                    width: 42,
-                    height: 42,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isDark
-                          ? AppColors.backgroundDark
-                          : AppColors.backgroundLight,
-                    ),
-                    child: Text(
-                      "${surah.number}",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
-            title: Text(
-              surah.englishName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: hasActive
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: AppColors.accentOrange,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          "In Progress",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.accentOrange,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Text(
-                    surah.name,
-                    style: TextStyle(
-                      fontFamily: "QuranFont",
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight,
-                    ),
+                      );
+                    }
+                  },
+                ),
+                title: Text(
+                  surah.englishName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (progress.revisionCount > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentOrange.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "${progress.revisionCount} Revs",
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.accentOrange,
+                ),
+                subtitle: hasActive
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: AppColors.accentOrange,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              "In Progress",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.accentOrange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Text(
+                        surah.name,
+                        style: TextStyle(
+                          fontFamily: "QuranFont",
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-            onTap: () {
-              _showUnitDetails(
-                context,
-                PlanUnitType.surah,
-                surah.number,
-                "Surah ${surah.englishName}",
-              );
-            },
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (progress.revisionCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentOrange.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "${progress.revisionCount} Revs",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accentOrange,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                onTap: () {
+                  _showUnitDetails(
+                    context,
+                    PlanUnitType.surah,
+                    surah.number,
+                    "Surah ${surah.englishName}",
+                    preloadedNotes: _surahNotes[surah.number],
+                  );
+                },
+              ),
+            ],
           ),
         );
       },
@@ -867,12 +1072,20 @@ class _ProgressPageState extends State<ProgressPage>
   }
 
   Widget _buildJuzList(bool isDark) {
-    // 30 Juz
+    if (_filteredJuzNumbers.isEmpty) {
+      return Center(
+        child: Text(
+          "No Juz matches",
+          style: TextStyle(color: Colors.grey[400]),
+        ),
+      );
+    }
+
     return ListView.builder(
-      itemCount: 30,
+      itemCount: _filteredJuzNumbers.length,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
-        final juzNum = index + 1;
+        final juzNum = _filteredJuzNumbers[index];
 
         // 1. Tasks explicitly for this Juz (Revision/Memorization)
         final explicitJuzTasks = _activeTasks.where(
@@ -1025,6 +1238,7 @@ class _ProgressPageState extends State<ProgressPage>
                     PlanUnitType.juz,
                     juzNum,
                     "Juz $juzNum",
+                    preloadedNotes: _juzNotes[juzNum],
                   ),
                 ),
                 if (displayTasks.isNotEmpty) const Divider(),
@@ -1058,6 +1272,7 @@ class _ProgressPageState extends State<ProgressPage>
                           PlanUnitType.surah,
                           task.unitId,
                           task.title,
+                          preloadedNotes: _surahNotes[task.unitId],
                         );
                       } else {
                         _showUnitDetails(
@@ -1065,6 +1280,7 @@ class _ProgressPageState extends State<ProgressPage>
                           PlanUnitType.juz,
                           task.unitId,
                           task.title,
+                          preloadedNotes: _juzNotes[task.unitId],
                         );
                       }
                     },
@@ -1079,12 +1295,20 @@ class _ProgressPageState extends State<ProgressPage>
   }
 
   Widget _buildHizbList(bool isDark) {
-    // 60 Hizbs
+    if (_filteredHizbNumbers.isEmpty) {
+      return Center(
+        child: Text(
+          "No Hizb matches",
+          style: TextStyle(color: Colors.grey[400]),
+        ),
+      );
+    }
+
     return ListView.builder(
-      itemCount: 60,
+      itemCount: _filteredHizbNumbers.length,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
-        final hizbNum = index + 1;
+        final hizbNum = _filteredHizbNumbers[index];
 
         // Match active tasks for this Hizb
         // 1. Explicit mention in subtitle
@@ -1139,7 +1363,6 @@ class _ProgressPageState extends State<ProgressPage>
             isFullyMemorized = hizbProg >= 0.99;
           }
         }
-
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 0,
@@ -1152,113 +1375,118 @@ class _ProgressPageState extends State<ProgressPage>
                   : AppColors.dividerLight.withOpacity(0.5),
             ),
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 4,
-            ),
-            leading: Container(
-              width: 42,
-              height: 42,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: isFullyMemorized
-                    ? const LinearGradient(
-                        colors: [
-                          AppColors.successGreen,
-                          AppColors.successGreenDark,
-                        ],
-                      )
-                    : null,
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (!isFullyMemorized)
-                    CircularProgressIndicator(
-                      value: hizbProg,
-                      strokeWidth: 3,
-                      color: AppColors.accentOrange,
-                      backgroundColor: isDark
-                          ? AppColors.dividerDark
-                          : AppColors.dividerLight,
-                    )
-                  else
-                    const Icon(Icons.check, color: Colors.white, size: 24),
-
-                  if (!isFullyMemorized)
-                    Text(
-                      "$hizbNum",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            title: Text("Hizb $hizbNum (Juz $parentJuz)"),
-            subtitle: hasActive
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: AppColors.accentOrange,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          relevant.isNotEmpty
-                              ? "Active Task"
-                              : "Covered by Juz ${parentJuz}",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.accentOrange,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Text(
-                    "${(hizbProg * 100).toInt()}% Memorized",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isFullyMemorized
-                          ? AppColors.successGreen
-                          : (isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight),
-                    ),
+          child: Column(
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: isFullyMemorized
+                        ? const LinearGradient(
+                            colors: [
+                              AppColors.successGreen,
+                              AppColors.successGreenDark,
+                            ],
+                          )
+                        : null,
                   ),
-            trailing: Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-            ), // Always show arrow to imply tappable
-            onTap: () {
-              // Hizb not directly supported in DB unit types yet,
-              // but we can map it to Juz for now or show empty notes if we don't have explicit Hizb unit type.
-              // Or better: Show notes for the Parent Juz? Or just "Coming Soon"?
-              // Let's show Parent Juz notes for context.
-              _showUnitDetails(
-                context,
-                PlanUnitType.juz,
-                parentJuz,
-                "Hizb $hizbNum (Juz $parentJuz)",
-              );
-            },
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (!isFullyMemorized)
+                        CircularProgressIndicator(
+                          value: hizbProg,
+                          strokeWidth: 3,
+                          color: AppColors.accentOrange,
+                          backgroundColor: isDark
+                              ? AppColors.dividerDark
+                              : AppColors.dividerLight,
+                        )
+                      else
+                        const Icon(Icons.check, color: Colors.white, size: 24),
+
+                      if (!isFullyMemorized)
+                        Text(
+                          "$hizbNum",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                title: Text("Hizb $hizbNum (Juz $parentJuz)"),
+                subtitle: hasActive
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: AppColors.accentOrange,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              relevant.isNotEmpty
+                                  ? "Active Task"
+                                  : "Covered by Juz ${parentJuz}",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.accentOrange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Text(
+                        "${(hizbProg * 100).toInt()}% Memorized",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isFullyMemorized
+                              ? AppColors.successGreen
+                              : (isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondaryLight),
+                        ),
+                      ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ), // Always show arrow to imply tappable
+                onTap: () {
+                  // Hizb not directly supported in DB unit types yet,
+                  // but we can map it to Juz for now or show empty notes if we don't have explicit Hizb unit type.
+                  // Or better: Show notes for the Parent Juz? Or just "Coming Soon"?
+                  // Let's show Parent Juz notes for context.
+                  _showUnitDetails(
+                    context,
+                    PlanUnitType.juz,
+                    parentJuz,
+                    "Hizb $hizbNum (Juz $parentJuz)",
+                    preloadedNotes: _hizbNotes[hizbNum],
+                  );
+                },
+              ),
+            ],
           ),
         );
       },
@@ -1269,8 +1497,9 @@ class _ProgressPageState extends State<ProgressPage>
     BuildContext context,
     PlanUnitType type,
     int unitId,
-    String title,
-  ) {
+    String title, {
+    List<TaskNote>? preloadedNotes,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -1288,8 +1517,14 @@ class _ProgressPageState extends State<ProgressPage>
           maxChildSize: 0.9,
           expand: false,
           builder: (context, scrollController) {
+            // If we have cached notes (Ayah mapped), use them.
+            // Otherwise fall back to DB fetch for just Unit notes.
+            final future = preloadedNotes != null
+                ? Future.value(preloadedNotes)
+                : PlannerDatabaseHelper().getNotesForUnit(type, unitId);
+
             return FutureBuilder<List<TaskNote>>(
-              future: PlannerDatabaseHelper().getNotesForUnit(type, unitId),
+              future: future,
               builder: (context, snapshot) {
                 return SingleChildScrollView(
                   controller: scrollController,
@@ -1354,16 +1589,19 @@ class _ProgressPageState extends State<ProgressPage>
                       ),
                       const SizedBox(height: 16),
 
-                      if (!snapshot.hasData)
+                      if (snapshot.connectionState == ConnectionState.waiting)
                         const Padding(
                           padding: EdgeInsets.all(32.0),
                           child: Center(child: CircularProgressIndicator()),
                         )
-                      else if (snapshot.data!.isEmpty)
+                      else if (!snapshot.hasData || snapshot.data!.isEmpty)
                         _buildEmptyNotesState(isDark)
                       else
                         ...snapshot.data!.map(
-                          (note) => _buildNoteItem(note, isDark),
+                          (note) => CollapsibleNoteCard(
+                            note: note,
+                            // CollapsibleNoteCard handles fetching the label itself now
+                          ),
                         ),
 
                       const SizedBox(height: 24),
@@ -1423,94 +1661,6 @@ class _ProgressPageState extends State<ProgressPage>
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondaryLight,
               fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoteItem(TaskNote note, bool isDark) {
-    IconData icon;
-    Color color;
-    String typeLabel;
-
-    switch (note.type) {
-      case NoteType.doubt:
-        icon = Icons.help_outline;
-        color = AppColors.accentOrange;
-        typeLabel = "Doubt";
-        break;
-      case NoteType.mistake:
-        icon = Icons.error_outline;
-        color = AppColors.errorRed;
-        typeLabel = "Mistake";
-        break;
-      case NoteType.note:
-        icon = Icons.edit_note;
-        color = AppColors.primaryNavy;
-        typeLabel = "Note";
-        break;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      typeLabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('MMM d').format(note.createdAt),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  note.content,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

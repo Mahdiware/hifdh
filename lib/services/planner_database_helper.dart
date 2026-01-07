@@ -31,7 +31,12 @@ class PlannerDatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE task_notes ADD COLUMN ayahId INTEGER');
+        }
+      },
       onCreate: (db, version) async {
         // Tasks Table
         await db.execute('''
@@ -60,6 +65,7 @@ class PlannerDatabaseHelper {
             taskId INTEGER,
             content TEXT,
             type INTEGER,
+            ayahId INTEGER,
             createdAt TEXT,
             FOREIGN KEY(taskId) REFERENCES tasks(id) ON DELETE CASCADE
           )
@@ -527,7 +533,12 @@ class PlannerDatabaseHelper {
 
   // --- Notes History ---
 
-  Future<int> addNote(int taskId, String content, NoteType type) async {
+  Future<int> addNote(
+    int taskId,
+    String content,
+    NoteType type, {
+    int? ayahId,
+  }) async {
     final db = await database;
     // Update the main task's latest "note" field too for quick access
     await updateTaskNote(taskId, content);
@@ -536,6 +547,7 @@ class PlannerDatabaseHelper {
       'taskId': taskId,
       'content': content,
       'type': type.index,
+      'ayahId': ayahId,
       'createdAt': DateTime.now().toIso8601String(),
     });
     dataUpdateNotifier.value++;
@@ -583,6 +595,17 @@ class PlannerDatabaseHelper {
     );
 
     return List.generate(maps.length, (i) => TaskNote.fromMap(maps[i]));
+  }
+
+  // Fetch all notes with their parent task info to distribute them by unit
+  Future<List<Map<String, dynamic>>> getAllNotesWithTasks() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT tn.*, t.unitType, t.unitId 
+      FROM task_notes tn
+      JOIN tasks t ON tn.taskId = t.id
+      ORDER BY tn.createdAt DESC
+    ''');
   }
 
   // --- Stats & Progress ---

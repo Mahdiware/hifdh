@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../models/plan_task.dart';
 import '../services/planner_database_helper.dart';
 import '../theme/app_colors.dart';
+import '../utils/ayah_search_query.dart';
+import '../widgets/collapsible_note_card.dart';
 
 enum HistorySort { newest, oldest, typeMemorize, typeRevision }
 
@@ -15,20 +17,28 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   List<PlanTask> _history = [];
+  List<PlanTask> _filteredHistory = []; // Display list
   bool _isLoading = true;
   HistorySort _sortOption = HistorySort.newest;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadHistory();
     PlannerDatabaseHelper().dataUpdateNotifier.addListener(_loadHistory);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     PlannerDatabaseHelper().dataUpdateNotifier.removeListener(_loadHistory);
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _filterHistory();
   }
 
   Future<void> _loadHistory() async {
@@ -36,14 +46,61 @@ class _HistoryPageState extends State<HistoryPage> {
     final history = await PlannerDatabaseHelper().getCompletedTasks();
 
     // Sort logic
-    _sortData(history);
+    _sortData(history); // Sort the raw list
 
     if (mounted) {
       setState(() {
         _history = history;
         _isLoading = false;
+        _filterHistory(); // Applies filter to raw list
       });
     }
+  }
+
+  void _filterHistory() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      setState(() => _filteredHistory = List.from(_history));
+      return;
+    }
+
+    final search = AyahSearchQuery.parse(query);
+
+    setState(() {
+      _filteredHistory = _history.where((task) {
+        bool matchesRange = false;
+
+        // 1. Structural/Range Search using parsed query
+        if (search != null) {
+          if (search.isSpecificAyah()) {
+            // Surah:Ayah (e.g. 2:200)
+            if (task.unitType == PlanUnitType.surah &&
+                task.unitId == search.surahNumber) {
+              final start = task.startAyah ?? 1;
+              final end = task.endAyah ?? 9999;
+              if (search.ayahNumber! >= start && search.ayahNumber! <= end) {
+                matchesRange = true;
+              }
+            }
+          } else if (search.surahNumber != null && search.ayahNumber == null) {
+            // Surah Number (e.g. 2)
+            if (task.unitType == PlanUnitType.surah &&
+                task.unitId == search.surahNumber) {
+              matchesRange = true;
+            }
+          }
+        }
+
+        if (matchesRange) return true;
+
+        // 2. Text Search (Fallback for Metadata & Notes)
+        final q = query.toLowerCase();
+        return task.title.toLowerCase().contains(q) ||
+            (task.subtitle?.toLowerCase().contains(q) ?? false) ||
+            (task.note?.toLowerCase().contains(q) ?? false) ||
+            task.id.toString() == q;
+      }).toList();
+    });
   }
 
   void _sortData(List<PlanTask> list) {
@@ -90,9 +147,56 @@ class _HistoryPageState extends State<HistoryPage> {
   void _onSortChanged(HistorySort? sort) {
     if (sort != null) {
       setState(() => _sortOption = sort);
-      // Re-sort current list immediately
+      // Re-sort and re-filter
       _sortData(_history);
+      _filterHistory();
     }
+  }
+
+  Widget _buildSearchField(bool isDark) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.grey[200],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.transparent : Colors.grey[300]!,
+        ),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: TextStyle(
+          color: isDark
+              ? AppColors.textPrimaryDark
+              : AppColors.textPrimaryLight,
+          fontSize: 14,
+        ),
+        decoration: InputDecoration(
+          hintText: "Search (e.g. 2:200, Al-Baqarah)...",
+          hintStyle: TextStyle(
+            color: isDark ? Colors.grey[500] : Colors.grey[600],
+            fontSize: 13,
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 18,
+            color: isDark ? Colors.grey[500] : Colors.grey[600],
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  color: Colors.grey,
+                  onPressed: () {
+                    _searchController.clear();
+                    FocusScope.of(context).unfocus();
+                  },
+                )
+              : null,
+        ),
+      ),
+    );
   }
 
   Map<String, List<PlanTask>> _groupTasksByDate() {
@@ -100,7 +204,8 @@ class _HistoryPageState extends State<HistoryPage> {
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
 
-    for (var task in _history) {
+    // Use _filteredHistory instead of _history
+    for (var task in _filteredHistory) {
       final date = task.completedAt;
       if (date == null) continue;
 
@@ -137,15 +242,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ? AppColors.backgroundDark
           : AppColors.backgroundLight,
       appBar: AppBar(
-        title: Text(
-          "History",
-          style: TextStyle(
-            color: isDark
-                ? AppColors.textPrimaryDark
-                : AppColors.textPrimaryLight,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: _buildSearchField(isDark), // Replaced title with search
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
@@ -537,18 +634,21 @@ class _HistoryPageState extends State<HistoryPage> {
                         if (task.note != null &&
                             task.note!.isNotEmpty &&
                             !snapshot.data!.any((n) => n.content == task.note))
-                          _buildNoteItem(
-                            TaskNote(
+                          CollapsibleNoteCard(
+                            note: TaskNote(
                               taskId: task.id!,
                               content: task.note!,
                               type: NoteType.note,
                               createdAt: task.completedAt!,
                             ),
-                            isDark,
-                            isLegacy: true,
                           ),
                         ...snapshot.data!.map(
-                          (note) => _buildNoteItem(note, isDark),
+                          (note) => CollapsibleNoteCard(
+                            note: note,
+                            ayahLabel: note.ayahId != null
+                                ? "Ayah ${note.ayahId}" // Needs DB lookup for full number, simplified for now
+                                : null,
+                          ),
                         ),
                       ],
                       const SizedBox(height: 24),
@@ -608,99 +708,6 @@ class _HistoryPageState extends State<HistoryPage> {
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondaryLight,
               fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoteItem(TaskNote note, bool isDark, {bool isLegacy = false}) {
-    IconData icon;
-    Color color;
-    String typeLabel;
-
-    switch (note.type) {
-      case NoteType.doubt:
-        icon = Icons.help_outline;
-        color = AppColors.accentOrange;
-        typeLabel = "Doubt";
-        break;
-      case NoteType.mistake:
-        icon = Icons.error_outline;
-        color = AppColors.errorRed;
-        typeLabel = "Mistake";
-        break;
-      case NoteType.note:
-        icon = Icons.edit_note;
-        color = AppColors.primaryNavy;
-        typeLabel = "Note";
-        break;
-    }
-
-    if (isLegacy) {
-      typeLabel = "Old Note";
-      color = Colors.grey;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      typeLabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('MMM d').format(note.createdAt),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  note.content,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-              ],
             ),
           ),
         ],

@@ -125,6 +125,22 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<Map<String, dynamic>?> getAyahInfoById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      "SELECT qm.surahNumber, qm.ayahNumber, si.surahName, si.surahArabicName "
+      "FROM quran_meta qm "
+      "JOIN surah_info si ON qm.surahNumber = si.surahNumber "
+      "WHERE qm.id = ? LIMIT 1",
+      [id],
+    );
+
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    return null;
+  }
+
   Future<Ayah?> getRandomAyahBySurah(int surah) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.rawQuery(
