@@ -70,9 +70,21 @@ To build locally:
 flutter build apk --release --split-per-abi
 ```
 
+To change icon:
+
+```bash
+flutter pub run flutter_launcher_icons
+```
+
 To change version:
 ```bash
 dart run set_version.dart 1.0.1
+```
+
+To change package name:
+```bash
+flutter pub global activate change_app_package_name
+flutter pub global run change_app_package_name:main com.mahdiware.hifdh
 ```
 
 ## Contributing
