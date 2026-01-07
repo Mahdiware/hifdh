@@ -51,10 +51,6 @@ android {
             isShrinkResources = false
 
             signingConfig = signingConfigs.getByName("release")
-
-            this.isV1SigningEnabled = true
-            this.isV2SigningEnabled = true
-            this.isV3SigningEnabled = true
         }
     }
 }
