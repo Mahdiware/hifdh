@@ -51,7 +51,8 @@ jobs:
 
       - name: Build APKs (split per ABI)
         env:
-          KEYSTORE_PATH: android/app/hifdh-release.keystore
+          # FIX: Use ${{ github.workspace }} to provide the absolute path
+          KEYSTORE_PATH: ${{ github.workspace }}/android/app/hifdh-release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -70,7 +71,8 @@ jobs:
 
       - name: Build universal APK
         env:
-          KEYSTORE_PATH: android/app/hifdh-release.keystore
+          # FIX: Use ${{ github.workspace }} to provide the absolute path
+          KEYSTORE_PATH: ${{ github.workspace }}/android/app/hifdh-release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
