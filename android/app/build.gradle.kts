@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Flutter Gradle Plugin must be last
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -20,21 +20,41 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.mahdiware.hifdh"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            // Require environment variable KEYS
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            require(!keystorePath.isNullOrEmpty()) {
+                "Environment variable KEYSTORE_PATH is not set!"
+            }
+
+            storeFile = file(keystorePath)
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+                ?: throw GradleException("Environment variable KEYSTORE_PASSWORD is not set!")
+            keyAlias = System.getenv("KEY_ALIAS")
+                ?: throw GradleException("Environment variable KEY_ALIAS is not set!")
+            keyPassword = System.getenv("KEY_PASSWORD")
+                ?: throw GradleException("Environment variable KEY_PASSWORD is not set!")
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
+
+            signingConfig = signingConfigs.getByName("release")
+
+            v1SigningEnabled = true   // JAR signature
+            v2SigningEnabled = true   // Full APK signature
+            v3SigningEnabled = true   // APK Signature v3 (Android 9+)
         }
     }
 }

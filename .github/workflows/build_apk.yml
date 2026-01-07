@@ -2,19 +2,34 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main", "main" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "main" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build APK
+    name: Build Signed APK
     runs-on: ubuntu-latest
+
+    env:
+      # Keystore secrets stored in GitHub Secrets
+      KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # ------------------------------
+      # Decode keystore
+      # ------------------------------
+      - name: Decode keystore
+        run: |
+          echo "$KEYSTORE_PATH" | base64 --decode > ./hifdh-release.keystore
+          chmod 600 ./hifdh-release.keystore
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -28,12 +43,20 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Get Dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Build APK
-        run: flutter build apk --release --split-per-abi
+      # ------------------------------
+      # Build APKs (split per ABI)
+      # ------------------------------
+      - name: Build APKs (all ABIs)
+        run: flutter build apk --release --split-per-abi \
+          --build-name=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | cut -d '+' -f1) \
+          --build-number=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | cut -d '+' -f2)
 
+      # ------------------------------
+      # Extract version from pubspec.yaml
+      # ------------------------------
       - name: Extract Version
         id: extract_version
         run: |
@@ -41,21 +64,29 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Detected version: $VERSION"
 
+      # ------------------------------
+      # Rename APKs for clarity
+      # ------------------------------
       - name: Rename APKs
         run: |
           cd build/app/outputs/flutter-apk/
           for file in app-*-release.apk; do
-            # Extract ABI (e.g. app-armeabi-v7a-release.apk -> armeabi-v7a)
             ABI=$(echo "$file" | sed 's/app-\(.*\)-release.apk/\1/')
             mv "$file" "../../../../HifdhTracker_${{ env.VERSION }}_${ABI}_release.apk"
           done
 
+      # ------------------------------
+      # Build Universal APK
+      # ------------------------------
       - name: Build Universal APK
         run: flutter build apk --release
 
       - name: Rename Universal APK
         run: mv build/app/outputs/flutter-apk/app-release.apk "HifdhTracker_${{ env.VERSION }}_universal_release.apk"
 
+      # ------------------------------
+      # Upload APK artifacts
+      # ------------------------------
       - name: Upload APK (Universal)
         uses: actions/upload-artifact@v4
         with:
