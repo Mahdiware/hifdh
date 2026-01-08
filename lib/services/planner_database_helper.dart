@@ -657,20 +657,15 @@ class PlannerDatabaseHelper {
     return List.generate(maps.length, (i) => QuranProgress.fromMap(maps[i]));
   }
 
-  // Calculate Global Memorization Percentage (Surah Based)
+  // Calculate Global Memorization Percentage (Page Based)
   Future<double> getMemorizedPercentage() async {
-    final db = await database;
-    // Simple: count of memorized surahs / 114?
-    // Or weighted by Ayah count? Weighted is better but requires joining quran.db.
-    // Let's use simple Surah count for now or hardcode Ayah counts later.
-    // User asked for "percentage", simple surrogate is Surah count * rough length weighting or just raw count.
-    final count =
-        Sqflite.firstIntValue(
-          await db.rawQuery(
-            'SELECT COUNT(*) FROM quran_progress WHERE isMemorized = 1',
-          ),
-        ) ??
-        0;
-    return (count / 114.0) * 100;
+    final covered = await getGlobalPageCoverage();
+    int count = 0;
+    for (int i = 1; i <= 604; i++) {
+      if (i < covered.length && covered[i]) {
+        count++;
+      }
+    }
+    return (count / 604.0) * 100;
   }
 }
