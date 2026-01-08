@@ -27,6 +27,15 @@ android {
         versionName = flutter.versionName
     }
 
+    // Force all APKs to have the exact same version code, ignoring ABI splits logic
+    applicationVariants.all {
+        outputs.forEach { output ->
+            if (output is com.android.build.gradle.internal.api.ApkVariantOutputImpl) {
+                output.versionCodeOverride = flutter.versionCode
+            }
+        }
+    }
+
     signingConfigs {
         create("release") {
             // Require environment variable KEYS
