@@ -136,20 +136,21 @@ jobs:
             fi
           done
 
-      - name: Zip and Send APKs via Telegram
+      - name: Compress and Send APKs via Telegram
         if: success()
         run: |
+          # Use XZ compression (via tar) for better size reduction than zip
+          export XZ_OPT='-9e'
           for apk in HifdhTracker_*_release.apk; do
             if [ -f "$apk" ]; then
-              echo "Zipping $apk..."
-              # -9 for max compression, -j to junk paths
-              zip -9 -j "${apk}.zip" "$apk"
-              ZIP_FILE="${apk}.zip"
+              echo "Compressing $apk..."
+              tar -cJf "${apk}.tar.xz" "$apk"
+              ARCHIVE_FILE="${apk}.tar.xz"
               
-              echo "Sending $ZIP_FILE..."
+              echo "Sending $ARCHIVE_FILE..."
               curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
                 -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-                -F document=@"$ZIP_FILE" \
-                -F caption="🤐 Zipped: $ZIP_FILE"
+                -F document=@"$ARCHIVE_FILE" \
+                -F caption="🗜️ Compressed: $ARCHIVE_FILE"
             fi
           done

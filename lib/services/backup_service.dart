@@ -24,28 +24,16 @@ class BackupService {
     final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
     final fileName = 'hifdh_backup_$timestamp.db';
 
-    if (Platform.isAndroid || Platform.isIOS) {
-      // Allow user to pick a directory to save the file
-      final directory = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Select Folder to Save Backup',
-      );
+    // Read DB bytes. file_picker requires bytes to be passed to write to the file on Android/iOS.
+    final bytes = await dbFile.readAsBytes();
 
-      if (directory != null) {
-        final newPath = join(directory, fileName);
-        await dbFile.copy(newPath);
-      }
-    } else {
-      // Desktop: Save File Dialog
-      final outputFile = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save Backup',
-        fileName: fileName,
-        type: FileType.any,
-      );
-
-      if (outputFile != null) {
-        await dbFile.copy(outputFile);
-      }
-    }
+    // Use saveFile for all platforms.
+    await FilePicker.platform.saveFile(
+      dialogTitle: 'Save Backup',
+      fileName: fileName,
+      type: FileType.any,
+      bytes: bytes,
+    );
   }
 
   Future<bool> restore() async {
