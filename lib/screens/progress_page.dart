@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../services/planner_database_helper.dart';
 import '../models/plan_task.dart';
 import '../models/surah.dart';
 import '../services/database_helper.dart';
 import '../theme/app_colors.dart';
-import '../utils/ayah_search_query.dart';
-import '../widgets/collapsible_note_card.dart';
+import '../utils/progress_chart_helper.dart';
+import '../widgets/progress/activity_chart.dart';
+import '../widgets/progress/progress_header_card.dart';
+import '../widgets/progress/unit_details_sheet.dart';
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
@@ -32,14 +33,6 @@ class _ProgressPageState extends State<ProgressPage>
 
   // Chart Range
   int _selectedStatRange = 7;
-  final List<int> _chartRanges = [7, 30, 90, 180, 365];
-  final Map<int, String> _chartRangeLabels = {
-    7: "7 Days",
-    30: "30 Days",
-    90: "3 Months",
-    180: "6 Months",
-    365: "1 Year",
-  };
 
   // Cache for Juz -> Surahs mapping
   Map<int, List<int>> _juzSurahMap = {};
@@ -59,14 +52,6 @@ class _ProgressPageState extends State<ProgressPage>
   Map<int, List<TaskNote>> _juzNotes = {};
   Map<int, List<TaskNote>> _hizbNotes = {};
 
-  // Search State
-  final TextEditingController _searchController = TextEditingController();
-  List<PlanTask> _filteredActiveTasks = [];
-  List<Surah> _filteredSurahs = [];
-  List<int> _filteredJuzNumbers = [];
-  List<int> _filteredHizbNumbers = [];
-  bool _isSearching = false;
-
   @override
   void initState() {
     super.initState();
@@ -74,90 +59,13 @@ class _ProgressPageState extends State<ProgressPage>
     _loadData();
     // Listen for data changes from other tabs
     PlannerDatabaseHelper().dataUpdateNotifier.addListener(_loadData);
-    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     PlannerDatabaseHelper().dataUpdateNotifier.removeListener(_loadData);
-    _searchController.dispose();
     _tabController.dispose();
     super.dispose();
-  }
-
-  void _onSearchChanged() {
-    final query = _searchController.text.trim();
-    setState(() {
-      _isSearching = query.isNotEmpty;
-      if (!_isSearching) {
-        _filteredActiveTasks = List.from(_activeTasks);
-        _filteredSurahs = List.from(_surahs);
-        _filteredJuzNumbers = List.generate(30, (i) => i + 1);
-        _filteredHizbNumbers = List.generate(60, (i) => i + 1);
-        return;
-      }
-
-      final search = AyahSearchQuery.parse(query);
-
-      // Filter Active Tasks
-      _filteredActiveTasks = _activeTasks.where((task) {
-        bool matchesRange = false;
-
-        // 1. Structural/Range Search
-        if (search != null) {
-          if (search.isSpecificAyah()) {
-            if (task.unitType == PlanUnitType.surah &&
-                task.unitId == search.surahNumber) {
-              final start = task.startAyah ?? 1;
-              final end = task.endAyah ?? 9999;
-              if (search.ayahNumber! >= start && search.ayahNumber! <= end)
-                matchesRange = true;
-            }
-          } else if (search.surahNumber != null && search.ayahNumber == null) {
-            if (task.unitType == PlanUnitType.surah &&
-                task.unitId == search.surahNumber)
-              matchesRange = true;
-          }
-        }
-
-        if (matchesRange) return true;
-
-        // 2. Text Search
-        final q = query.toLowerCase();
-        return task.title.toLowerCase().contains(q) ||
-            (task.subtitle?.toLowerCase().contains(q) ?? false) ||
-            (task.note?.toLowerCase().contains(q) ?? false);
-      }).toList();
-
-      // Filter Surahs (Quran Status Tab)
-      _filteredSurahs = _surahs.where((s) {
-        if (search != null && search.surahNumber != null) {
-          return s.number == search.surahNumber;
-        }
-        final q = query.toLowerCase();
-        return s.englishName.toLowerCase().contains(q) || s.name.contains(q);
-      }).toList();
-
-      // Filter Juz
-      final qLower = query.toLowerCase();
-      _filteredJuzNumbers = List.generate(30, (i) => i + 1).where((j) {
-        if (qLower == "$j" || qLower == "juz $j") return true;
-        // Check if any filtered active task belongs to this Juz
-        return _filteredActiveTasks.any(
-          (t) => t.unitType == PlanUnitType.juz && t.unitId == j,
-        );
-      }).toList();
-
-      // Filter Hizb
-      _filteredHizbNumbers = List.generate(60, (i) => i + 1).where((h) {
-        if (qLower == "$h" || qLower == "hizb $h") return true;
-        // Check regex for Hizb active task
-        return _filteredActiveTasks.any((t) {
-          final sub = t.subtitle?.toLowerCase() ?? "";
-          return sub.contains("hizb $h");
-        });
-      }).toList();
-    });
   }
 
   Future<void> _loadData() async {
@@ -266,8 +174,9 @@ class _ProgressPageState extends State<ProgressPage>
           _memPercentage = basicFutures[0] as double;
           _surahProgress = basicFutures[1] as List<QuranProgress>;
           _surahs = basicFutures[2] as List<Surah>;
-          _chartData = _normalizeChartData(
+          _chartData = ProgressChartHelper.normalizeChartData(
             basicFutures[3] as List<Map<String, dynamic>>,
+            _selectedStatRange,
           );
           _overallStats = basicFutures[4] as Map<String, int>;
           _activeTasks = basicFutures[5] as List<PlanTask>;
@@ -277,120 +186,12 @@ class _ProgressPageState extends State<ProgressPage>
           _juzNotes = jNotes;
           _hizbNotes = hNotes;
           _isLoading = false;
-          _filteredActiveTasks = List.from(_activeTasks);
-          _filteredSurahs = List.from(_surahs);
-          _filteredJuzNumbers = List.generate(30, (i) => i + 1);
-          _filteredHizbNumbers = List.generate(60, (i) => i + 1);
         });
       }
     } catch (e) {
       debugPrint("Error loading progress: $e");
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  List<Map<String, dynamic>> _normalizeChartData(
-    List<Map<String, dynamic>> raw,
-  ) {
-    if (_selectedStatRange <= 7) {
-      return _generateDailyData(raw, _selectedStatRange);
-    } else if (_selectedStatRange <= 90) {
-      // Weekly aggregation for 30 and 90 days
-      return _generateWeeklyData(raw, _selectedStatRange);
-    } else {
-      // Monthly aggregation for 6 months and 1 year
-      return _generateMonthlyData(raw, _selectedStatRange);
-    }
-  }
-
-  List<Map<String, dynamic>> _generateDailyData(
-    List<Map<String, dynamic>> raw,
-    int days,
-  ) {
-    final List<Map<String, dynamic>> result = [];
-    final now = DateTime.now();
-    for (int i = days - 1; i >= 0; i--) {
-      final d = now.subtract(Duration(days: i));
-      final key = DateFormat('yyyy-MM-dd').format(d);
-
-      final hit = raw.firstWhere(
-        (element) => element['date'] == key,
-        orElse: () => {'date': key, 'count': 0},
-      );
-      result.add({
-        'day': DateFormat('E').format(d)[0], // M, T, W...
-        'fullDate': DateFormat('MMM d').format(d),
-        'count': hit['count'],
-      });
-    }
-    return result;
-  }
-
-  List<Map<String, dynamic>> _generateWeeklyData(
-    List<Map<String, dynamic>> raw,
-    int days,
-  ) {
-    // Group by Week (Week Ending Date)
-    final List<Map<String, dynamic>> result = [];
-    final now = DateTime.now();
-
-    // Align to weeks? Or just raw chunks of 7 days?
-    // Let's do raw chunks back from today
-    int weeks = (days / 7).ceil();
-    for (int i = weeks - 1; i >= 0; i--) {
-      final weekEnd = now.subtract(Duration(days: i * 7));
-      final weekStart = weekEnd.subtract(const Duration(days: 6));
-
-      int count = 0;
-      for (var item in raw) {
-        final date = DateTime.parse(item['date']);
-        if (date.isAfter(weekStart.subtract(const Duration(seconds: 1))) &&
-            date.isBefore(weekEnd.add(const Duration(seconds: 1)))) {
-          count += (item['count'] as int);
-        }
-      }
-
-      result.add({
-        'day': "${weekStart.day}-${weekEnd.day}", // 12-19
-        'fullDate':
-            "${DateFormat('MMM d').format(weekStart)} - ${DateFormat('MMM d').format(weekEnd)}",
-        'count': count,
-      });
-    }
-    return result;
-  }
-
-  List<Map<String, dynamic>> _generateMonthlyData(
-    List<Map<String, dynamic>> raw,
-    int days,
-  ) {
-    final List<Map<String, dynamic>> result = [];
-    final now = DateTime.now();
-    int months = (days / 30).ceil(); // Approx
-
-    for (int i = months - 1; i >= 0; i--) {
-      // This is rough monthly calculation (30 days blocks)
-      // Better to use actual months?
-      // Let's use 30 day blocks for simplicity consistent with "days"
-      // Or actual calendar months? Calendar months is more user friendly "Jan, Feb".
-      // Let's try Calendar months.
-      final targetMonth = DateTime(now.year, now.month - i, 1);
-
-      int count = 0;
-      for (var item in raw) {
-        final date = DateTime.parse(item['date']);
-        if (date.year == targetMonth.year && date.month == targetMonth.month) {
-          count += (item['count'] as int);
-        }
-      }
-
-      result.add({
-        'day': DateFormat('MMM').format(targetMonth), // Jan, Feb
-        'fullDate': DateFormat('MMMM yyyy').format(targetMonth),
-        'count': count,
-      });
-    }
-    return result;
   }
 
   double _calculateSurahProgress(int surahNum) {
@@ -413,21 +214,24 @@ class _ProgressPageState extends State<ProgressPage>
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxScrolled) {
           return [
-            SliverAppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              pinned: false,
-              title: _buildSearchField(isDark),
-            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeaderCard(isDark),
+                    ProgressHeaderCard(
+                      memPercentage: _memPercentage,
+                      overallStats: _overallStats,
+                      isDark: isDark,
+                    ),
                     const SizedBox(height: 16),
-                    _buildWeeklyChart(isDark),
+                    ActivityChart(
+                      chartData: _chartData,
+                      selectedStatRange: _selectedStatRange,
+                      onRangeChanged: (val) => _updateChartRange(val),
+                      isDark: isDark,
+                    ),
                   ],
                 ),
               ),
@@ -470,399 +274,31 @@ class _ProgressPageState extends State<ProgressPage>
     );
   }
 
-  Widget _buildHeaderCard(bool isDark) {
-    final memCount = _overallStats['completed'] ?? 0;
-    final pendingCount = _overallStats['pending'] ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [AppColors.surfaceDark, Colors.black]
-              : [AppColors.primaryNavy, AppColors.surfaceDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryNavy.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Circular Diagram
-          SizedBox(
-            height: 100,
-            width: 100,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CircularProgressIndicator(
-                  value: _memPercentage / 100,
-                  strokeWidth: 8,
-                  valueColor: const AlwaysStoppedAnimation(
-                    AppColors.successGreen,
-                  ), // Green
-                  backgroundColor: Colors.white10,
-                ),
-                Center(
-                  child: Text(
-                    "${_memPercentage.toStringAsFixed(1)}%",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 24),
-          // Stats Column
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Hifdh Performance",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildStatItem(
-                      "Completed",
-                      "$memCount",
-                      Icons.check_circle,
-                      AppColors.successGreen,
-                    ),
-                    _buildStatItem(
-                      "Pending",
-                      "$pendingCount",
-                      Icons.timelapse,
-                      AppColors.accentOrange,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String val, IconData icon, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(width: 4),
-            Text(
-              val,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white54, fontSize: 12),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchField(bool isDark) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.grey[200],
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.transparent : Colors.grey[300]!,
-        ),
-      ),
-      child: TextField(
-        controller: _searchController,
-        style: TextStyle(
-          color: isDark
-              ? AppColors.textPrimaryDark
-              : AppColors.textPrimaryLight,
-          fontSize: 14,
-        ),
-        decoration: InputDecoration(
-          hintText: "Search (e.g. 2:200, Al-Baqarah)...",
-          hintStyle: TextStyle(
-            color: isDark ? Colors.grey[500] : Colors.grey[600],
-            fontSize: 13,
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            size: 18,
-            color: isDark ? Colors.grey[500] : Colors.grey[600],
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 16),
-                  color: Colors.grey,
-                  onPressed: () {
-                    _searchController.clear();
-                    FocusScope.of(context).unfocus();
-                  },
-                )
-              : null,
-        ),
-      ),
-    );
-  }
-
   Future<void> _updateChartRange(int days) async {
     setState(() => _selectedStatRange = days);
     final raw = await PlannerDatabaseHelper().getCompletionStats(days: days);
     if (mounted) {
       setState(() {
-        _chartData = _normalizeChartData(raw);
+        _chartData = ProgressChartHelper.normalizeChartData(raw, days);
       });
     }
   }
 
-  Widget _buildWeeklyChart(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(20), // More rounded
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.2)
-                : Colors.grey.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Activity",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textPrimaryLight,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Range Selector Checkbox/Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _chartRanges.map((r) {
-                final isSelected = _selectedStatRange == r;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: InkWell(
-                    onTap: () => _updateChartRange(r),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (isDark
-                                  ? AppColors.accentOrange
-                                  : AppColors.primaryNavy)
-                            : (isDark
-                                  ? Colors.white.withOpacity(0.05)
-                                  : Colors.grey[100]),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected
-                              ? Colors.transparent
-                              : (isDark ? Colors.white10 : Colors.grey[300]!),
-                        ),
-                      ),
-                      child: Text(
-                        _chartRangeLabels[r]!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: isSelected
-                              ? Colors.white
-                              : (isDark ? Colors.grey : Colors.grey[600]),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 24),
-          if (_chartData.every((d) => d['count'] == 0))
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Text(
-                  "No activity in this period",
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                ),
-              ),
-            )
-          else
-            SizedBox(
-              height: 150, // Increased to prevent overflow
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: _chartData.map((d) {
-                  final count = d['count'] as int;
-                  // Max Scaling
-                  final max = _chartData
-                      .map((e) => e['count'] as int)
-                      .reduce((a, b) => a > b ? a : b);
-                  final scaleMax = max > 0 ? max : 1;
-                  final normalizedHeight =
-                      (count / scaleMax) * 80; // Max bar 80px
-
-                  // Colors
-                  final barColor = isDark
-                      ? AppColors.accentOrange
-                      : AppColors.primaryNavy; // Navy looks cleaner on light
-                  final emptyColor = isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.grey[100];
-
-                  final barWidth = _chartData.length > 15 ? 8.0 : 14.0;
-                  final bool rotateLabels = _chartData.length > 8;
-
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (count > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            "$count",
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.grey
-                                  : AppColors.primaryNavy,
-                            ),
-                          ),
-                        ),
-                      Container(
-                        width: barWidth, // Wider bars
-                        height: 80, // Full height track
-                        alignment: Alignment.bottomCenter,
-                        decoration: BoxDecoration(
-                          color: emptyColor,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: count > 0
-                            ? Container(
-                                width: barWidth,
-                                height: normalizedHeight > barWidth
-                                    ? normalizedHeight.toDouble()
-                                    : barWidth, // Minimum height circle
-                                decoration: BoxDecoration(
-                                  color: barColor,
-                                  borderRadius: BorderRadius.circular(4),
-                                  gradient: isDark
-                                      ? null
-                                      : LinearGradient(
-                                          begin: Alignment.bottomCenter,
-                                          end: Alignment.topCenter,
-                                          colors: [
-                                            AppColors.primaryNavy,
-                                            AppColors.primaryNavy.withOpacity(
-                                              0.8,
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(height: 8),
-                      // Label
-                      if (rotateLabels)
-                        RotatedBox(
-                          quarterTurns: 3, // 270 degrees
-                          child: Text(
-                            d['day'],
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.grey : Colors.grey[600],
-                            ),
-                          ),
-                        )
-                      else
-                        Text(
-                          d['day'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.grey : Colors.grey[600],
-                          ),
-                        ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSurahList(bool isDark) {
-    // Determine list based on search
-    final displayList = _isSearching ? _filteredSurahs : _surahs;
-
-    if (displayList.isEmpty) {
+    if (_surahs.isEmpty) {
       return Center(
         child: Text(
-          "No Surahs match",
+          "No Surahs loaded",
           style: TextStyle(color: Colors.grey[400]),
         ),
       );
     }
 
     return ListView.builder(
-      itemCount: displayList.length,
+      itemCount: _surahs.length,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemBuilder: (context, index) {
-        final surah = displayList[index];
+        final surah = _surahs[index];
         final progress = _surahProgress.firstWhere(
           (p) => p.unitId == surah.number,
           orElse: () => QuranProgress(
@@ -1072,20 +508,11 @@ class _ProgressPageState extends State<ProgressPage>
   }
 
   Widget _buildJuzList(bool isDark) {
-    if (_filteredJuzNumbers.isEmpty) {
-      return Center(
-        child: Text(
-          "No Juz matches",
-          style: TextStyle(color: Colors.grey[400]),
-        ),
-      );
-    }
-
     return ListView.builder(
-      itemCount: _filteredJuzNumbers.length,
+      itemCount: 30,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
-        final juzNum = _filteredJuzNumbers[index];
+        final juzNum = index + 1;
 
         // 1. Tasks explicitly for this Juz (Revision/Memorization)
         final explicitJuzTasks = _activeTasks.where(
@@ -1295,20 +722,11 @@ class _ProgressPageState extends State<ProgressPage>
   }
 
   Widget _buildHizbList(bool isDark) {
-    if (_filteredHizbNumbers.isEmpty) {
-      return Center(
-        child: Text(
-          "No Hizb matches",
-          style: TextStyle(color: Colors.grey[400]),
-        ),
-      );
-    }
-
     return ListView.builder(
-      itemCount: _filteredHizbNumbers.length,
+      itemCount: 60,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
-        final hizbNum = _filteredHizbNumbers[index];
+        final hizbNum = index + 1;
 
         // Match active tasks for this Hizb
         // 1. Explicit mention in subtitle
@@ -1511,160 +929,13 @@ class _ProgressPageState extends State<ProgressPage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            // If we have cached notes (Ayah mapped), use them.
-            // Otherwise fall back to DB fetch for just Unit notes.
-            final future = preloadedNotes != null
-                ? Future.value(preloadedNotes)
-                : PlannerDatabaseHelper().getNotesForUnit(type, unitId);
-
-            return FutureBuilder<List<TaskNote>>(
-              future: future,
-              builder: (context, snapshot) {
-                return SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white24 : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppColors.primaryNavy,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "${type.displayName} Progress & Notes",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-                      // Notes Section Header
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.sticky_note_2_outlined,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.primaryNavy,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Notes History",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.primaryNavy,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      if (snapshot.connectionState == ConnectionState.waiting)
-                        const Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else if (!snapshot.hasData || snapshot.data!.isEmpty)
-                        _buildEmptyNotesState(isDark)
-                      else
-                        ...snapshot.data!.map(
-                          (note) => CollapsibleNoteCard(
-                            note: note,
-                            // CollapsibleNoteCard handles fetching the label itself now
-                          ),
-                        ),
-
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryNavy,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text("Close"),
-                        ),
-                      ),
-                      SizedBox(
-                        height: MediaQuery.of(context).viewInsets.bottom,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
+        return UnitDetailsSheet(
+          type: type,
+          unitId: unitId,
+          title: title,
+          preloadedNotes: preloadedNotes,
         );
       },
-    );
-  }
-
-  Widget _buildEmptyNotesState(bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.transparent : AppColors.dividerLight,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.notes,
-            size: 40,
-            color: AppColors.textSecondaryLight.withOpacity(0.5),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "No notes recorded yet",
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/planner_database_helper.dart';
+import '../services/backup_service.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -78,6 +79,77 @@ class SettingsPage extends StatelessWidget {
               DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark Mode')),
             ],
           ),
+        ),
+        const Divider(),
+        ListTile(
+          title: const Text('Backup Data'),
+          subtitle: const Text('Backup your planner data to a file'),
+          leading: const Icon(Icons.download_rounded),
+          onTap: () async {
+            try {
+              await BackupService().backup();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Backup saved successfully")),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Backup failed: $e")));
+              }
+            }
+          },
+        ),
+        ListTile(
+          title: const Text('Restore Data'),
+          subtitle: const Text('Restore from a backup file'),
+          leading: const Icon(Icons.restore_page_rounded),
+          onTap: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text("Restore Data?"),
+                content: const Text(
+                  "This will replace all your current data with the backup. Current data will be lost.",
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text("Cancel"),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text("Restore"),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true) {
+              try {
+                final success = await BackupService().restore();
+                if (context.mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Data restored successfully"),
+                      ),
+                    );
+                    // Trigger UI update across the app
+                    PlannerDatabaseHelper().dataUpdateNotifier.value++;
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Restore failed: $e")));
+                }
+              }
+            }
+          },
         ),
         const Divider(),
         ListTile(

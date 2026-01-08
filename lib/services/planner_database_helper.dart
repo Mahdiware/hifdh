@@ -25,9 +25,17 @@ class PlannerDatabaseHelper {
     return _database!;
   }
 
+  // Method to close and reset database connection (useful for restore)
+  Future<void> closeAndReset() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
+
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'planner_v3.db'); // v3 to force schema update
+    final path = join(dbPath, 'hifdh_planner.db');
 
     return await openDatabase(
       path,

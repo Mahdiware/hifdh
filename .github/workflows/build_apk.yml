@@ -46,7 +46,7 @@ jobs:
       - name: Extract version
         id: extract_version
         run: |
-          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Build APKs (split per ABI)
@@ -57,9 +57,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          flutter build apk --release --split-per-abi \
-            --build-name=$(echo $VERSION | cut -d '+' -f1) \
-            --build-number=$(echo $VERSION | cut -d '+' -f2)
+          flutter build apk --release --split-per-abi
 
       - name: Rename APKs
         run: |
@@ -77,9 +75,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          flutter build apk --release \
-            --build-name=$(echo $VERSION | cut -d '+' -f1) \
-            --build-number=$(echo $VERSION | cut -d '+' -f2)
+          flutter build apk --release
 
       - name: Rename universal APK
         run: |
@@ -109,14 +105,51 @@ jobs:
           name: HifdhTracker-x86_64
           path: "HifdhTracker_*_x86_64_release.apk"
 
-      # NEW STEP: Send to Telegram
+      # Send to Telegram
       - name: Send APKs via Telegram
         if: success()  # Only run if build succeeded
         run: |
+          echo "Listing APKs in workspace:"
+          ls -lh HifdhTracker_*.apk
+
           for apk in HifdhTracker_*_release.apk; do
-            echo "Sending $apk"
-            curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
-              -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-              -F document=@"$apk" \
-              -F caption="📦 New build: $apk"
+            # Check existence
+            if [ -f "$apk" ]; then
+              echo "Processing $apk"
+              
+              # Check file size (Telegram limit is 50MB)
+              FILE_SIZE=$(stat -c%s "$apk")
+              if [ "$FILE_SIZE" -gt 52428800 ]; then
+                echo "⚠️ WARNING: $apk is $(numfmt --to=iec --suffix=B $FILE_SIZE). This exceeds Telegram's 50MB bot limit."
+                echo "Attempting to send anyway, but it may fail..."
+              fi
+
+              echo "Sending to Telegram..."
+              RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+                -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+                -F document=@"$apk" \
+                -F caption="📦 New build: $apk")
+              
+              echo "Response: $RESPONSE"
+            else
+              echo "No files matching HifdhTracker_*_release.apk found."
+            fi
+          done
+
+      - name: Zip and Send APKs via Telegram
+        if: success()
+        run: |
+          for apk in HifdhTracker_*_release.apk; do
+            if [ -f "$apk" ]; then
+              echo "Zipping $apk..."
+              # -9 for max compression, -j to junk paths
+              zip -9 -j "${apk}.zip" "$apk"
+              ZIP_FILE="${apk}.zip"
+              
+              echo "Sending $ZIP_FILE..."
+              curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+                -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+                -F document=@"$ZIP_FILE" \
+                -F caption="🤐 Zipped: $ZIP_FILE"
+            fi
           done
