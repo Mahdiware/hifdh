@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'screens/main_screen.dart';
-import 'providers/theme_provider.dart';
-import 'theme/app_theme.dart';
+import 'package:hifdh/navigation/main_screen.dart';
+import 'package:hifdh/features/settings/logic/theme_provider.dart';
+import 'package:hifdh/core/theme/app_theme.dart';
 
 void main() {
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
