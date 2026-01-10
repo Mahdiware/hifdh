@@ -6,6 +6,7 @@ import 'package:hifdh/shared/models/result_item.dart';
 import 'package:hifdh/shared/models/quiz_settings.dart';
 import 'package:hifdh/core/utils/surah_glyphs.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class QuizHomePage extends StatefulWidget {
   final QuizSettings settings;
@@ -63,7 +64,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
         });
       } else {
         setState(() {
-          _debugInfo += 'No ayah found matching criteria.\n';
+          _debugInfo += '${AppLocalizations.of(context)!.noAyahFound}\n';
         });
       }
     } catch (e) {
@@ -157,7 +158,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Close"),
+                  child: Text(AppLocalizations.of(context)!.close),
                 ),
               ],
             );
@@ -172,21 +173,27 @@ class _QuizHomePageState extends State<QuizHomePage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text("Did you get it right?"),
+        title: Text(AppLocalizations.of(context)!.didYouGetItRight),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _recordAnswer(false);
             },
-            child: const Text("No", style: TextStyle(color: Colors.red)),
+            child: Text(
+              AppLocalizations.of(context)!.no,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _recordAnswer(true);
             },
-            child: const Text("Yes", style: TextStyle(color: Colors.green)),
+            child: Text(
+              AppLocalizations.of(context)!.yes,
+              style: const TextStyle(color: Colors.green),
+            ),
           ),
         ],
       ),
@@ -206,7 +213,9 @@ class _QuizHomePageState extends State<QuizHomePage> {
   void _finishQuiz() {
     if (_results.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("There is no question answered!")),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.questionAnsweredError),
+        ),
       );
       return;
     }
@@ -256,7 +265,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                   IconButton(
                     icon: const Icon(Icons.flag_outlined),
                     onPressed: _finishQuiz,
-                    tooltip: 'Finish Quiz',
+                    tooltip: AppLocalizations.of(context)!.finishQuiz,
                     color: Colors.red,
                   ),
                 ],
@@ -287,11 +296,13 @@ class _QuizHomePageState extends State<QuizHomePage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      "Question $_questionCount",
+                      "${AppLocalizations.of(context)!.question} $_questionCount",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -300,7 +311,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                     ),
                   ),
                   Text(
-                    "أكمل قوله تعالى",
+                    AppLocalizations.of(context)!.completeVersePrompt,
                     style: TextStyle(
                       fontSize: 22,
                       fontFamily: 'QuranFont',
@@ -381,9 +392,9 @@ class _QuizHomePageState extends State<QuizHomePage> {
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.all(12),
                       ),
-                      child: const Text(
-                        "Show Answer",
-                        style: TextStyle(fontSize: 18),
+                      child: Text(
+                        AppLocalizations.of(context)!.showAnswer,
+                        style: const TextStyle(fontSize: 18),
                       ),
                     ),
                   ),
@@ -396,9 +407,9 @@ class _QuizHomePageState extends State<QuizHomePage> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.all(12),
                       ),
-                      child: const Text(
-                        "Next Question",
-                        style: TextStyle(fontSize: 18),
+                      child: Text(
+                        AppLocalizations.of(context)!.nextQuestion,
+                        style: const TextStyle(fontSize: 18),
                       ),
                     ),
                   ),

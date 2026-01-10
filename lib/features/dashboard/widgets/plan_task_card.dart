@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 class PlanTaskCard extends StatelessWidget {
   final PlanTask task;
@@ -18,6 +20,7 @@ class PlanTaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     Color statusColor;
     String statusText;
@@ -27,20 +30,20 @@ class PlanTaskCard extends StatelessWidget {
     switch (task.status) {
       case TaskStatus.notStarted:
         statusColor = AppColors.accentOrange;
-        statusText = "Pending";
-        btnText = "Start";
+        statusText = l10n.pending;
+        btnText = l10n.start;
         btnIcon = Icons.play_arrow;
         break;
       case TaskStatus.inProgress:
         statusColor = Colors.blue;
-        statusText = "In Progress";
-        btnText = "Complete";
+        statusText = l10n.inProgress;
+        btnText = l10n.complete;
         btnIcon = Icons.check;
         break;
       default:
         statusColor = Colors.grey;
-        statusText = "Unknown";
-        btnText = "Done";
+        statusText = l10n.unknown;
+        btnText = l10n.done;
         btnIcon = Icons.check;
     }
 
@@ -85,7 +88,7 @@ class PlanTaskCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        task.title,
+                        _getLocalizedTitle(context, task),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -97,7 +100,8 @@ class PlanTaskCard extends StatelessWidget {
                       if (task.subtitle != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          task.subtitle!,
+                          _getLocalizedSubtitle(context, task) ??
+                              task.subtitle!,
                           style: TextStyle(
                             fontSize: 13,
                             color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -133,12 +137,17 @@ class PlanTaskCard extends StatelessWidget {
               children: [
                 _buildInfoPill(
                   Icons.flag,
-                  task.type == TaskType.memorize ? "Memorize" : "Revision",
+                  task.type == TaskType.memorize
+                      ? l10n.memorize
+                      : l10n.revision,
                   isDark ? Colors.grey[400] : Colors.grey[700],
                 ),
                 _buildInfoPill(
                   Icons.event,
-                  _formatDate(task.deadline),
+                  _formatDate(
+                    task.deadline,
+                    Localizations.localeOf(context).toString(),
+                  ),
                   isDark ? const Color(0xFFF0C33D) : const Color(0xFFFF0000),
                 ),
               ],
@@ -159,7 +168,7 @@ class PlanTaskCard extends StatelessWidget {
                         Icon(Icons.edit_note, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
-                          "Notes",
+                          l10n.notes,
                           style: TextStyle(color: Colors.grey[600]),
                         ),
                       ],
@@ -203,35 +212,40 @@ class PlanTaskCard extends StatelessWidget {
     );
   }
 
-  String _monthAbbr(int month) {
-    const months = [
-      "", // Placeholder for 0 index
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return months[month];
+  String _formatDate(DateTime d, String locale) {
+    try {
+      return DateFormat.yMMMd(locale).add_jm().format(d);
+    } catch (e) {
+      return DateFormat.yMMMd('en').add_jm().format(d);
+    }
   }
 
-  String _formatTime(DateTime d) {
-    final hour = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
-    final minute = d.minute.toString().padLeft(2, '0');
-    final ampm = d.hour >= 12 ? "PM" : "AM";
-    return "$hour:$minute $ampm";
+  String _getLocalizedTitle(BuildContext context, PlanTask task) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (task.unitType) {
+      case PlanUnitType.juz:
+        return "${l10n.juz} ${task.unitId}";
+      case PlanUnitType.page:
+        return "${l10n.page} ${task.unitId} - ${task.endUnitId}";
+      case PlanUnitType.surah:
+      default:
+        return task.title;
+    }
   }
 
-  // 07 Jan 2026 10:30 AM
-  String _formatDate(DateTime d) =>
-      "${d.day.toString().padLeft(2, '0')} "
-      "${_monthAbbr(d.month)} ${d.year} "
-      "${_formatTime(d)}";
+  String? _getLocalizedSubtitle(BuildContext context, PlanTask task) {
+    if (task.subtitle == null) return null;
+    final l10n = AppLocalizations.of(context)!;
+    final s = task.subtitle!;
+
+    if (s == "Whole Juz") return l10n.wholeJuz;
+    if (s.startsWith("Nisf Hizb ")) {
+      return s.replaceFirst("Nisf Hizb", l10n.nisfHizb);
+    }
+    if (s.startsWith("Hizb ")) return s.replaceFirst("Hizb", l10n.hizb);
+    if (s.startsWith("Rubuc ")) return s.replaceFirst("Rubuc", l10n.rubuc);
+    if (s.startsWith("Ayah ")) return s.replaceFirst("Ayah", l10n.ayah);
+
+    return s;
+  }
 }

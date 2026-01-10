@@ -1,0 +1,196 @@
+{
+  "appTitle": "Hifdh",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "dashboard": "Dashboard",
+  "plans": "Plans",
+  "history": "History",
+  "settings": "Settings",
+  "language": "Language",
+  "theme": "Theme",
+  "systemTheme": "System Theme",
+  "lightTheme": "Light Theme",
+  "darkTheme": "Dark Theme",
+  "backupRestore": "Backup & Restore",
+  "createBackup": "Create Backup",
+  "restoreBackup": "Restore Backup",
+  "resetData": "Reset Data",
+  "resetDataConfirmation": "Reset All Data?",
+  "resetDataWarning": "This will delete all your tasks, notes, and progress history. This action cannot be undone.",
+  "cancel": "Cancel",
+  "resetEverything": "Reset Everything",
+  "dataResetSuccess": "All data has been reset.",
+  "backupCreated": "Backup created successfully",
+  "backupRestored": "Backup restored successfully",
+  "quizSetup": "Quiz Setup",
+  "progress": "Progress",
+  "quiz": "Quiz",
+  "activeTasks": "Active Tasks",
+  "noActiveTasks": "No active tasks.",
+  "pending": "Pending",
+  "inProgress": "In Progress",
+  "unknown": "Unknown",
+  "start": "Start",
+  "complete": "Complete",
+  "done": "Done",
+  "memorize": "Memorize",
+  "revision": "Revision",
+  "notes": "Notes",
+  "createNewPlan": "Create New Plan",
+  "targetDate": "Target Date",
+  "selectDate": "Select Date",
+  "surah": "Surah",
+  "juz": "Juz",
+  "page": "Page",
+  "startAyah": "Start Ayah",
+  "endAyah": "End Ayah",
+  "startPage": "Start Page",
+  "endPage": "End Page",
+  "assignTask": "Assign Task",
+  "pleaseSelectSurah": "Please select a Surah",
+  "pleaseSelectJuz": "Please select a Juz",
+  "pleaseSelectPageRange": "Please enter valid page range",
+  "selectSearchAyah": "Select/Search Ayah...",
+  "unknownAyah": "Unknown Ayah",
+  "descriptionOptional": "Description (Optional)...",
+  "pleaseSelectAyah": "Please select an Ayah",
+  "noNotesYet": "No notes yet",
+  "note": "Note",
+  "doubt": "Doubt",
+  "mistake": "Mistake",
+  "searchHistory": "Search History...",
+  "sortNewest": "Newest First",
+  "sortOldest": "Oldest First",
+  "noHistory": "No history available",
+  "overview": "Overview",
+  "stats": "Stats",
+  "memorized": "Memorized",
+  "remaining": "Remaining",
+  "memorizeTasksFirst": "Memorize Tasks First",
+  "revisionTasksFirst": "Revision Tasks First",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "noNotesRecorded": "No notes recorded",
+  "selectSurah": "Select Surah",
+  "selectJuz": "Select Juz",
+  "subdivision": "Subdivision",
+  "fullJuz": "Full Juz",
+  "hizb": "Hizb",
+  "wholeJuz": "Whole Juz",
+  "nisfHizb": "Nisf Hizb",
+  "rubuc": "Rubuc",
+  "selectDeadline": "Select Deadline",
+  "createPlan": "Create Plan",
+  "planCreatedSuccess": "Plan Created Successfully!",
+  "pleaseSelectDeadline": "Please select a deadline",
+  "startAyahErrorRange": "Start Ayah must be between 1 and {max}",
+  "@startAyahErrorRange": {
+    "placeholders": {
+        "max": {
+            "type": "int"
+        }
+    }
+  },
+  "endAyahErrorRange": "End Ayah must be between 1 and {max}",
+  "@endAyahErrorRange": {
+    "placeholders": {
+        "max": {
+            "type": "int"
+        }
+    }
+  },
+  "startAyahErrorOrder": "Start Ayah cannot be after End Ayah",
+  "pleaseEnterValidPages": "Please enter valid pages",
+  "contentMemorizedSwitch": "Content is already memorized. Switched to Revision.",
+  "contentNotMemorizedSwitch": "Content is not yet memorized. Switched to Memorize.",
+  "noSurahsLoaded": "No Surahs loaded",
+  "revisionsShort": "Revs",
+  "viewJuzHistoryNotes": "View Juz History & Notes",
+  "surahTask": "Surah Task",
+  "juzTask": "Juz Task",
+  "activeTaskSingle": "Active Task",
+  "coveredByJuz": "Covered by Juz",
+  "percentMemorized": "{pct}% Memorized",
+  "@percentMemorized": {
+      "placeholders": {
+          "pct": {
+              "type": "int"
+          }
+      }
+  },
+  "activity": "Activity",
+  "hifdhPerformance": "Hifdh Performance",
+  "days7": "7 Days",
+  "days30": "30 Days",
+  "months3": "3 Months",
+  "months6": "6 Months",
+  "year1": "1 Year",
+  "noActivityPeriod": "No activity in this period",
+  "completed": "Completed",
+  "progressAndNotes": "Progress & Notes",
+  "notesHistory": "Notes History",
+  "close": "Close",
+  "noNotesRecordedYet": "No notes recorded yet",
+  "noAyahFound": "No ayah found matching criteria",
+  "didYouGetItRight": "Did you get it right?",
+  "yes": "Yes",
+  "no": "No",
+  "questionAnsweredError": "No questions answered yet!",
+  "finishQuiz": "Finish Quiz",
+  "question": "Question",
+  "completeVersePrompt": "Complete the Verse",
+  "showAnswer": "Show Answer",
+  "nextQuestion": "Next Question",
+  "quizResults": "Quiz Results",
+  "score": "Score",
+  "correct": "Correct",
+  "wrong": "Wrong",
+  "detailedReview": "Detailed Review",
+  "questionsCount": "{count} Questions",
+  "@questionsCount": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "home": "Home",
+  "ayah": "Ayah",
+  "selectSurahs": "Select Surahs",
+  "searchSurah": "Search Surah...",
+  "confirm": "Confirm",
+  "selectTypeMessage": "Please select Type 'Page Range' or 'Surah Selection'",
+  "selectSurahMessage": "Please select at least one Surah",
+  "enterPagesMessage": "Please enter both start and end pages",
+  "invalidNumberFormat": "Invalid number format",
+  "invalidPageRange": "Invalid page range (1-604)",
+  "pageRangeTitle": "Page Range",
+  "fromPageLabel": "From Page",
+  "toPageLabel": "To Page",
+  "surahSelectionTitle": "Surah Selection",
+  "selectSurahsButton": "Select Surahs",
+  "startQuizButton": "Start Quiz",
+  "backupToFile": "Backup to a file",
+  "backupFailed": "Backup failed: {error}",
+  "@backupFailed": {
+    "placeholders": {
+        "error": {
+            "type": "Object"
+        }
+    }
+  },
+  "restoreFromFile": "Restore from a file",
+  "restoreFailed": "Restore failed: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+        "error": {
+            "type": "Object"
+        }
+    }
+  },
+  "clearAllData": "Clear all tasks and progress",
+  "generalNote": "General Note",
+  "completedOn": "Completed On",
+  "taskType": "Task Type"
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/core/services/database_helper.dart';
@@ -251,10 +252,10 @@ class _ProgressPageState extends State<ProgressPage>
                       ? AppColors.accentOrange
                       : AppColors.primaryNavy,
                   indicatorWeight: 3,
-                  tabs: const [
-                    Tab(text: "Surah"),
-                    Tab(text: "Juz"),
-                    Tab(text: "Hizb"),
+                  tabs: [
+                    Tab(text: AppLocalizations.of(context)!.surah),
+                    Tab(text: AppLocalizations.of(context)!.juz),
+                    Tab(text: AppLocalizations.of(context)!.hizb),
                   ],
                 ),
                 isDark,
@@ -288,7 +289,7 @@ class _ProgressPageState extends State<ProgressPage>
     if (_surahs.isEmpty) {
       return Center(
         child: Text(
-          "No Surahs loaded",
+          AppLocalizations.of(context)!.noSurahsLoaded,
           style: TextStyle(color: Colors.grey[400]),
         ),
       );
@@ -446,9 +447,9 @@ class _ProgressPageState extends State<ProgressPage>
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Text(
-                              "In Progress",
-                              style: TextStyle(
+                            Text(
+                              AppLocalizations.of(context)!.inProgress,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.accentOrange,
                               ),
@@ -480,7 +481,7 @@ class _ProgressPageState extends State<ProgressPage>
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          "${progress.revisionCount} Revs",
+                          "${progress.revisionCount} ${AppLocalizations.of(context)!.revisionsShort}",
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -495,7 +496,7 @@ class _ProgressPageState extends State<ProgressPage>
                     context,
                     PlanUnitType.surah,
                     surah.number,
-                    "Surah ${surah.englishName}",
+                    "${AppLocalizations.of(context)!.surah} ${surah.englishName}",
                     preloadedNotes: _surahNotes[surah.number],
                   );
                 },
@@ -627,16 +628,18 @@ class _ProgressPageState extends State<ProgressPage>
                 ),
               ),
               title: Text(
-                "Juz $juzNum",
+                "${AppLocalizations.of(context)!.juz} $juzNum",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: displayTasks.isNotEmpty
                   ? Text(
-                      "${displayTasks.length} Active Tasks",
+                      "${displayTasks.length} ${AppLocalizations.of(context)!.activeTasks}",
                       style: const TextStyle(color: AppColors.accentOrange),
                     )
                   : Text(
-                      "${(estimatedProg * 100).toInt()}% Memorized",
+                      AppLocalizations.of(
+                        context,
+                      )!.percentMemorized((estimatedProg * 100).toInt()),
                       style: TextStyle(
                         fontSize: 12,
                         color: isFullyMemorized
@@ -654,9 +657,12 @@ class _ProgressPageState extends State<ProgressPage>
                     size: 20,
                     color: AppColors.primaryNavy,
                   ),
-                  title: const Text(
-                    "View Juz History & Notes",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  title: Text(
+                    AppLocalizations.of(context)!.viewJuzHistoryNotes,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   trailing: const Icon(Icons.chevron_right, size: 16),
                   dense: true,
@@ -664,7 +670,7 @@ class _ProgressPageState extends State<ProgressPage>
                     context,
                     PlanUnitType.juz,
                     juzNum,
-                    "Juz $juzNum",
+                    "${AppLocalizations.of(context)!.juz} $juzNum",
                     preloadedNotes: _juzNotes[juzNum],
                   ),
                 ),
@@ -675,8 +681,8 @@ class _ProgressPageState extends State<ProgressPage>
                     subtitle: Text(
                       task.subtitle ??
                           (task.unitType == PlanUnitType.surah
-                              ? "Surah Task"
-                              : "Juz Task"),
+                              ? AppLocalizations.of(context)!.surahTask
+                              : AppLocalizations.of(context)!.juzTask),
                     ),
                     trailing: const Icon(Icons.arrow_forward, size: 16),
                     leading: Icon(
@@ -844,7 +850,9 @@ class _ProgressPageState extends State<ProgressPage>
                     ],
                   ),
                 ),
-                title: Text("Hizb $hizbNum (Juz $parentJuz)"),
+                title: Text(
+                  "${AppLocalizations.of(context)!.hizb} $hizbNum (${AppLocalizations.of(context)!.juz} $parentJuz)",
+                ),
                 subtitle: hasActive
                     ? Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -862,8 +870,10 @@ class _ProgressPageState extends State<ProgressPage>
                             const SizedBox(width: 6),
                             Text(
                               relevant.isNotEmpty
-                                  ? "Active Task"
-                                  : "Covered by Juz $parentJuz",
+                                  ? AppLocalizations.of(
+                                      context,
+                                    )!.activeTaskSingle
+                                  : "${AppLocalizations.of(context)!.coveredByJuz} $parentJuz",
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.accentOrange,
@@ -873,7 +883,9 @@ class _ProgressPageState extends State<ProgressPage>
                         ),
                       )
                     : Text(
-                        "${(hizbProg * 100).toInt()}% Memorized",
+                        AppLocalizations.of(
+                          context,
+                        )!.percentMemorized((hizbProg * 100).toInt()),
                         style: TextStyle(
                           fontSize: 12,
                           color: isFullyMemorized
@@ -899,7 +911,7 @@ class _ProgressPageState extends State<ProgressPage>
                     context,
                     PlanUnitType.juz,
                     parentJuz,
-                    "Hizb $hizbNum (Juz $parentJuz)",
+                    "${AppLocalizations.of(context)!.hizb} $hizbNum (${AppLocalizations.of(context)!.juz} $parentJuz)",
                     preloadedNotes: _hizbNotes[hizbNum],
                   );
                 },

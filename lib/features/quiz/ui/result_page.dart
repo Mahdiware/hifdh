@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hifdh/shared/models/result_item.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 import 'package:hifdh/core/utils/surah_glyphs.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class ResultPage extends StatelessWidget {
   final List<ResultItem> results;
@@ -23,7 +24,7 @@ class ResultPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quiz Results'),
+        title: Text(AppLocalizations.of(context)!.quizResults),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: const [ThemeToggleButton(), SizedBox(width: 8)],
@@ -74,7 +75,7 @@ class ResultPage extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Score',
+                          AppLocalizations.of(context)!.score,
                           style: TextStyle(
                             fontSize: 14,
                             color: Theme.of(context).textTheme.bodySmall?.color,
@@ -90,7 +91,7 @@ class ResultPage extends StatelessWidget {
                   children: [
                     _buildStatItem(
                       context,
-                      'Correct',
+                      AppLocalizations.of(context)!.correct,
                       correctCount.toString(),
                       Colors.green,
                     ),
@@ -102,7 +103,7 @@ class ResultPage extends StatelessWidget {
                     ),
                     _buildStatItem(
                       context,
-                      'Wrong',
+                      AppLocalizations.of(context)!.wrong,
                       (totalCount - correctCount).toString(),
                       Colors.red,
                     ),
@@ -118,14 +119,14 @@ class ResultPage extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'Detailed Review',
+                  AppLocalizations.of(context)!.detailedReview,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Text(
-                  '$totalCount Questions',
+                  AppLocalizations.of(context)!.questionsCount(totalCount),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
@@ -195,7 +196,7 @@ class ResultPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Ayah ${item.ayah.ayahNumber}',
+                                '${AppLocalizations.of(context)!.ayah} ${item.ayah.ayahNumber}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -239,7 +240,7 @@ class ResultPage extends StatelessWidget {
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                     icon: const Icon(Icons.home),
-                    label: const Text('Home'),
+                    label: Text(AppLocalizations.of(context)!.home),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

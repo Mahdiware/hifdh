@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class CollapsibleNoteCard extends StatefulWidget {
   final TaskNote note;
@@ -16,7 +17,7 @@ class CollapsibleNoteCard extends StatefulWidget {
 
 class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
   bool _isExpanded = false;
-  String? _fetchedLabel;
+  Map<String, dynamic>? _ayahInfo;
 
   @override
   void initState() {
@@ -29,8 +30,7 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
       final info = await DatabaseHelper().getAyahInfoById(widget.note.ayahId!);
       if (info != null && mounted) {
         setState(() {
-          // Format: Ayah SurahName:AyahNum
-          _fetchedLabel = "Ayah ${info['surahName']}:${info['ayahNumber']}";
+          _ayahInfo = info;
         });
       }
     }
@@ -40,6 +40,7 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     Color color;
     IconData icon;
@@ -60,13 +61,25 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
 
     final hasContent = widget.note.content.isNotEmpty;
 
+    String labelText;
+    if (_ayahInfo != null) {
+      labelText =
+          "${l10n.ayah} ${_ayahInfo!['surahName']}:${_ayahInfo!['ayahNumber']}";
+    } else {
+      labelText = widget.ayahLabel ?? l10n.generalNote;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isDark ? color.withValues(alpha: 0.1) : color.withValues(alpha: 0.05),
+        color: isDark
+            ? color.withValues(alpha: 0.1)
+            : color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? color.withValues(alpha: 0.3) : color.withValues(alpha: 0.2),
+          color: isDark
+              ? color.withValues(alpha: 0.3)
+              : color.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -91,7 +104,7 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _fetchedLabel ?? widget.ayahLabel ?? "General Note",
+                          labelText,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: color,

@@ -4,6 +4,7 @@ import 'package:hifdh/core/services/database_helper.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/features/dashboard/widgets/ayah_search_dialog.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class NotesSheet extends StatefulWidget {
   final PlanTask task;
@@ -59,13 +60,14 @@ class _NotesSheetState extends State<NotesSheet> {
     }
   }
 
-  String _getSelectedAyahLabel() {
-    if (_selectedAyahId == null) return "Select/Search Ayah...";
+  String _getSelectedAyahLabel(BuildContext context) {
+    if (_selectedAyahId == null)
+      return AppLocalizations.of(context)!.selectSearchAyah;
     final match = _availableAyahs.firstWhere(
       (e) => e['id'] == _selectedAyahId,
       orElse: () => {},
     );
-    if (match.isEmpty) return "Unknown Ayah";
+    if (match.isEmpty) return AppLocalizations.of(context)!.unknownAyah;
     return "${match['surahNumber']}:${match['ayahNumber']} - ${match['text']}";
   }
 
@@ -86,9 +88,9 @@ class _NotesSheetState extends State<NotesSheet> {
   Future<void> _addNote() async {
     // Description is optional, but we need an ayah selected
     if (_selectedAyahId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please select an Ayah")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.pleaseSelectAyah)),
+      );
       return;
     }
 
@@ -104,6 +106,7 @@ class _NotesSheetState extends State<NotesSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height:
           MediaQuery.of(context).size.height * 0.85, // Taller for more inputs
@@ -115,7 +118,7 @@ class _NotesSheetState extends State<NotesSheet> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              "Notes: ${widget.task.title}",
+              "${l10n.notes}: ${widget.task.title}",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
@@ -123,7 +126,7 @@ class _NotesSheetState extends State<NotesSheet> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _notes.isEmpty
-                ? const Center(child: Text("No notes yet"))
+                ? Center(child: Text(l10n.noNotesYet))
                 : ListView.builder(
                     itemCount: _notes.length,
                     itemBuilder: (context, index) {
@@ -150,11 +153,11 @@ class _NotesSheetState extends State<NotesSheet> {
                 // 1. Type Selector
                 Row(
                   children: [
-                    _buildTypeChip("Note", NoteType.note, Colors.blue),
+                    _buildTypeChip(l10n.note, NoteType.note, Colors.blue),
                     const SizedBox(width: 8),
-                    _buildTypeChip("Doubt", NoteType.doubt, Colors.orange),
+                    _buildTypeChip(l10n.doubt, NoteType.doubt, Colors.orange),
                     const SizedBox(width: 8),
-                    _buildTypeChip("Mistake", NoteType.mistake, Colors.red),
+                    _buildTypeChip(l10n.mistake, NoteType.mistake, Colors.red),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -193,7 +196,7 @@ class _NotesSheetState extends State<NotesSheet> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              _getSelectedAyahLabel(),
+                              _getSelectedAyahLabel(context),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontFamily: 'QuranFont',
@@ -233,10 +236,12 @@ class _NotesSheetState extends State<NotesSheet> {
                     Expanded(
                       child: TextField(
                         controller: _noteController,
-                        decoration: const InputDecoration(
-                          hintText: "Description (Optional)...",
+                        decoration: InputDecoration(
+                          hintText: l10n.descriptionOptional,
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 0),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 0,
+                          ),
                         ),
                       ),
                     ),

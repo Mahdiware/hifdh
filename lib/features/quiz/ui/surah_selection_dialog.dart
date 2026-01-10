@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/shared/models/surah.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class SurahSelectionDialog extends StatefulWidget {
   final List<Surah> initialSelectedSurahs;
@@ -74,7 +75,7 @@ class _SurahSelectionDialogState extends State<SurahSelectionDialog> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              'Select Surahs',
+              AppLocalizations.of(context)!.selectSurahs,
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
@@ -83,7 +84,7 @@ class _SurahSelectionDialogState extends State<SurahSelectionDialog> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search Surah...',
+                hintText: AppLocalizations.of(context)!.searchSurah,
                 prefixIcon: const Icon(Icons.search),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
@@ -120,12 +121,12 @@ class _SurahSelectionDialogState extends State<SurahSelectionDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: () => Navigator.pop(context, _selectedSurahs),
-                  child: const Text('Confirm'),
+                  child: Text(AppLocalizations.of(context)!.confirm),
                 ),
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class ProgressHeaderCard extends StatelessWidget {
   final double memPercentage;
@@ -73,9 +74,9 @@ class ProgressHeaderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Hifdh Performance",
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.hifdhPerformance,
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -86,13 +87,13 @@ class ProgressHeaderCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildStatItem(
-                      "Completed",
+                      AppLocalizations.of(context)!.completed,
                       "$memCount",
                       Icons.check_circle,
                       AppColors.successGreen,
                     ),
                     _buildStatItem(
-                      "Pending",
+                      AppLocalizations.of(context)!.pending,
                       "$pendingCount",
                       Icons.timelapse,
                       AppColors.accentOrange,

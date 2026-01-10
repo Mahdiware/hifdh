@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 import 'package:hifdh/features/dashboard/ui/dashboard_page.dart';
 import 'package:hifdh/features/quiz/ui/quiz_page.dart';
@@ -31,16 +32,17 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  String _getAppBarTitle(int index) {
+  String _getAppBarTitle(BuildContext context, int index) {
+    final l10n = AppLocalizations.of(context)!;
     switch (index) {
       case 1:
-        return "Quiz Setup";
+        return l10n.quizSetup;
       case 2:
-        return "Progress";
+        return l10n.progress;
       case 3:
-        return "History";
+        return l10n.history;
       case 4:
-        return "Settings";
+        return l10n.settings;
       default:
         return "";
     }
@@ -54,6 +56,7 @@ class _MainScreenState extends State<MainScreen> {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: showMainAppBar
@@ -64,7 +67,7 @@ class _MainScreenState extends State<MainScreen> {
               elevation: 0,
               iconTheme: const IconThemeData(color: Colors.white),
               title: Text(
-                _getAppBarTitle(_selectedIndex),
+                _getAppBarTitle(context, _selectedIndex),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -78,21 +81,27 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: "Dashboard",
+            icon: const Icon(Icons.home_filled),
+            label: l10n.dashboard,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.quiz_outlined),
-            label: "Quiz",
+            icon: const Icon(Icons.quiz_outlined),
+            label: l10n.quiz,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.donut_large),
-            label: "Progress",
+            icon: const Icon(Icons.donut_large),
+            label: l10n.progress,
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
-          BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: "More"),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.history),
+            label: l10n.history,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.settings),
+            label: l10n.settings,
+          ),
         ],
       ),
     );

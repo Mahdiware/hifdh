@@ -5,6 +5,7 @@ import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/ayah_search_query.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 enum HistorySort { newest, oldest, typeMemorize, typeRevision }
 
@@ -172,7 +173,7 @@ class _HistoryPageState extends State<HistoryPage> {
           fontSize: 14,
         ),
         decoration: InputDecoration(
-          hintText: "Search (e.g. 2:200, Al-Baqarah)...",
+          hintText: AppLocalizations.of(context)!.searchHistory,
           hintStyle: TextStyle(
             color: isDark ? Colors.grey[500] : Colors.grey[600],
             fontSize: 13,
@@ -199,7 +200,7 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Map<String, List<PlanTask>> _groupTasksByDate() {
+  Map<String, List<PlanTask>> _groupTasksByDate(BuildContext context) {
     final Map<String, List<PlanTask>> grouped = {};
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
@@ -213,11 +214,11 @@ class _HistoryPageState extends State<HistoryPage> {
       if (date.year == now.year &&
           date.month == now.month &&
           date.day == now.day) {
-        key = "Today";
+        key = AppLocalizations.of(context)!.today;
       } else if (date.year == yesterday.year &&
           date.month == yesterday.month &&
           date.day == yesterday.day) {
-        key = "Yesterday";
+        key = AppLocalizations.of(context)!.yesterday;
       } else {
         key = DateFormat('MMMM d, y').format(date);
       }
@@ -235,7 +236,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final groupedTasks = _groupTasksByDate();
+    final groupedTasks = _groupTasksByDate(context);
 
     return Scaffold(
       backgroundColor: isDark
@@ -274,7 +275,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     PopupMenuItem<HistorySort>(
                       value: HistorySort.newest,
                       child: Text(
-                        'Newest First',
+                        AppLocalizations.of(context)!.sortNewest,
                         style: TextStyle(
                           color: isDark ? Colors.white : Colors.black,
                         ),
@@ -283,7 +284,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     PopupMenuItem<HistorySort>(
                       value: HistorySort.oldest,
                       child: Text(
-                        'Oldest First',
+                        AppLocalizations.of(context)!.sortOldest,
                         style: TextStyle(
                           color: isDark ? Colors.white : Colors.black,
                         ),
@@ -292,7 +293,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     PopupMenuItem<HistorySort>(
                       value: HistorySort.typeMemorize,
                       child: Text(
-                        'Memorize Tasks First',
+                        AppLocalizations.of(context)!.memorizeTasksFirst,
                         style: TextStyle(
                           color: isDark ? Colors.white : Colors.black,
                         ),
@@ -301,7 +302,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     PopupMenuItem<HistorySort>(
                       value: HistorySort.typeRevision,
                       child: Text(
-                        'Revision Tasks First',
+                        AppLocalizations.of(context)!.revisionTasksFirst,
                         style: TextStyle(
                           color: isDark ? Colors.white : Colors.black,
                         ),
@@ -491,7 +492,9 @@ class _HistoryPageState extends State<HistoryPage> {
                       Row(
                         children: [
                           _buildChip(
-                            isMemorize ? "Memorization" : "Revision",
+                            isMemorize
+                                ? AppLocalizations.of(context)!.memorize
+                                : AppLocalizations.of(context)!.revision,
                             isMemorize
                                 ? AppColors.successGreen
                                 : AppColors.accentOrange,
@@ -499,9 +502,17 @@ class _HistoryPageState extends State<HistoryPage> {
                           ),
                           const SizedBox(width: 8),
                           if (task.unitType == PlanUnitType.surah)
-                            _buildChip("Surah", AppColors.primaryNavy, isDark),
+                            _buildChip(
+                              AppLocalizations.of(context)!.surah,
+                              AppColors.primaryNavy,
+                              isDark,
+                            ),
                           if (task.unitType == PlanUnitType.juz)
-                            _buildChip("Juz", AppColors.primaryNavy, isDark),
+                            _buildChip(
+                              AppLocalizations.of(context)!.juz,
+                              AppColors.primaryNavy,
+                              isDark,
+                            ),
                         ],
                       ),
                     ],
@@ -539,6 +550,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final l10n = AppLocalizations.of(context)!;
 
     showModalBottomSheet(
       context: context,
@@ -586,19 +599,19 @@ class _HistoryPageState extends State<HistoryPage> {
                       const SizedBox(height: 24),
                       _buildDetailRow(
                         Icons.calendar_today,
-                        "Completed On",
-                        DateFormat(
-                          'MMM d, y • hh:mm a',
-                        ).format(task.completedAt!),
+                        l10n.completedOn,
+                        DateFormat.yMMMd(
+                          Localizations.localeOf(context).toString(),
+                        ).add_jm().format(task.completedAt!),
                         isDark,
                       ),
                       const SizedBox(height: 16),
                       _buildDetailRow(
                         Icons.category,
-                        "Task Type",
+                        l10n.taskType,
                         task.type == TaskType.memorize
-                            ? "Memorization"
-                            : "Revision",
+                            ? AppLocalizations.of(context)!.memorize
+                            : AppLocalizations.of(context)!.revision,
                         isDark,
                       ),
                       const SizedBox(height: 32),
@@ -613,7 +626,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            "Notes History",
+                            AppLocalizations.of(context)!.notesHistory,
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -645,9 +658,7 @@ class _HistoryPageState extends State<HistoryPage> {
                         ...snapshot.data!.map(
                           (note) => CollapsibleNoteCard(
                             note: note,
-                            ayahLabel: note.ayahId != null
-                                ? "Ayah ${note.ayahId}" // Needs DB lookup for full number, simplified for now
-                                : null,
+                            // ayahLabel is optional, CollapsibleNoteCard fetches info if ayahId is present
                           ),
                         ),
                       ],
@@ -702,7 +713,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            "No notes recorded",
+            AppLocalizations.of(context)!.noNotesRecorded,
             style: TextStyle(
               color: isDark
                   ? AppColors.textSecondaryDark

@@ -3,6 +3,7 @@ import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class UnitDetailsSheet extends StatelessWidget {
   final PlanUnitType type;
@@ -22,6 +23,22 @@ class UnitDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
+
+    String typeName;
+    switch (type) {
+      case PlanUnitType.surah:
+        typeName = l10n.surah;
+        break;
+      case PlanUnitType.juz:
+        typeName = l10n.juz;
+        break;
+      case PlanUnitType.page:
+        typeName = l10n.page;
+        break;
+      default:
+        typeName = "Custom";
+    }
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -59,6 +76,7 @@ class UnitDetailsSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
+
                     Text(
                       title,
                       style: TextStyle(
@@ -68,8 +86,9 @@ class UnitDetailsSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
+
                     Text(
-                      "${type.displayName} Progress & Notes",
+                      "$typeName ${l10n.progressAndNotes}",
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark
@@ -91,7 +110,7 @@ class UnitDetailsSheet extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "Notes History",
+                          l10n.notesHistory,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -130,7 +149,7 @@ class UnitDetailsSheet extends StatelessWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text("Close"),
+                        child: Text(l10n.close),
                       ),
                     ),
                     SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
@@ -145,35 +164,48 @@ class UnitDetailsSheet extends StatelessWidget {
   }
 
   Widget _buildEmptyNotesState(bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.transparent : AppColors.dividerLight,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.notes,
-            size: 40,
-            color: AppColors.textSecondaryLight.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "No notes recorded yet",
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-              fontStyle: FontStyle.italic,
+    // We need context here or pass l10n.
+    // Since _buildEmptyNotesState is called inside builder, let's grab context or make it instance method.
+    // Wait, context is available via closure but better pass it?
+    // Actually this is a Stateless Widget method, context needs to be passed.
+    // I'll grab it using Builder or just use stateless build context if available in scope.
+    // Ah, `_buildEmptyNotesState(isDark)` is called. I'll modify the call site or use a Builder.
+    // Easier: modify parameters to accept context.
+    return Builder(
+      builder: (context) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.backgroundDark
+                : AppColors.backgroundLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.transparent : AppColors.dividerLight,
             ),
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.notes,
+                size: 40,
+                color: AppColors.textSecondaryLight.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AppLocalizations.of(context)!.noNotesRecordedYet,
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

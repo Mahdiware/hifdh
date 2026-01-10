@@ -5,6 +5,7 @@ import 'package:hifdh/shared/models/quiz_settings.dart';
 import 'package:hifdh/core/services/database_helper.dart';
 import 'package:hifdh/features/quiz/ui/surah_selection_dialog.dart';
 import 'package:hifdh/features/quiz/ui/quiz_home_page.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -97,11 +98,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _startTesting() {
+    final l10n = AppLocalizations.of(context)!;
     if (_isSurahRangeExpanded) {
       if (_selectedSurahs.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please select at least one Surah")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.selectSurahMessage)));
         return;
       }
 
@@ -122,9 +124,9 @@ class _HomePageState extends State<HomePage> {
     String endText = _toPageController.text.trim();
 
     if (startText.isEmpty || endText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter both start and end pages")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.enterPagesMessage)));
       return;
     }
 
@@ -134,14 +136,14 @@ class _HomePageState extends State<HomePage> {
     if (start == null || end == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Invalid number format")));
+      ).showSnackBar(SnackBar(content: Text(l10n.invalidNumberFormat)));
       return;
     }
 
     if (start < 1 || end < 1 || start > end || end > 604) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid page range (1-604)")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.invalidPageRange)));
       return;
     }
 
@@ -177,9 +179,9 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     children: [
                       ListTile(
-                        title: const Text(
-                          "Page Range",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        title: Text(
+                          AppLocalizations.of(context)!.pageRangeTitle,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         trailing: Icon(
                           _isPageRangeExpanded
@@ -197,9 +199,11 @@ class _HomePageState extends State<HomePage> {
                                 child: TextField(
                                   controller: _fromPageController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: "From Page",
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: AppLocalizations.of(
+                                      context,
+                                    )!.fromPageLabel,
+                                    border: const OutlineInputBorder(),
                                   ),
                                 ),
                               ),
@@ -208,9 +212,11 @@ class _HomePageState extends State<HomePage> {
                                 child: TextField(
                                   controller: _toPageController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: "To Page",
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: AppLocalizations.of(
+                                      context,
+                                    )!.toPageLabel,
+                                    border: const OutlineInputBorder(),
                                   ),
                                 ),
                               ),
@@ -231,9 +237,9 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     children: [
                       ListTile(
-                        title: const Text(
-                          "Surah Selection",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        title: Text(
+                          AppLocalizations.of(context)!.surahSelectionTitle,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         trailing: Icon(
                           _isSurahRangeExpanded
@@ -251,7 +257,11 @@ class _HomePageState extends State<HomePage> {
                               ElevatedButton.icon(
                                 onPressed: _showSurahSelectionDialog,
                                 icon: const Icon(Icons.add),
-                                label: const Text("Select Surahs"),
+                                label: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.selectSurahsButton,
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 12,
@@ -323,9 +333,12 @@ class _HomePageState extends State<HomePage> {
                 ),
                 elevation: 4,
               ),
-              child: const Text(
-                "Start Quiz",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              child: Text(
+                AppLocalizations.of(context)!.startQuizButton,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

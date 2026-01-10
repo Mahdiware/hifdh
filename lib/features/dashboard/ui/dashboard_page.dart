@@ -5,6 +5,7 @@ import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/features/dashboard/widgets/plan_task_card.dart';
 import 'package:hifdh/features/dashboard/widgets/notes_sheet.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -66,6 +67,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bgColor = isDark ? theme.scaffoldBackgroundColor : Colors.white;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -73,7 +75,7 @@ class _DashboardPageState extends State<DashboardPage> {
         automaticallyImplyLeading: false, // Prevents back button if pushed
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        title: Text('Dashboard', style: theme.appBarTheme.titleTextStyle),
+        title: Text(l10n.dashboard, style: theme.appBarTheme.titleTextStyle),
         actions: [
           IconButton(
             icon: Icon(
@@ -107,7 +109,7 @@ class _DashboardPageState extends State<DashboardPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Active Tasks (${_tasks.length})",
+                  "${l10n.activeTasks} (${_tasks.length})",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black87,
@@ -121,7 +123,7 @@ class _DashboardPageState extends State<DashboardPage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _tasks.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(l10n)
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _tasks.length,
@@ -139,14 +141,14 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.spa_outlined, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          Text("No active tasks.", style: TextStyle(color: Colors.grey[500])),
+          Text(l10n.noActiveTasks, style: TextStyle(color: Colors.grey[500])),
         ],
       ),
     );

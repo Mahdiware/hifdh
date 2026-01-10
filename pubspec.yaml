@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   sqflite: ^2.3.0
   sqflite_common_ffi: ^2.3.0
   path: ^1.9.0
@@ -31,6 +33,7 @@ flutter_icons:
   image_path: "assets/logo.png"
 
 flutter:
+  generate: true
   uses-material-design: true
 
   assets:

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class ActivityChart extends StatelessWidget {
   final List<Map<String, dynamic>> chartData;
@@ -8,13 +9,6 @@ class ActivityChart extends StatelessWidget {
   final bool isDark;
 
   static const List<int> chartRanges = [7, 30, 90, 180, 365];
-  static const Map<int, String> chartRangeLabels = {
-    7: "7 Days",
-    30: "30 Days",
-    90: "3 Months",
-    180: "6 Months",
-    365: "1 Year",
-  };
 
   const ActivityChart({
     super.key,
@@ -24,8 +18,21 @@ class ActivityChart extends StatelessWidget {
     required this.isDark,
   });
 
+  Map<int, String> _getRangeLabels(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return {
+      7: l10n.days7,
+      30: l10n.days30,
+      90: l10n.months3,
+      180: l10n.months6,
+      365: l10n.year1,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final rangeLabels = _getRangeLabels(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -45,7 +52,7 @@ class ActivityChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Activity",
+            AppLocalizations.of(context)!.activity,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -87,7 +94,7 @@ class ActivityChart extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        chartRangeLabels[r]!,
+                        rangeLabels[r]!,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: isSelected
@@ -110,7 +117,7 @@ class ActivityChart extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
                 child: Text(
-                  "No activity in this period",
+                  AppLocalizations.of(context)!.noActivityPeriod,
                   style: TextStyle(color: Colors.grey[400], fontSize: 12),
                 ),
               ),
@@ -190,8 +197,8 @@ class ActivityChart extends StatelessWidget {
                                           end: Alignment.topCenter,
                                           colors: [
                                             AppColors.primaryNavy,
-                                            AppColors.primaryNavy.withValues(alpha: 
-                                              0.8,
+                                            AppColors.primaryNavy.withValues(
+                                              alpha: 0.8,
                                             ),
                                           ],
                                         ),

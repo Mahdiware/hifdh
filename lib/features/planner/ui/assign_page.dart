@@ -6,6 +6,7 @@ import 'package:hifdh/core/services/database_helper.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/features/quiz/ui/surah_selection_dialog.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class AssignPage extends StatefulWidget {
   const AssignPage({super.key});
@@ -148,7 +149,7 @@ class _AssignPageState extends State<AssignPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "$prefix $type are already memorized. Switched to Revision.",
+              AppLocalizations.of(context)!.contentMemorizedSwitch,
               style: TextStyle(
                 color: isDark
                     ? AppColors.textPrimaryDark
@@ -171,7 +172,7 @@ class _AssignPageState extends State<AssignPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "$prefix $type are not yet memorized. Switched to Memorize.",
+              AppLocalizations.of(context)!.contentNotMemorizedSwitch,
               style: TextStyle(
                 color: isDark
                     ? AppColors.textPrimaryDark
@@ -246,7 +247,7 @@ class _AssignPageState extends State<AssignPage> {
           : AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
-          "Create New Plan",
+          AppLocalizations.of(context)!.createNewPlan,
           style: TextStyle(
             color: isDark
                 ? AppColors.textPrimaryDark
@@ -273,7 +274,7 @@ class _AssignPageState extends State<AssignPage> {
               children: [
                 Expanded(
                   child: _buildTypeButton(
-                    "Memorize",
+                    AppLocalizations.of(context)!.memorize,
                     !_isRevision,
                     () => setState(() => _isRevision = false),
                     isDark,
@@ -282,7 +283,7 @@ class _AssignPageState extends State<AssignPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTypeButton(
-                    "Revision",
+                    AppLocalizations.of(context)!.revision,
                     _isRevision,
                     () => setState(() => _isRevision = true),
                     isDark,
@@ -303,9 +304,9 @@ class _AssignPageState extends State<AssignPage> {
               padding: const EdgeInsets.all(4),
               child: Row(
                 children: [
-                  _buildTab("Surah", 0, isDark),
-                  _buildTab("Juz", 1, isDark),
-                  _buildTab("Page", 2, isDark),
+                  _buildTab(AppLocalizations.of(context)!.surah, 0, isDark),
+                  _buildTab(AppLocalizations.of(context)!.juz, 1, isDark),
+                  _buildTab(AppLocalizations.of(context)!.page, 2, isDark),
                 ],
               ),
             ),
@@ -344,7 +345,7 @@ class _AssignPageState extends State<AssignPage> {
                     const SizedBox(width: 12),
                     Text(
                       _targetDate == null
-                          ? "Select Deadline"
+                          ? AppLocalizations.of(context)!.selectDeadline
                           : DateFormat(
                               'EEE, MMM d, yyyy - h:mm a',
                             ).format(_targetDate!),
@@ -378,9 +379,9 @@ class _AssignPageState extends State<AssignPage> {
                   ),
                   elevation: 2,
                 ),
-                child: const Text(
-                  "Create Plan",
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.createPlan,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -459,7 +460,8 @@ class _AssignPageState extends State<AssignPage> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  _selectedSurah?.englishName ?? "Select Surah",
+                  _selectedSurah?.englishName ??
+                      AppLocalizations.of(context)!.selectSurah,
                   style: TextStyle(
                     fontSize: 16,
                     color: _selectedSurah == null
@@ -488,7 +490,7 @@ class _AssignPageState extends State<AssignPage> {
           children: [
             Expanded(
               child: _buildNumberInput(
-                "Start Ayah",
+                AppLocalizations.of(context)!.startAyah,
                 (val) => _startAyah = val,
                 helperText: _maxAyah != null ? "Max: $_maxAyah" : null,
                 controller: _startAyahController,
@@ -497,7 +499,7 @@ class _AssignPageState extends State<AssignPage> {
             const SizedBox(width: 16),
             Expanded(
               child: _buildNumberInput(
-                "End Ayah",
+                AppLocalizations.of(context)!.endAyah,
                 (val) => _endAyah = val,
                 helperText: _maxAyah != null ? "Max: $_maxAyah" : null,
                 controller: _endAyahController,
@@ -511,11 +513,15 @@ class _AssignPageState extends State<AssignPage> {
 
   Widget _buildJuzSelector() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Select Juz", style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(
+          l10n.selectJuz,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -535,7 +541,10 @@ class _AssignPageState extends State<AssignPage> {
                 : AppColors.surfaceLight,
             style: Theme.of(context).textTheme.bodyLarge,
             items: List.generate(30, (i) => i + 1).map((idx) {
-              return DropdownMenuItem(value: idx, child: Text("Juz $idx"));
+              return DropdownMenuItem(
+                value: idx,
+                child: Text("${l10n.juz} $idx"),
+              );
             }).toList(),
             onChanged: (val) {
               if (val != null) {
@@ -546,9 +555,9 @@ class _AssignPageState extends State<AssignPage> {
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
-          "Subdivision",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.subdivision,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Container(
@@ -569,7 +578,23 @@ class _AssignPageState extends State<AssignPage> {
                 : AppColors.surfaceLight,
             style: Theme.of(context).textTheme.bodyLarge,
             items: _juzSubdivisions.map((s) {
-              return DropdownMenuItem(value: s, child: Text(s));
+              String label = s;
+              if (s == 'Full Juz') {
+                label = l10n.fullJuz;
+              } else if (s.startsWith('Hizb')) {
+                // "Hizb 1"
+                final parts = s.split(' ');
+                if (parts.length == 2) label = "${l10n.hizb} ${parts[1]}";
+              } else if (s.startsWith('Nisf Hizb')) {
+                // "Nisf Hizb 1"
+                final parts = s.split(' ');
+                if (parts.length == 3) label = "${l10n.nisfHizb} ${parts[2]}";
+              } else if (s.startsWith('Rubuc')) {
+                // "Rubuc 1"
+                final parts = s.split(' ');
+                if (parts.length == 2) label = "${l10n.rubuc} ${parts[1]}";
+              }
+              return DropdownMenuItem(value: s, child: Text(label));
             }).toList(),
             onChanged: (val) {
               if (val != null) setState(() => _juzSubdivision = val);
@@ -587,7 +612,9 @@ class _AssignPageState extends State<AssignPage> {
           child: TextField(
             controller: _pageStartController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: "Start Page"),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.startPage,
+            ),
             onChanged: (_) => _checkPageSelection(),
           ),
         ),
@@ -596,7 +623,9 @@ class _AssignPageState extends State<AssignPage> {
           child: TextField(
             controller: _pageEndController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: "End Page"),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.endPage,
+            ),
             onChanged: (_) => _checkPageSelection(),
           ),
         ),
@@ -606,7 +635,7 @@ class _AssignPageState extends State<AssignPage> {
 
   Future<void> _savePlan() async {
     if (_targetDate == null) {
-      _showError("Please select a deadline");
+      _showError(AppLocalizations.of(context)!.pleaseSelectDeadline);
       return;
     }
 
@@ -617,7 +646,7 @@ class _AssignPageState extends State<AssignPage> {
     if (_selectedUnitIndex == 0) {
       // SURAH
       if (_selectedSurah == null) {
-        _showError("Please select a Surah");
+        _showError(AppLocalizations.of(context)!.pleaseSelectSurah);
         return;
       }
 
@@ -626,17 +655,21 @@ class _AssignPageState extends State<AssignPage> {
 
       if (_maxAyah != null) {
         if (start < 1 || start > _maxAyah!) {
-          _showError("Start Ayah must be between 1 and $_maxAyah");
+          _showError(
+            AppLocalizations.of(context)!.startAyahErrorRange(_maxAyah!),
+          );
           return;
         }
         if (end < 1 || end > _maxAyah!) {
-          _showError("End Ayah must be between 1 and $_maxAyah");
+          _showError(
+            AppLocalizations.of(context)!.endAyahErrorRange(_maxAyah!),
+          );
           return;
         }
       }
 
       if (start > end) {
-        _showError("Start Ayah cannot be after End Ayah");
+        _showError(AppLocalizations.of(context)!.startAyahErrorOrder);
         return;
       }
 
@@ -649,7 +682,7 @@ class _AssignPageState extends State<AssignPage> {
         type: type,
         deadline: _targetDate!,
         createdAt: created,
-        subtitle: "Ayah $start - $end",
+        subtitle: "Ayah $start - $end", // Leaving generic for now
       );
     } else if (_selectedUnitIndex == 1) {
       // JUZ
@@ -678,11 +711,14 @@ class _AssignPageState extends State<AssignPage> {
         endRub = base + n;
       }
 
+      // Localize Title only if creating new task
+      final l10n = AppLocalizations.of(context)!;
       newTask = PlanTask(
         unitType: PlanUnitType.juz,
         unitId: _selectedJuz,
-        title: "Juz $_selectedJuz",
-        subtitle: _juzSubdivision,
+        title: "${l10n.juz} $_selectedJuz",
+        subtitle:
+            _juzSubdivision, // Logic uses English string for identification, but display should be localized. DB stores English.
         type: type,
         deadline: _targetDate!,
         createdAt: created,
@@ -695,14 +731,15 @@ class _AssignPageState extends State<AssignPage> {
       final start = int.tryParse(_pageStartController.text);
       final end = int.tryParse(_pageEndController.text);
       if (start == null || end == null) {
-        _showError("Please enter valid pages");
+        _showError(AppLocalizations.of(context)!.pleaseEnterValidPages);
         return;
       }
+      final l10n = AppLocalizations.of(context)!;
       newTask = PlanTask(
         unitType: PlanUnitType.page,
         unitId: start,
         endUnitId: end,
-        title: "Page $start - $end",
+        title: "${l10n.page} $start - $end",
         type: type,
         deadline: _targetDate!,
         createdAt: created,
@@ -714,7 +751,9 @@ class _AssignPageState extends State<AssignPage> {
     if (mounted) {
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Plan Created Successfully!")),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.planCreatedSuccess),
+        ),
       );
     }
   }
