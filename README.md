@@ -7,17 +7,21 @@ Hifdh is a comprehensive cross-platform Flutter application designed to assist u
 -   **📊 Dashboard**: Get a quick overview of your active tasks and recent notes.
 -   **📈 Progress Tracking**:
     -   Track memorization status by **Surah**, **Juz**, and **Hizb**.
-    -   Visual indicators for completed portions.
+    -   **Mistakes Analysis**: Heatmap visualization to identify weak spots (Green/Yellow/Red indicators).
+    -   **Detailed History**: View chronological history of notes and mistakes per Ayah.
+-   **🧠 Quiz Mode**:
+    -   Test your memorization with "Complete the Verse" challenges.
+    -   Customizable question scope (Surah/Page range).
 -   **📅 Planner**:
     -   Assign new memorization or revision tasks.
     -   Set specific deadlines with **Date & Time** limits.
 -   **📝 Notes System**:
     -   Create notes, flag doubts, or mark mistakes.
-    -   Link notes directly to specific Ayahs (e.g., "Surah Al-Baqarah: 255").
-    -   View notes in a streamlined, collapsible card format.
--   **🌗 Customization**:
-    -   Full support for **Light** and **Dark** themes.
-    -   Custom Arabic fonts for authentic Quran text display.
+    -   Link notes directly to specific Ayahs.
+    -   **External Links**: Open specific Ayahs in external Quran apps or websites.
+-   **⚙️ Settings & Tools**:
+    -   **Backup & Restore**: Export/Import your progress data.
+    -   **Themes**: Light and Dark mode support.
 -   **💻 Cross-Platform**: Optimized for Android, iOS, Windows, Linux, and macOS.
 
 ## Tech Stack
@@ -79,6 +83,11 @@ flutter pub run flutter_launcher_icons
 To change version:
 ```bash
 dart run set_version.dart 1.0.1
+```
+
+To update translations:
+```bash
+flutter gen-l10n
 ```
 
 To change package name:

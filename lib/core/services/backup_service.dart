@@ -37,7 +37,7 @@ class BackupService {
   }
 
   Future<bool> restore() async {
-    // 1. Pick File
+    // Pick File
     final result = await FilePicker.platform.pickFiles(
       dialogTitle: 'Select Backup File',
       type: FileType.any,
@@ -49,10 +49,10 @@ class BackupService {
     final pickedPath = result.files.single.path;
     if (pickedPath == null) return false;
 
-    // 2. Close current DB
+    // Close current DB
     await PlannerDatabaseHelper().closeAndReset();
 
-    // 3. Overwrite DB
+    // Overwrite DB
     final dbPath = await _getDbPath();
 
     // Ensure the db directory exists (it should, but good to be safe)

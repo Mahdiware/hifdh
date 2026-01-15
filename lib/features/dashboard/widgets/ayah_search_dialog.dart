@@ -47,7 +47,7 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
         final surah = row['surahNumber'] as int;
         final ayah = row['ayahNumber'] as int;
 
-        // 1. AyahSearchQuery Logic (e.g. 2:200)
+        // query logic (e.g. 2:200)
         if (search != null) {
           if (search.isSpecificAyah()) {
             return surah == search.surahNumber && ayah == search.ayahNumber;
@@ -58,7 +58,7 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
           }
         }
 
-        // 2. Text Search
+        // text search
         final text = (row['text'] as String).toLowerCase();
         final q = query.toLowerCase();
         return text.contains(q) ||

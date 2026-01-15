@@ -640,7 +640,7 @@ class _AssignPageState extends State<AssignPage> {
     }
 
     PlanTask newTask;
-    final type = _isRevision ? TaskType.revision : TaskType.memorize;
+    var type = _isRevision ? TaskType.revision : TaskType.memorize;
     final created = DateTime.now();
 
     if (_selectedUnitIndex == 0) {
@@ -648,6 +648,24 @@ class _AssignPageState extends State<AssignPage> {
       if (_selectedSurah == null) {
         _showError(AppLocalizations.of(context)!.pleaseSelectSurah);
         return;
+      }
+
+      // Check Memorization Status (Surah)
+      final isMemorized = await PlannerDatabaseHelper().isSurahFullyMemorized(
+        _selectedSurah!.number,
+      );
+      if (!mounted) return;
+
+      if (isMemorized && !_isRevision) {
+        type = TaskType.revision;
+        if (mounted) {
+          _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+        }
+      } else if (!isMemorized && _isRevision) {
+        type = TaskType.memorize;
+        if (mounted) {
+          _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+        }
       }
 
       final start = _startAyah ?? 1;
@@ -685,6 +703,29 @@ class _AssignPageState extends State<AssignPage> {
         subtitle: "Ayah $start - $end", // Leaving generic for now
       );
     } else if (_selectedUnitIndex == 1) {
+      // Check Memorization Status (Juz)
+      // We start logically with Full Juz check.
+      final isJuzMemorized = await PlannerDatabaseHelper().isJuzFullyMemorized(
+        _selectedJuz,
+      );
+      if (!mounted) return;
+
+      // If whole Juz is memorized, any part is revision
+      if (isJuzMemorized && !_isRevision) {
+        type = TaskType.revision;
+        if (mounted) {
+          _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+        }
+      } else if (!isJuzMemorized &&
+          _isRevision &&
+          _juzSubdivision == "Full Juz") {
+        // Only force Memorize if selecting whole Juz and it's not done
+        type = TaskType.memorize;
+        if (mounted) {
+          _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+        }
+      }
+
       // JUZ
       // Calculate Rubuc Range for Granular Juz Tasks
       // 1 Juz = 8 Rubucs. Rubuc ID in DB is global (1-240).
@@ -734,6 +775,24 @@ class _AssignPageState extends State<AssignPage> {
         _showError(AppLocalizations.of(context)!.pleaseEnterValidPages);
         return;
       }
+
+      // Check Memorization Status (Pages)
+      final isMemorized = await PlannerDatabaseHelper()
+          .isPageRangeFullyMemorized(start, end);
+      if (!mounted) return;
+
+      if (isMemorized && !_isRevision) {
+        type = TaskType.revision;
+        if (mounted) {
+          _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+        }
+      } else if (!isMemorized && _isRevision) {
+        type = TaskType.memorize;
+        if (mounted) {
+          _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+        }
+      }
+
       final l10n = AppLocalizations.of(context)!;
       newTask = PlanTask(
         unitType: PlanUnitType.page,

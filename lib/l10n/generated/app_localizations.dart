@@ -100,7 +100,7 @@ abstract class AppLocalizations {
     Locale('so'),
   ];
 
-  /// The title of the application
+  /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
   /// **'Hifdh'**
@@ -993,6 +993,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Task Type'**
   String get taskType;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @mistakesAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Mistakes Analysis'**
+  String get mistakesAnalysis;
+
+  /// No description provided for @mistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'Mistakes'**
+  String get mistakes;
+
+  /// No description provided for @noMistakesRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'No mistakes recorded yet'**
+  String get noMistakesRecorded;
 }
 
 class _AppLocalizationsDelegate

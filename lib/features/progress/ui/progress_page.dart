@@ -515,12 +515,10 @@ class _ProgressPageState extends State<ProgressPage>
       itemBuilder: (context, index) {
         final juzNum = index + 1;
 
-        // 1. Tasks explicitly for this Juz (Revision/Memorization)
         final explicitJuzTasks = _activeTasks.where(
           (t) => t.unitType == PlanUnitType.juz && t.unitId == juzNum,
         );
 
-        // 2. Tasks for Surahs contained in this Juz
         final surahsInJuz = _juzSurahMap[juzNum] ?? [];
         final surahTasks = _activeTasks.where(
           (t) =>
@@ -528,8 +526,6 @@ class _ProgressPageState extends State<ProgressPage>
               surahsInJuz.contains(t.unitId),
         );
 
-        // 3. Tasks for Hizbs in this Juz (Hizb 2*juz -1, 2*juz)
-        // Subtitle text matching is loose but matches user intent "Hizb 1 and Hizb 2"
         final hizb1 = (juzNum * 2) - 1;
         final hizb2 = (juzNum * 2);
 
@@ -693,12 +689,6 @@ class _ProgressPageState extends State<ProgressPage>
                           : AppColors.textSecondaryLight,
                     ),
                     onTap: () {
-                      // For a task, we use the specific task note viewer or the unit viewer?
-                      // If user wants "task" notes specifically, we should probably stick to unit viewer
-                      // but maybe we can just open Unit viewer for the task's unit.
-                      // However, the task might be for a Surah inside this Juz.
-                      // Let's open the Task Details directly from HistoryPage-style logic?
-                      // Or reuse _showUnitDetails with the task's unit.
                       if (task.unitType == PlanUnitType.surah) {
                         _showUnitDetails(
                           context,
@@ -735,14 +725,11 @@ class _ProgressPageState extends State<ProgressPage>
         final hizbNum = index + 1;
 
         // Match active tasks for this Hizb
-        // 1. Explicit mention in subtitle
         final relevant = _activeTasks.where((t) {
           final sub = t.subtitle?.toLowerCase() ?? "";
           return sub.contains("hizb $hizbNum");
         }).toList();
 
-        // 2. Implicit inclusion via Juz task?
-        // Hizb X resides in Juz ((X-1) ~ 2) + 1
         final parentJuz = ((hizbNum - 1) ~/ 2) + 1;
         final parentJuzTasks = _activeTasks.where((t) {
           if (t.unitType != PlanUnitType.juz || t.unitId != parentJuz) {
@@ -903,10 +890,6 @@ class _ProgressPageState extends State<ProgressPage>
                       : AppColors.textSecondaryLight,
                 ), // Always show arrow to imply tappable
                 onTap: () {
-                  // Hizb not directly supported in DB unit types yet,
-                  // but we can map it to Juz for now or show empty notes if we don't have explicit Hizb unit type.
-                  // Or better: Show notes for the Parent Juz? Or just "Coming Soon"?
-                  // Let's show Parent Juz notes for context.
                   _showUnitDetails(
                     context,
                     PlanUnitType.juz,

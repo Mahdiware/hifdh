@@ -71,7 +71,7 @@ class _HistoryPageState extends State<HistoryPage> {
       _filteredHistory = _history.where((task) {
         bool matchesRange = false;
 
-        // 1. Structural/Range Search using parsed query
+        // structural/Range Search using parsed query
         if (search != null) {
           if (search.isSpecificAyah()) {
             // Surah:Ayah (e.g. 2:200)
@@ -94,7 +94,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
         if (matchesRange) return true;
 
-        // 2. Text Search (Fallback for Metadata & Notes)
+        // Text Search (Fallback for Metadata & Notes)
         final q = query.toLowerCase();
         return task.title.toLowerCase().contains(q) ||
             (task.subtitle?.toLowerCase().contains(q) ?? false) ||
@@ -204,6 +204,9 @@ class _HistoryPageState extends State<HistoryPage> {
     final Map<String, List<PlanTask>> grouped = {};
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
+    final locale = Localizations.localeOf(context).languageCode == 'ar'
+        ? 'ar'
+        : 'en';
 
     // Use _filteredHistory instead of _history
     for (var task in _filteredHistory) {
@@ -220,7 +223,7 @@ class _HistoryPageState extends State<HistoryPage> {
           date.day == yesterday.day) {
         key = AppLocalizations.of(context)!.yesterday;
       } else {
-        key = DateFormat('MMMM d, y').format(date);
+        key = DateFormat('MMMM d, y', locale).format(date);
       }
 
       if (grouped.containsKey(key)) {
@@ -463,7 +466,13 @@ class _HistoryPageState extends State<HistoryPage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              DateFormat('hh:mm a').format(task.completedAt!),
+                              DateFormat(
+                                'hh:mm a',
+                                Localizations.localeOf(context).languageCode ==
+                                        'ar'
+                                    ? 'ar'
+                                    : 'en',
+                              ).format(task.completedAt!),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -551,8 +560,6 @@ class _HistoryPageState extends State<HistoryPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final l10n = AppLocalizations.of(context)!;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -560,132 +567,189 @@ class _HistoryPageState extends State<HistoryPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            return FutureBuilder<List<TaskNote>>(
-              future: PlannerDatabaseHelper().getTaskNotes(task.id!),
-              builder: (context, snapshot) {
-                return SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+      builder: (context) => _TaskHistoryDetailsSheet(task: task),
+    );
+  }
+}
+
+class _TaskHistoryDetailsSheet extends StatefulWidget {
+  final PlanTask task;
+  const _TaskHistoryDetailsSheet({required this.task});
+
+  @override
+  State<_TaskHistoryDetailsSheet> createState() =>
+      _TaskHistoryDetailsSheetState();
+}
+
+class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
+  late Future<List<TaskNote>> _notesFuture;
+  bool _legacyNoteDeleted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotes();
+  }
+
+  void _loadNotes() {
+    _notesFuture = PlannerDatabaseHelper().getTaskNotes(widget.task.id!);
+  }
+
+  Future<void> _deleteNote(int id) async {
+    await PlannerDatabaseHelper().deleteTaskNote(id);
+    if (mounted) {
+      setState(() {
+        _loadNotes();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return FutureBuilder<List<TaskNote>>(
+          future: _notesFuture,
+          builder: (context, snapshot) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    widget.task.title,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.primaryNavy,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildDetailRow(
+                    Icons.calendar_today,
+                    l10n.completedOn,
+                    DateFormat.yMMMd(
+                      Localizations.localeOf(context).languageCode == 'ar'
+                          ? 'ar'
+                          : 'en',
+                    ).add_jm().format(widget.task.completedAt!),
+                    isDark,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailRow(
+                    Icons.category,
+                    l10n.taskType,
+                    widget.task.type == TaskType.memorize
+                        ? AppLocalizations.of(context)!.memorize
+                        : AppLocalizations.of(context)!.revision,
+                    isDark,
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
                     children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white24 : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
+                      Icon(
+                        Icons.sticky_note_2_outlined,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.primaryNavy,
+                        size: 20,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(width: 8),
                       Text(
-                        task.title,
+                        AppLocalizations.of(context)!.notesHistory,
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppColors.primaryNavy,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.primaryNavy,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildDetailRow(
-                        Icons.calendar_today,
-                        l10n.completedOn,
-                        DateFormat.yMMMd(
-                          Localizations.localeOf(context).toString(),
-                        ).add_jm().format(task.completedAt!),
-                        isDark,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildDetailRow(
-                        Icons.category,
-                        l10n.taskType,
-                        task.type == TaskType.memorize
-                            ? AppLocalizations.of(context)!.memorize
-                            : AppLocalizations.of(context)!.revision,
-                        isDark,
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.sticky_note_2_outlined,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.primaryNavy,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            AppLocalizations.of(context)!.notesHistory,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.primaryNavy,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      if (!snapshot.hasData)
-                        const Center(child: CircularProgressIndicator())
-                      else if (snapshot.data!.isEmpty &&
-                          (task.note == null || task.note!.isEmpty))
-                        _buildEmptyNotesState(isDark)
-                      else ...[
-                        if (task.note != null &&
-                            task.note!.isNotEmpty &&
-                            !snapshot.data!.any((n) => n.content == task.note))
-                          CollapsibleNoteCard(
-                            note: TaskNote(
-                              taskId: task.id!,
-                              content: task.note!,
-                              type: NoteType.note,
-                              createdAt: task.completedAt!,
-                            ),
-                          ),
-                        ...snapshot.data!.map(
-                          (note) => CollapsibleNoteCard(
-                            note: note,
-                            // ayahLabel is optional, CollapsibleNoteCard fetches info if ayahId is present
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryNavy,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text("Close"),
-                        ),
-                      ),
-                      SizedBox(
-                        height: MediaQuery.of(context).viewInsets.bottom,
                       ),
                     ],
                   ),
-                );
-              },
+                  const SizedBox(height: 16),
+                  if (!snapshot.hasData)
+                    const Center(child: CircularProgressIndicator())
+                  else if (snapshot.data!.isEmpty &&
+                      (widget.task.note == null ||
+                          widget.task.note!.isEmpty ||
+                          _legacyNoteDeleted))
+                    _buildEmptyNotesState(isDark)
+                  else ...[
+                    if (widget.task.note != null &&
+                        widget.task.note!.isNotEmpty &&
+                        !_legacyNoteDeleted &&
+                        !snapshot.data!.any(
+                          (n) => n.content == widget.task.note,
+                        ))
+                      CollapsibleNoteCard(
+                        note: TaskNote(
+                          id: -1,
+                          taskId: widget.task.id!,
+                          content: widget.task.note!,
+                          type: NoteType.note,
+                          createdAt: widget.task.completedAt ?? DateTime.now(),
+                        ),
+                        onDelete: () async {
+                          await PlannerDatabaseHelper().updateTaskNote(
+                            widget.task.id!,
+                            '',
+                          );
+                          if (mounted) {
+                            setState(() {
+                              _legacyNoteDeleted = true;
+                            });
+                          }
+                        },
+                      ),
+                    ...snapshot.data!.map(
+                      (note) => CollapsibleNoteCard(
+                        note: note,
+                        onDelete: () => _deleteNote(note.id!),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryNavy,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(l10n.close),
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+                ],
+              ),
             );
           },
         );
@@ -713,12 +777,12 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context)!.noNotesRecorded,
+            AppLocalizations.of(context)!.noNotesRecordedYet,
             style: TextStyle(
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondaryLight,
-              fontStyle: FontStyle.italic,
+              fontSize: 14,
             ),
           ),
         ],
@@ -733,9 +797,14 @@ class _HistoryPageState extends State<HistoryPage> {
     bool isDark,
   ) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppColors.textSecondaryLight),
+        Icon(
+          icon,
+          size: 20,
+          color: isDark
+              ? AppColors.textSecondaryDark
+              : AppColors.textSecondaryLight,
+        ),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

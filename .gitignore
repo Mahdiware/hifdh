@@ -3,6 +3,7 @@
 *.log
 *.pyc
 *.swp
+.test/
 .DS_Store
 .atom/
 .build/
@@ -29,6 +30,7 @@ migrate_working_dir/
 *.jks
 
 # Flutter/Dart/Pub related
+
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/

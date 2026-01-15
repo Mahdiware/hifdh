@@ -77,17 +77,13 @@ class PlannerDatabaseHelper {
       version: 3,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          // Add ayahId to task_notes if upgrading from v1
           try {
             await db.execute(
               'ALTER TABLE task_notes ADD COLUMN ayahId INTEGER',
             );
-          } catch (_) {
-            // Ignore if column exists (dev/debug scenarios)
-          }
+          } catch (_) {}
         }
         if (oldVersion < 3) {
-          // Create quran_progress table if missing (Fix for v2 upgraders)
           await db.execute('''
             CREATE TABLE IF NOT EXISTS quran_progress(
               unitId INTEGER PRIMARY KEY,
@@ -97,7 +93,6 @@ class PlannerDatabaseHelper {
             )
           ''');
 
-          // Check if empty and populate
           final count =
               Sqflite.firstIntValue(
                 await db.rawQuery('SELECT COUNT(*) FROM quran_progress'),
@@ -118,7 +113,6 @@ class PlannerDatabaseHelper {
         }
       },
       onCreate: (db, version) async {
-        // Tasks Table
         await db.execute('''
           CREATE TABLE tasks(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,7 +132,6 @@ class PlannerDatabaseHelper {
           )
         ''');
 
-        // Indices
         await db.execute(
           'CREATE INDEX idx_tasks_status_type ON tasks(status, type)',
         );
@@ -146,7 +139,6 @@ class PlannerDatabaseHelper {
           'CREATE INDEX idx_tasks_unit ON tasks(unitType, unitId)',
         );
 
-        // Notes Table
         await db.execute('''
           CREATE TABLE task_notes(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,7 +152,6 @@ class PlannerDatabaseHelper {
         ''');
         await db.execute('CREATE INDEX idx_notes_task ON task_notes(taskId)');
 
-        // Quran Progress Table
         await db.execute('''
           CREATE TABLE quran_progress(
             unitId INTEGER PRIMARY KEY,
@@ -170,7 +161,6 @@ class PlannerDatabaseHelper {
           )
         ''');
 
-        // Batch Insert 114 Surahs
         final batch = db.batch();
         for (int i = 1; i <= 114; i++) {
           batch.insert('quran_progress', {
@@ -185,13 +175,9 @@ class PlannerDatabaseHelper {
   }
 
   // --- Optimized Static Data Loader ---
-  // Converts heavy List<Map> into TypedData arrays and valid indices.
-  // Runs once safely across isolates/concurrency.
   Future<void> _ensureStaticDataLoaded() async {
-    // 1. Fast path: already loaded
     if (_staticDataLoaded) return;
 
-    // 2. Concurrency handling: piggyback on existing future if loading
     if (_staticLoadFuture != null) {
       return _staticLoadFuture;
     }
@@ -203,33 +189,27 @@ class PlannerDatabaseHelper {
       _staticDataLoaded = true;
     } catch (e, stack) {
       debugPrint("Error loading static Quran data: $e\n$stack");
-      _staticLoadFuture = null; // Clear so we can retry later
+      _staticLoadFuture = null;
       rethrow;
     }
   }
 
   Future<void> _performStaticLoad() async {
-    // 1. Fetch Heavy Data (Only kept alive during this function)
     final rawMeta = await DatabaseHelper().getAllQuranMeta();
-    if (rawMeta.isEmpty) return; // Guard against empty DB
+    if (rawMeta.isEmpty) return;
 
-    // 2. Initialize Typed Arrays (Fixed Size)
     _metaPageNum = Uint16List(_totalAyahs);
     _metaSurahNum = Uint16List(_totalAyahs);
     _metaJuzNum = Uint16List(_totalAyahs);
 
-    // Using growable false for inner lists might save a tiny bit but
-    // makes appending harder. Default is fine.
-    _pageToAyahIds = List.generate(605, (_) => <int>[]); // 1-604
-    _surahToAyahIds = List.generate(115, (_) => <int>[]); // 1-114
-    _juzToAyahIds = List.generate(31, (_) => <int>[]); // 1-30
+    _pageToAyahIds = List.generate(605, (_) => <int>[]);
+    _surahToAyahIds = List.generate(115, (_) => <int>[]);
+    _juzToAyahIds = List.generate(31, (_) => <int>[]);
 
-    // 3. Populate Arrays - ONE PASS Loop
     for (final m in rawMeta) {
       final id = m['id'] as int;
       final offset = id - 1;
 
-      // Safety check for array bounds
       if (offset < 0 || offset >= _totalAyahs) continue;
 
       final p = m['pageNumber'] as int;
@@ -245,7 +225,6 @@ class PlannerDatabaseHelper {
       if (j <= 30) _juzToAyahIds![j].add(id);
     }
 
-    // 4. Transform Ranges to Typed Arrays
     final rawSurahRanges = await DatabaseHelper().getAllSurahPageRanges();
     _surahStartPage = Uint16List(115);
     _surahEndPage = Uint16List(115);
@@ -258,7 +237,6 @@ class PlannerDatabaseHelper {
       }
     }
 
-    // Juz Ranges
     _juzStartPage = Uint16List(31);
     _juzEndPage = Uint16List(31);
 
@@ -267,8 +245,6 @@ class PlannerDatabaseHelper {
       _juzStartPage![j] = r['startPage']!;
       _juzEndPage![j] = r['endPage']!;
     }
-
-    // Note: _staticDataLoaded is set by verify wrapper
   }
 
   // --- Tasks CRUD ---
@@ -395,7 +371,7 @@ class PlannerDatabaseHelper {
   // --- Optimized Internal Progress Logic ---
 
   Future<void> _runGlobalMemorizationCheck(DatabaseExecutor db) async {
-    // 1. Calculate Page Coverage (No DB writes yet)
+    // Calculate page coverage (no DB writes yet)
     // Only fetching relevant memorization tasks
     final tasks = await db.rawQuery(
       "SELECT unitType, unitId, endUnitId, startAyah, endAyah FROM tasks WHERE status = ? AND type = ?",
@@ -434,7 +410,7 @@ class PlannerDatabaseHelper {
       }
     }
 
-    // 2. Batch Update Surah Progress (Correctly Recalculate ALL)
+    // Batch update surah Progress (correctly recalculate all)
     // We must reset Surahs that are NO LONGER memorized effectively
     // while keeping revision counts intact.
     // Optimization: We check "current" state in memory vs DB state if possible,
@@ -611,6 +587,33 @@ class PlannerDatabaseHelper {
     });
     _notifyDataChanged();
     return id;
+  }
+
+  Future<int> deleteTaskNote(int noteId) async {
+    final db = await database;
+    final count = await db.delete(
+      'task_notes',
+      where: 'id = ?',
+      whereArgs: [noteId],
+    );
+    _notifyDataChanged();
+    return count;
+  }
+
+  Future<int> updateTaskNoteEntry(
+    int noteId,
+    String content,
+    NoteType type,
+  ) async {
+    final db = await database;
+    final count = await db.update(
+      'task_notes',
+      {'content': content, 'type': type.index},
+      where: 'id = ?',
+      whereArgs: [noteId],
+    );
+    _notifyDataChanged();
+    return count;
   }
 
   Future<List<TaskNote>> getTaskNotes(int taskId) async {

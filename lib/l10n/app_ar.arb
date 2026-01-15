@@ -147,5 +147,10 @@
   "clearAllData": "مسح جميع المهام والتقدم",
   "generalNote": "ملاحظة عامة",
   "completedOn": "أكملت في",
-  "taskType": "نوع المهمة"
+  "taskType": "نوع المهمة",
+  "edit": "تعديل",
+  "delete": "حذف",
+  "mistakesAnalysis": "تحليل الأخطاء",
+  "mistakes": "أخطاء",
+  "noMistakesRecorded": "لا توجد أخطاء مسجلة"
 }

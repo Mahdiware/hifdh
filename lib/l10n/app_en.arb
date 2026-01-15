@@ -1,8 +1,5 @@
 {
   "appTitle": "Hifdh",
-  "@appTitle": {
-    "description": "The title of the application"
-  },
   "dashboard": "Dashboard",
   "plans": "Plans",
   "history": "History",
@@ -192,5 +189,10 @@
   "clearAllData": "Clear all tasks and progress",
   "generalNote": "General Note",
   "completedOn": "Completed On",
-  "taskType": "Task Type"
+  "taskType": "Task Type",
+  "edit": "Edit",
+  "delete": "Delete",
+  "mistakesAnalysis": "Mistakes Analysis",
+  "mistakes": "Mistakes",
+  "noMistakesRecorded": "No mistakes recorded yet"
 }

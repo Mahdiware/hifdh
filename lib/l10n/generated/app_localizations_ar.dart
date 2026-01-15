@@ -471,4 +471,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get taskType => 'نوع المهمة';
+
+  @override
+  String get edit => 'تعديل';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get mistakesAnalysis => 'تحليل الأخطاء';
+
+  @override
+  String get mistakes => 'أخطاء';
+
+  @override
+  String get noMistakesRecorded => 'لا توجد أخطاء مسجلة';
 }

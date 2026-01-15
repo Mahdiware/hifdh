@@ -4,8 +4,9 @@ import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/features/progress/widgets/ayah_analysis_sheet.dart';
 
-class UnitDetailsSheet extends StatelessWidget {
+class UnitDetailsSheet extends StatefulWidget {
   final PlanUnitType type;
   final int unitId;
   final String title;
@@ -20,13 +21,51 @@ class UnitDetailsSheet extends StatelessWidget {
   });
 
   @override
+  State<UnitDetailsSheet> createState() => _UnitDetailsSheetState();
+}
+
+class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
+  late Future<List<TaskNote>> _notesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotes();
+  }
+
+  void _loadNotes() {
+    if (widget.preloadedNotes != null) {
+      _notesFuture = Future.value(widget.preloadedNotes);
+    } else {
+      _notesFuture = PlannerDatabaseHelper().getNotesForUnit(
+        widget.type,
+        widget.unitId,
+      );
+    }
+  }
+
+  Future<void> _deleteNote(int id) async {
+    await PlannerDatabaseHelper().deleteTaskNote(id);
+    if (mounted) {
+      setState(() {
+        // Force reload from DB even if we had preloaded notes,
+        // because we just modified the source of truth.
+        _notesFuture = PlannerDatabaseHelper().getNotesForUnit(
+          widget.type,
+          widget.unitId,
+        );
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
 
     String typeName;
-    switch (type) {
+    switch (widget.type) {
       case PlanUnitType.surah:
         typeName = l10n.surah;
         break;
@@ -46,13 +85,8 @@ class UnitDetailsSheet extends StatelessWidget {
       maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
-        final notes = preloadedNotes;
-        final future = notes != null
-            ? Future.value(notes)
-            : PlannerDatabaseHelper().getNotesForUnit(type, unitId);
-
         return FutureBuilder<List<TaskNote>>(
-          future: future,
+          future: _notesFuture,
           builder: (context, snapshot) {
             return ScrollConfiguration(
               behavior: ScrollConfiguration.of(
@@ -78,7 +112,7 @@ class UnitDetailsSheet extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     Text(
-                      title,
+                      widget.title,
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -96,6 +130,42 @@ class UnitDetailsSheet extends StatelessWidget {
                             : AppColors.textSecondaryLight,
                       ),
                     ),
+
+                    if (widget.type == PlanUnitType.surah) ...[
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => AyahAnalysisSheet(
+                                surahId: widget.unitId,
+                                surahName: widget.title,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.analytics_outlined),
+                          label: Text(l10n.mistakesAnalysis),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: BorderSide(
+                              color: isDark
+                                  ? AppColors.accentOrange
+                                  : AppColors.primaryNavy,
+                            ),
+                            foregroundColor: isDark
+                                ? AppColors.accentOrange
+                                : AppColors.primaryNavy,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
                     // Notes Section Header
@@ -132,7 +202,10 @@ class UnitDetailsSheet extends StatelessWidget {
                       _buildEmptyNotesState(isDark)
                     else
                       ...snapshot.data!.map(
-                        (note) => CollapsibleNoteCard(note: note),
+                        (note) => CollapsibleNoteCard(
+                          note: note,
+                          onDelete: () => _deleteNote(note.id!),
+                        ),
                       ),
 
                     const SizedBox(height: 24),

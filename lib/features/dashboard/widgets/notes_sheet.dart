@@ -61,8 +61,9 @@ class _NotesSheetState extends State<NotesSheet> {
   }
 
   String _getSelectedAyahLabel(BuildContext context) {
-    if (_selectedAyahId == null)
+    if (_selectedAyahId == null) {
       return AppLocalizations.of(context)!.selectSearchAyah;
+    }
     final match = _availableAyahs.firstWhere(
       (e) => e['id'] == _selectedAyahId,
       orElse: () => {},
@@ -104,6 +105,119 @@ class _NotesSheetState extends State<NotesSheet> {
     _loadNotes();
   }
 
+  Future<void> _deleteNote(int id) async {
+    await PlannerDatabaseHelper().deleteTaskNote(id);
+    _loadNotes();
+  }
+
+  void _editNote(TaskNote note) {
+    final controller = TextEditingController(text: note.content);
+    NoteType selectedType = note.type;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.edit),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildDialogTypeChip(
+                      AppLocalizations.of(context)!.note,
+                      NoteType.note,
+                      Colors.blue,
+                      selectedType,
+                      (t) => setState(() => selectedType = t),
+                    ),
+                    _buildDialogTypeChip(
+                      AppLocalizations.of(context)!.doubt,
+                      NoteType.doubt,
+                      Colors.orange,
+                      selectedType,
+                      (t) => setState(() => selectedType = t),
+                    ),
+                    _buildDialogTypeChip(
+                      AppLocalizations.of(context)!.mistake,
+                      NoteType.mistake,
+                      Colors.red,
+                      selectedType,
+                      (t) => setState(() => selectedType = t),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.descriptionOptional,
+                    border: const OutlineInputBorder(),
+                  ),
+                  minLines: 1,
+                  maxLines: 3,
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              await PlannerDatabaseHelper().updateTaskNoteEntry(
+                note.id!,
+                controller.text.trim(),
+                selectedType,
+              );
+              // Check against parent state mounted property
+              if (mounted) {
+                navigator.pop();
+                _loadNotes();
+              }
+            },
+            child: Text(AppLocalizations.of(context)!.edit),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDialogTypeChip(
+    String label,
+    NoteType type,
+    Color color,
+    NoteType currentSelection,
+    Function(NoteType) onSelect,
+  ) {
+    final isSelected = currentSelection == type;
+    return InkWell(
+      onTap: () => onSelect(type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? color : color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : color,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -137,7 +251,11 @@ class _NotesSheetState extends State<NotesSheet> {
                           horizontal: 16,
                           vertical: 4,
                         ),
-                        child: CollapsibleNoteCard(note: note),
+                        child: CollapsibleNoteCard(
+                          note: note,
+                          onEdit: () => _editNote(note),
+                          onDelete: () => _deleteNote(note.id!),
+                        ),
                       );
                     },
                   ),
@@ -150,7 +268,7 @@ class _NotesSheetState extends State<NotesSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. Type Selector
+                // Type Selector
                 Row(
                   children: [
                     _buildTypeChip(l10n.note, NoteType.note, Colors.blue),
@@ -162,7 +280,7 @@ class _NotesSheetState extends State<NotesSheet> {
                 ),
                 const SizedBox(height: 12),
 
-                // 2. Ayah Selector (Searchable)
+                // Ayah Selector (Searchable)
                 if (_availableAyahs.isNotEmpty)
                   InkWell(
                     onTap: _showAyahSearchDialog,
@@ -230,7 +348,7 @@ class _NotesSheetState extends State<NotesSheet> {
 
                 const SizedBox(height: 12),
 
-                // 3. Input & Send
+                // Input & Send
                 Row(
                   children: [
                     Expanded(

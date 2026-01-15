@@ -150,5 +150,10 @@
   "hizb": "Xisbiga",
   "wholeJuz": "Juz oo Dhan",
   "nisfHizb": "Nisfo Xisbiga",
-  "rubuc": "Rubuc"
+  "rubuc": "Rubuc",
+  "edit": "Beddel",
+  "delete": "Tirtir",
+  "mistakesAnalysis": "Falanqaynta Khaladaadka",
+  "mistakes": "Khaladaad",
+  "noMistakesRecorded": "Weli ma jiro khaladaad la qoray"
 }

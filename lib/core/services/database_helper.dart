@@ -151,6 +151,16 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<List<Map<String, dynamic>>> getAyahsMetadataForSurah(
+    int surahId,
+  ) async {
+    final db = await database;
+    return await db.rawQuery(
+      "SELECT id, ayahNumber, pageNumber, juzNumber FROM quran_meta WHERE surahNumber = ? ORDER BY ayahNumber ASC",
+      [surahId],
+    );
+  }
+
   Future<Map<String, dynamic>?> getAyahInfoById(int id) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.rawQuery(

@@ -470,4 +470,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get taskType => 'Task Type';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get mistakesAnalysis => 'Mistakes Analysis';
+
+  @override
+  String get mistakes => 'Mistakes';
+
+  @override
+  String get noMistakesRecorded => 'No mistakes recorded yet';
 }

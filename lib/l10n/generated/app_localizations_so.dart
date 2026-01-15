@@ -472,4 +472,19 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get taskType => 'Nooca Hawsha';
+
+  @override
+  String get edit => 'Beddel';
+
+  @override
+  String get delete => 'Tirtir';
+
+  @override
+  String get mistakesAnalysis => 'Falanqaynta Khaladaadka';
+
+  @override
+  String get mistakes => 'Khaladaad';
+
+  @override
+  String get noMistakesRecorded => 'Weli ma jiro khaladaad la qoray';
 }

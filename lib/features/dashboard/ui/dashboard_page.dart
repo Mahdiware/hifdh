@@ -6,6 +6,8 @@ import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/features/dashboard/widgets/plan_task_card.dart';
 import 'package:hifdh/features/dashboard/widgets/notes_sheet.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:hifdh/features/settings/logic/locale_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -83,6 +85,33 @@ class _DashboardPageState extends State<DashboardPage> {
               color: theme.appBarTheme.iconTheme?.color,
             ),
             onPressed: _fetchTasks,
+          ),
+          Consumer<LocaleProvider>(
+            builder: (context, localeProvider, child) {
+              return PopupMenuButton<Locale>(
+                icon: Icon(
+                  Icons.language,
+                  color: theme.appBarTheme.iconTheme?.color,
+                ),
+                onSelected: (Locale locale) {
+                  localeProvider.setLocale(locale);
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
+                  const PopupMenuItem<Locale>(
+                    value: Locale('en'),
+                    child: Text('English'),
+                  ),
+                  const PopupMenuItem<Locale>(
+                    value: Locale('ar'),
+                    child: Text('العربية'),
+                  ),
+                  const PopupMenuItem<Locale>(
+                    value: Locale('so'),
+                    child: Text('Soomaali'),
+                  ),
+                ],
+              );
+            },
           ),
           const ThemeToggleButton(),
           const SizedBox(width: 8),
