@@ -67,7 +67,7 @@ jobs:
             mv "$file" "../../../../HifdhTracker_${{ env.VERSION }}_${ABI}_release.apk"
           done
 
-      - name: Build universal APK
+      - name: Build universal APK (ARM only)
         env:
           # FIX: Absolute path here as well
           KEYSTORE_PATH: ${{ github.workspace }}/android/app/hifdh-release.keystore
@@ -75,7 +75,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          flutter build apk --release
+          flutter build apk --release --target-platform android-arm,android-arm64
 
       - name: Rename universal APK
         run: |
