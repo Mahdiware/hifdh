@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hifdh/core/services/database_helper.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/core/utils/open_quran.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
@@ -44,13 +45,6 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
   }
 
   Future<void> _refreshMistakes() async {
-    // Only set loading if it's the initial load or meaningful refresh?
-    // For smoothness, maybe don't show full loading spinner for simple refresh,
-    // just update state. But since we separate the static list, we can keep the grid
-    // and just repaint colors.
-
-    // If only refreshing mistakes, we don't need to block UI with full spinner
-    // if we already have _ayahs.
     bool wasEmpty = _ayahs.isEmpty;
     if (wasEmpty) setState(() => _isLoading = true);
 
@@ -62,14 +56,23 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
     final noteMap = <int, List<TaskNote>>{};
     final mistakeCounts = <int, int>{};
 
+    // Group notes by Ayah
     for (var note in allNotes) {
       if (note.ayahId != null) {
         noteMap.putIfAbsent(note.ayahId!, () => []).add(note);
-        if (note.type == NoteType.mistake) {
-          mistakeCounts[note.ayahId!] = (mistakeCounts[note.ayahId!] ?? 0) + 1;
-        }
       }
     }
+
+    // Calculate mistakes based on last 5 entries
+    noteMap.forEach((ayahId, notes) {
+      // Sort recent first
+      notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      // Analyze last 5 attempts
+      final recent = notes.take(5);
+      final count = recent.where((n) => n.type != NoteType.correct).length;
+      mistakeCounts[ayahId] = count;
+    });
 
     if (mounted) {
       setState(() {
@@ -227,6 +230,7 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                       ),
                                     ),
                                     child: _AyahHistorySheet(
+                                      surahNumber: widget.surahId,
                                       surahName: widget.surahName,
                                       ayahNumber: number,
                                       initialNotes: _ayahNotes[id] ?? [],
@@ -291,6 +295,7 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
 }
 
 class _AyahHistorySheet extends StatefulWidget {
+  final int surahNumber;
   final String surahName;
   final int ayahNumber;
   final List<TaskNote> initialNotes;
@@ -301,6 +306,7 @@ class _AyahHistorySheet extends StatefulWidget {
     required this.ayahNumber,
     required this.initialNotes,
     required this.onDeleteNote,
+    required this.surahNumber,
   });
 
   @override
@@ -373,8 +379,9 @@ class _AyahHistorySheetState extends State<_AyahHistorySheet> {
                 ),
               ),
               IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+                onPressed: () =>
+                    openQuranLink(widget.surahNumber, widget.ayahNumber),
+                icon: Icon(Icons.menu_book_rounded),
               ),
             ],
           ),
@@ -410,6 +417,7 @@ class _AyahHistorySheetState extends State<_AyahHistorySheet> {
                         onDelete: note.id == null
                             ? () {}
                             : () => _handleDelete(note.id!),
+                        showCorrectNote: true,
                       );
                     },
                   ),

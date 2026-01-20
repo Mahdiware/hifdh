@@ -4,7 +4,7 @@ enum TaskStatus { notStarted, inProgress, completed }
 
 enum PlanUnitType { surah, juz, page, custom }
 
-enum NoteType { note, doubt, mistake }
+enum NoteType { doubt,  correct, mistake}
 
 // Helper for UI display logic later
 extension PlanUnitTypeExtension on PlanUnitType {

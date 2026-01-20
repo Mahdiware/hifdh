@@ -453,4 +453,45 @@ class DatabaseHelper {
       ORDER BY qm.surahNumber, qm.ayahNumber
       ''', args);
   }
+
+  // --- Ayah ID Helpers for Task Completion ---
+
+  Future<List<int>> getAyahIdsForPlanUnit({
+    required PlanUnitType unitType,
+    required int unitId,
+    int? endUnitId,
+    int? startAyah,
+    int? endAyah,
+  }) async {
+    final db = await database;
+    String whereClause = "";
+    List<dynamic> args = [];
+
+    if (unitType == PlanUnitType.surah) {
+      whereClause = "surahNumber = ?";
+      args.add(unitId);
+      if (startAyah != null && endAyah != null) {
+        whereClause += " AND ayahNumber BETWEEN ? AND ?";
+        args.add(startAyah);
+        args.add(endAyah);
+      }
+    } else if (unitType == PlanUnitType.page) {
+      whereClause = "pageNumber BETWEEN ? AND ?";
+      args.add(unitId);
+      args.add(endUnitId ?? unitId);
+    } else if (unitType == PlanUnitType.juz) {
+      whereClause = "juzNumber = ?";
+      args.add(unitId);
+    } else {
+      return [];
+    }
+
+    final maps = await db.query(
+      'quran_meta',
+      columns: ['id'],
+      where: whereClause,
+      whereArgs: args,
+    );
+    return maps.map((m) => m['id'] as int).toList();
+  }
 }

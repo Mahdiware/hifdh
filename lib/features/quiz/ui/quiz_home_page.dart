@@ -312,12 +312,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                   ),
                   Text(
                     AppLocalizations.of(context)!.completeVersePrompt,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontFamily: 'QuranFont',
-                      color: textColor,
-                    ),
-                    textDirection: TextDirection.rtl,
+                    style: TextStyle(fontSize: 22, color: textColor),
                   ),
                 ],
               ),

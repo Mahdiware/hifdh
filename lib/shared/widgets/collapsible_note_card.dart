@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hifdh/core/utils/open_quran.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class CollapsibleNoteCard extends StatefulWidget {
   final TaskNote note;
@@ -12,12 +12,15 @@ class CollapsibleNoteCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
+  final bool showCorrectNote;
+
   const CollapsibleNoteCard({
     super.key,
     required this.note,
     this.ayahLabel,
     this.onEdit,
     this.onDelete,
+    this.showCorrectNote = false,
   });
 
   @override
@@ -62,37 +65,14 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
     }
   }
 
-  Future<void> _openQuranLink() async {
-    if (_ayahInfo == null) return;
-    final surah = _ayahInfo!['surahNumber'] as int;
-    final ayah = _ayahInfo!['ayahNumber'] as int;
-
-    final String appUrl = "quran://$surah/$ayah";
-    final String webUrl = "https://quran.com/$surah/$ayah";
-
-    final Uri appUri = Uri.parse(appUrl);
-    final Uri webUri = Uri.parse(webUrl);
-
-    try {
-      bool launched = await launchUrl(
-        appUri,
-        mode: LaunchMode.externalApplication,
-      );
-
-      if (!launched) {
-        await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      await launchUrl(webUri, mode: LaunchMode.externalApplication);
-    }
-  }
-
   // --- Helper Methods ---
-
   (Color, IconData) _getStyle() {
     switch (widget.note.type) {
-      case NoteType.note:
-        return (_isDark ? Colors.blue.shade200 : Colors.blue, Icons.note);
+      case NoteType.correct:
+        return (
+          _isDark ? Colors.green.shade200 : Colors.white,
+          Icons.check_circle_outline,
+        );
       case NoteType.doubt:
         return (
           _isDark ? AppColors.accentOrange : Colors.orange.shade800,
@@ -117,6 +97,9 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.showCorrectNote && widget.note.type == NoteType.correct) {
+      return const SizedBox.shrink();
+    }
     final (color, icon) = _getStyle();
 
     return Container(
@@ -148,9 +131,6 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
                   Expanded(child: _buildHeaderInfo(color)),
                   _buildActionMenu(color),
                   if (_hasContent) ...[
-                    // Only show expand arrow if there's no menu taking space, or add spacing?
-                    // Design choice: Menu is always visible if actions exist.
-                    // Arrow also indicates content visibility.
                     const SizedBox(width: 4),
                     Icon(
                       _isExpanded
@@ -201,7 +181,10 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
       onSelected: (value) {
         if (value == 'edit') widget.onEdit?.call();
         if (value == 'delete') widget.onDelete?.call();
-        if (value == 'open_quran') _openQuranLink();
+
+        final surah = _ayahInfo!['surahNumber'] as int;
+        final ayah = _ayahInfo!['ayahNumber'] as int;
+        if (value == 'open_quran') openQuranLink(surah, ayah);
       },
       itemBuilder: (context) => [
         if (widget.onEdit != null)

@@ -48,8 +48,6 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
     await PlannerDatabaseHelper().deleteTaskNote(id);
     if (mounted) {
       setState(() {
-        // Force reload from DB even if we had preloaded notes,
-        // because we just modified the source of truth.
         _notesFuture = PlannerDatabaseHelper().getNotesForUnit(
           widget.type,
           widget.unitId,
@@ -237,13 +235,6 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
   }
 
   Widget _buildEmptyNotesState(bool isDark) {
-    // We need context here or pass l10n.
-    // Since _buildEmptyNotesState is called inside builder, let's grab context or make it instance method.
-    // Wait, context is available via closure but better pass it?
-    // Actually this is a Stateless Widget method, context needs to be passed.
-    // I'll grab it using Builder or just use stateless build context if available in scope.
-    // Ah, `_buildEmptyNotesState(isDark)` is called. I'll modify the call site or use a Builder.
-    // Easier: modify parameters to accept context.
     return Builder(
       builder: (context) {
         return Container(

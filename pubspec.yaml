@@ -1,7 +1,7 @@
 name: hifdh
 description: "A Quran memorization tracking app."
 publish_to: 'none'
-version: 3.0.0+300
+version: 3.2.0+320
 
 environment:
   sdk: ^3.9.2

@@ -20,7 +20,6 @@ class PlannerDatabaseHelper {
   // UI Notifier to trigger rebuilds
   final ValueNotifier<int> dataUpdateNotifier = ValueNotifier(0);
 
-  // --- Optimized In-Memory Indices (Low RAM Friendly) ---
   // Replaces heavy Map objects with typed arrays for O(1) access.
   bool _staticDataLoaded = false;
   // Memoizer for concurrent loading requests
@@ -174,7 +173,6 @@ class PlannerDatabaseHelper {
     );
   }
 
-  // --- Optimized Static Data Loader ---
   Future<void> _ensureStaticDataLoaded() async {
     if (_staticDataLoaded) return;
 
@@ -344,6 +342,44 @@ class PlannerDatabaseHelper {
 
       await _ensureStaticDataLoaded();
 
+      // Auto-mark correct Ayahs
+      try {
+        final targetAyahIds = await DatabaseHelper().getAyahIdsForPlanUnit(
+          unitType: task.unitType,
+          unitId: task.unitId,
+          endUnitId: task.endUnitId,
+          startAyah: task.startAyah,
+          endAyah: task.endAyah,
+        );
+
+        final existingNotes = await txn.query(
+          'task_notes',
+          columns: ['ayahId'],
+          where: 'taskId = ? AND ayahId IS NOT NULL',
+          whereArgs: [taskId],
+        );
+        final existingAyahIds = existingNotes
+            .map((m) => m['ayahId'] as int)
+            .toSet();
+        final missingIds = targetAyahIds.where(
+          (id) => !existingAyahIds.contains(id),
+        );
+
+        final now = DateTime.now().toIso8601String();
+        for (final id in missingIds) {
+          await txn.insert('task_notes', {
+            'taskId': taskId,
+            'content': '',
+            'type': NoteType.correct.index,
+            'ayahId': id,
+            'createdAt': now,
+          });
+        }
+      } catch (e) {
+        // Fallback or log error, but don't fail completion
+        debugPrint("Error auto-marking correct ayahs: $e");
+      }
+
       if (task.type == TaskType.memorize) {
         await _runGlobalMemorizationCheck(txn);
       } else {
@@ -367,8 +403,6 @@ class PlannerDatabaseHelper {
 
     _notifyDataChanged();
   }
-
-  // --- Optimized Internal Progress Logic ---
 
   Future<void> _runGlobalMemorizationCheck(DatabaseExecutor db) async {
     // Calculate page coverage (no DB writes yet)
@@ -409,12 +443,6 @@ class PlannerDatabaseHelper {
         }
       }
     }
-
-    // Batch update surah Progress (correctly recalculate all)
-    // We must reset Surahs that are NO LONGER memorized effectively
-    // while keeping revision counts intact.
-    // Optimization: We check "current" state in memory vs DB state if possible,
-    // but here we just blindly update `isMemorized` flag.
 
     final batch = db.batch();
 
@@ -493,8 +521,6 @@ class PlannerDatabaseHelper {
     }
   }
 
-  // --- Optimized Reads (Caching + Typed Arrays) ---
-
   Future<Set<int>> getGlobalCoveredAyahs() async {
     if (_cachedCoveredAyahs != null && _cachedCoverageVersion == _dbVersion) {
       return _cachedCoveredAyahs!;
@@ -564,7 +590,6 @@ class PlannerDatabaseHelper {
   }
 
   // --- Notes History ---
-
   Future<int> addNote(
     int taskId,
     String content,

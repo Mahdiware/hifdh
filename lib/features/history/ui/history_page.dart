@@ -546,7 +546,7 @@ class _HistoryPageState extends State<HistoryPage> {
       child: Text(
         label,
         style: TextStyle(
-          color: color,
+          color: isDark ? Colors.white : Colors.black,
           fontSize: 10,
           fontWeight: FontWeight.w600,
         ),
@@ -708,7 +708,7 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
                           id: -1,
                           taskId: widget.task.id!,
                           content: widget.task.note!,
-                          type: NoteType.note,
+                          type: NoteType.mistake,
                           createdAt: widget.task.completedAt ?? DateTime.now(),
                         ),
                         onDelete: () async {

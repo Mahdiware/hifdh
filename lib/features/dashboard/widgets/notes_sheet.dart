@@ -16,7 +16,7 @@ class NotesSheet extends StatefulWidget {
 
 class _NotesSheetState extends State<NotesSheet> {
   final TextEditingController _noteController = TextEditingController();
-  NoteType _selectedType = NoteType.note;
+  NoteType _selectedType = NoteType.mistake;
   List<TaskNote> _notes = [];
   bool _loading = true;
 
@@ -127,13 +127,6 @@ class _NotesSheetState extends State<NotesSheet> {
                 Wrap(
                   spacing: 8,
                   children: [
-                    _buildDialogTypeChip(
-                      AppLocalizations.of(context)!.note,
-                      NoteType.note,
-                      Colors.blue,
-                      selectedType,
-                      (t) => setState(() => selectedType = t),
-                    ),
                     _buildDialogTypeChip(
                       AppLocalizations.of(context)!.doubt,
                       NoteType.doubt,
@@ -271,8 +264,6 @@ class _NotesSheetState extends State<NotesSheet> {
                 // Type Selector
                 Row(
                   children: [
-                    _buildTypeChip(l10n.note, NoteType.note, Colors.blue),
-                    const SizedBox(width: 8),
                     _buildTypeChip(l10n.doubt, NoteType.doubt, Colors.orange),
                     const SizedBox(width: 8),
                     _buildTypeChip(l10n.mistake, NoteType.mistake, Colors.red),
