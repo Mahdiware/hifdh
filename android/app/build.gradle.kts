@@ -25,6 +25,18 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        ndk {
+            // ONLY ARM32 and ARM64
+            abiFilters.add("armeabi-v7a")
+            abiFilters.add("arm64-v8a")
+        }
+    }
+
+    packaging {
+        jniLibs {
+             excludes += "**/libdatastore_shared_counter.so"
+        }
     }
 
     // Force all APKs to have the exact same version code, ignoring ABI splits logic
