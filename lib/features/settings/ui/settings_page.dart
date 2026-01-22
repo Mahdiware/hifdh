@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../logic/theme_provider.dart';
 import '../logic/locale_provider.dart';
+import '../logic/preferences_provider.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/core/services/backup_service.dart';
@@ -72,128 +73,202 @@ class SettingsPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // Language Selector
-        ListTile(
-          title: Text(l10n.language),
-          leading: const Icon(Icons.language),
-          trailing: DropdownButton<String>(
-            value: localeProvider.locale.languageCode,
-            onChanged: (String? newValue) {
-              if (newValue != null) {
-                localeProvider.setLocale(Locale(newValue));
-              }
-            },
-            items: ['en', 'ar', 'so'].map((String code) {
-              return DropdownMenuItem<String>(
-                value: code,
-                child: Text(_getLanguageName(code)),
-              );
-            }).toList(),
-          ),
-        ),
+        _buildLanguageSelector(localeProvider, l10n),
         const Divider(),
+        _buildThemeSelector(themeProvider, l10n),
+        const Divider(),
+        _buildReadModeToggle(context, l10n),
+        const Divider(),
+        _buildBackupSection(context, l10n),
+        _buildRestoreSection(context, l10n),
+        const Divider(),
+        _buildResetSection(context, l10n),
+      ],
+    );
+  }
 
-        // Theme Selector
-        ListTile(
-          title: Text(l10n.theme),
-          subtitle: Text(_getThemeText(themeProvider.themeMode, l10n)),
-          leading: Icon(
-            themeProvider.themeMode == ThemeMode.dark
-                ? Icons.dark_mode
-                : Icons.light_mode,
-          ),
-          trailing: DropdownButton<ThemeMode>(
-            value: themeProvider.themeMode,
-            onChanged: (ThemeMode? newValue) {
-              if (newValue != null) {
-                themeProvider.setThemeMode(newValue);
-              }
-            },
-            items: [
-              DropdownMenuItem(
-                value: ThemeMode.system,
-                child: Text(l10n.systemTheme),
-              ),
-              DropdownMenuItem(
-                value: ThemeMode.light,
-                child: Text(l10n.lightTheme),
-              ),
-              DropdownMenuItem(
-                value: ThemeMode.dark,
-                child: Text(l10n.darkTheme),
+  Widget _buildLanguageSelector(
+    LocaleProvider provider,
+    AppLocalizations l10n,
+  ) {
+    return ListTile(
+      title: Text(l10n.language),
+      leading: const Icon(Icons.language),
+      trailing: DropdownButton<String>(
+        value: provider.locale.languageCode,
+        onChanged: (String? newValue) {
+          if (newValue != null) {
+            provider.setLocale(Locale(newValue));
+          }
+        },
+        items: ['en', 'ar', 'so'].map((String code) {
+          return DropdownMenuItem<String>(
+            value: code,
+            child: Text(_getLanguageName(code)),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildThemeSelector(ThemeProvider provider, AppLocalizations l10n) {
+    return ListTile(
+      title: Text(l10n.theme),
+      subtitle: Text(_getThemeText(provider.themeMode, l10n)),
+      leading: Icon(
+        provider.themeMode == ThemeMode.dark
+            ? Icons.dark_mode
+            : Icons.light_mode,
+      ),
+      trailing: DropdownButton<ThemeMode>(
+        value: provider.themeMode,
+        onChanged: (ThemeMode? newValue) {
+          if (newValue != null) {
+            provider.setThemeMode(newValue);
+          }
+        },
+        items: [ThemeMode.system, ThemeMode.light, ThemeMode.dark].map((mode) {
+          return DropdownMenuItem(
+            value: mode,
+            child: Text(_getThemeText(mode, l10n)),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildReadModeToggle(BuildContext context, AppLocalizations l10n) {
+    return Consumer<PreferencesProvider>(
+      builder: (context, prefs, _) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final isEnabled = prefs.defaultToReadMode;
+
+        final activeColor = isDark
+            ? const Color(0xFF64B5F6)
+            : Theme.of(context).primaryColor;
+
+        final iconColor = isEnabled
+            ? activeColor
+            : (isDark ? Colors.grey[400] : Colors.grey[600]);
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2C2E42) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-        ),
-        const Divider(),
-
-        // Backup
-        ListTile(
-          title: Text(l10n.createBackup),
-          subtitle: Text(l10n.backupToFile),
-          leading: const Icon(Icons.download_rounded),
-          onTap: () async {
-            try {
-              await BackupService().backup();
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.backupCreated)));
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.backupFailed(e.toString()))),
-                );
-              }
-            }
-          },
-        ),
-
-        // Restore
-        ListTile(
-          title: Text(l10n.restoreBackup),
-          subtitle: Text(l10n.restoreFromFile),
-          leading: const Icon(Icons.restore_page_rounded),
-          onTap: () async {
-            // Re-using simplified restore flow for now, can localize confirmation similarly to reset if needed
-            // For now assuming direct file pick
-            try {
-              final success = await BackupService().restore();
-              if (context.mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(l10n.backupRestored)));
-                  // Trigger UI update across the app
-                  PlannerDatabaseHelper().dataUpdateNotifier.value++;
-                }
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.restoreFailed(e.toString()))),
-                );
-              }
-            }
-          },
-        ),
-        const Divider(),
-
-        // Reset
-        ListTile(
-          title: Text(
-            l10n.resetData,
-            style: const TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
+          child: SwitchListTile.adaptive(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 8,
+            ),
+            title: Text(
+              l10n.defaultToReadMode,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                l10n.defaultToReadModeDesc,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.3,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+            ),
+            secondary: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: (iconColor ?? Colors.blue).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isEnabled ? Icons.menu_book_rounded : Icons.touch_app_rounded,
+                color: iconColor,
+                size: 24,
+              ),
+            ),
+            value: isEnabled,
+            onChanged: (val) => prefs.toggleDefaultReadMode(val),
           ),
-          subtitle: Text(l10n.clearAllData),
-          leading: const Icon(Icons.delete_forever, color: Colors.red),
-          onTap: () => _confirmReset(context),
-        ),
-      ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBackupSection(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      title: Text(l10n.createBackup),
+      subtitle: Text(l10n.backupToFile),
+      leading: const Icon(Icons.download_rounded),
+      onTap: () async {
+        try {
+          await BackupService().backup();
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.backupCreated)));
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.backupFailed(e.toString()))),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildRestoreSection(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      title: Text(l10n.restoreBackup),
+      subtitle: Text(l10n.restoreFromFile),
+      leading: const Icon(Icons.restore_page_rounded),
+      onTap: () async {
+        try {
+          final success = await BackupService().restore();
+          if (context.mounted && success) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.backupRestored)));
+            PlannerDatabaseHelper().dataUpdateNotifier.value++;
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.restoreFailed(e.toString()))),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildResetSection(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      title: Text(
+        l10n.resetData,
+        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(l10n.clearAllData),
+      leading: const Icon(Icons.delete_forever, color: Colors.red),
+      onTap: () => _confirmReset(context),
     );
   }
 }

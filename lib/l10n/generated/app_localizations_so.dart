@@ -487,4 +487,24 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get noMistakesRecorded => 'Weli ma jiro khaladaad la qoray';
+
+  @override
+  String get defaultToReadMode => 'Habka Akhriska ka dhig midka caadiga ah';
+
+  @override
+  String get defaultToReadModeDesc =>
+      'Daar si aad toos ugu furto isku xirka Quraanka beddelkii falanqaynta';
+
+  @override
+  String get analyze => 'Falanqeynta';
+
+  @override
+  String get read => 'Akhriso';
+
+  @override
+  String get mastered => 'Sugan';
+
+  @override
+  String get confirmDeleteTask =>
+      'Ma hubtaa inaad rabto inaad tirtirto hawshan?';
 }

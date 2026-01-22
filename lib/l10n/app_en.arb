@@ -194,5 +194,11 @@
   "delete": "Delete",
   "mistakesAnalysis": "Mistakes Analysis",
   "mistakes": "Mistakes",
-  "noMistakesRecorded": "No mistakes recorded yet"
+  "noMistakesRecorded": "No mistakes recorded yet",
+  "defaultToReadMode": "Default to Read mode on tap",
+  "defaultToReadModeDesc": "Enable to open Quran link by default instead of Analysis",
+  "analyze": "Analyze",
+  "read": "Read",
+  "mastered": "Mastered",
+  "confirmDeleteTask": "Are you sure you want to delete this task?"
 }

@@ -5,12 +5,16 @@ import 'package:hifdh/l10n/generated/app_localizations.dart';
 class ProgressHeaderCard extends StatelessWidget {
   final double memPercentage;
   final Map<String, int> overallStats;
+  final int selectedMetric;
+  final Function(int) onMetricChanged;
   final bool isDark;
 
   const ProgressHeaderCard({
     super.key,
     required this.memPercentage,
     required this.overallStats,
+    required this.selectedMetric,
+    required this.onMetricChanged,
     required this.isDark,
   });
 
@@ -74,13 +78,58 @@ class ProgressHeaderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  AppLocalizations.of(context)!.hifdhPerformance,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.progress,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Container(
+                      height: 30,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: DropdownButton<int>(
+                        value: selectedMetric,
+                        underline: const SizedBox(),
+                        dropdownColor: AppColors.primaryNavy,
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.white70,
+                          size: 16,
+                        ),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        items: [
+                          DropdownMenuItem(
+                            value: 2,
+                            child: Text(AppLocalizations.of(context)!.page),
+                          ),
+                          DropdownMenuItem(
+                            value: 3,
+                            child: Text(AppLocalizations.of(context)!.surah),
+                          ),
+                          DropdownMenuItem(
+                            value: 1,
+                            child: Text(AppLocalizations.of(context)!.ayah),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) onMetricChanged(val);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Row(

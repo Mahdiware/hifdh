@@ -155,5 +155,11 @@
   "delete": "Tirtir",
   "mistakesAnalysis": "Falanqaynta Khaladaadka",
   "mistakes": "Khaladaad",
-  "noMistakesRecorded": "Weli ma jiro khaladaad la qoray"
+  "noMistakesRecorded": "Weli ma jiro khaladaad la qoray",
+  "defaultToReadMode": "Habka Akhriska ka dhig midka caadiga ah",
+  "defaultToReadModeDesc": "Daar si aad toos ugu furto isku xirka Quraanka beddelkii falanqaynta",
+  "analyze": "Falanqeynta",
+  "read": "Akhriso",
+  "mastered": "Sugan",
+  "confirmDeleteTask": "Ma hubtaa inaad rabto inaad tirtirto hawshan?"
 }

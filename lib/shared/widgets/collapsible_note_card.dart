@@ -12,15 +12,12 @@ class CollapsibleNoteCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
-  final bool showCorrectNote;
-
   const CollapsibleNoteCard({
     super.key,
     required this.note,
     this.ayahLabel,
     this.onEdit,
     this.onDelete,
-    this.showCorrectNote = false,
   });
 
   @override
@@ -70,7 +67,7 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
     switch (widget.note.type) {
       case NoteType.correct:
         return (
-          _isDark ? Colors.green.shade200 : Colors.white,
+          _isDark ? Colors.green.shade200 : AppColors.successGreen,
           Icons.check_circle_outline,
         );
       case NoteType.doubt:
@@ -97,9 +94,6 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.showCorrectNote && widget.note.type == NoteType.correct) {
-      return const SizedBox.shrink();
-    }
     final (color, icon) = _getStyle();
 
     return Container(

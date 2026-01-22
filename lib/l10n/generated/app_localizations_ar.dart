@@ -486,4 +486,23 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noMistakesRecorded => 'لا توجد أخطاء مسجلة';
+
+  @override
+  String get defaultToReadMode => 'الوضع الافتراضي عند النقر على الآية: قراءة';
+
+  @override
+  String get defaultToReadModeDesc =>
+      'عند التفعيل، سيؤدي النقر على الآية لفتح المصحف مباشرة';
+
+  @override
+  String get analyze => 'تحليل';
+
+  @override
+  String get read => 'قراءة';
+
+  @override
+  String get mastered => 'متقن';
+
+  @override
+  String get confirmDeleteTask => 'هل أنت متأكد أنك تريد حذف هذه المهمة؟';
 }

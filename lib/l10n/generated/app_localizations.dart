@@ -1023,6 +1023,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No mistakes recorded yet'**
   String get noMistakesRecorded;
+
+  /// No description provided for @defaultToReadMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Default to Read mode on tap'**
+  String get defaultToReadMode;
+
+  /// No description provided for @defaultToReadModeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable to open Quran link by default instead of Analysis'**
+  String get defaultToReadModeDesc;
+
+  /// No description provided for @analyze.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze'**
+  String get analyze;
+
+  /// No description provided for @read.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get read;
+
+  /// No description provided for @mastered.
+  ///
+  /// In en, this message translates to:
+  /// **'Mastered'**
+  String get mastered;
+
+  /// No description provided for @confirmDeleteTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this task?'**
+  String get confirmDeleteTask;
 }
 
 class _AppLocalizationsDelegate

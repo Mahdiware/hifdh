@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
@@ -9,7 +11,9 @@ import 'package:hifdh/features/quiz/ui/surah_selection_dialog.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class AssignPage extends StatefulWidget {
-  const AssignPage({super.key});
+  final PlanTask? taskToEdit;
+
+  const AssignPage({super.key, this.taskToEdit});
 
   @override
   State<AssignPage> createState() => _AssignPageState();
@@ -32,7 +36,7 @@ class _AssignPageState extends State<AssignPage> {
   // Juz Mode
   int _selectedJuz = 1;
   String _juzSubdivision = "Full Juz";
-  final List<String> _juzSubdivisions = [
+  static const List<String> _juzSubdivisions = [
     "Full Juz",
     "Hizb 1",
     "Hizb 2",
@@ -61,6 +65,7 @@ class _AssignPageState extends State<AssignPage> {
   // Data
   List<Surah> _allSurahs = [];
   bool _isLoading = true;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -70,6 +75,7 @@ class _AssignPageState extends State<AssignPage> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _pageStartController.dispose();
     _pageEndController.dispose();
     _startAyahController.dispose();
@@ -79,10 +85,51 @@ class _AssignPageState extends State<AssignPage> {
 
   Future<void> _loadData() async {
     final surahs = await DatabaseHelper().getAllSurahs();
-    setState(() {
-      _allSurahs = surahs;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _allSurahs = surahs;
+        _isLoading = false;
+      });
+      if (widget.taskToEdit != null) {
+        await _populateForEdit();
+      }
+    }
+  }
+
+  Future<void> _populateForEdit() async {
+    final t = widget.taskToEdit!;
+    _isRevision = t.type == TaskType.revision;
+    _targetDate = t.deadline;
+
+    // Unit Type
+    if (t.unitType == PlanUnitType.surah) {
+      _selectedUnitIndex = 0;
+      // Find surah
+      try {
+        _selectedSurah = _allSurahs.firstWhere((s) => s.number == t.unitId);
+        _maxAyah = await DatabaseHelper().getSurahAyahCount(
+          _selectedSurah!.number,
+        );
+        _startAyah = t.startAyah;
+        _endAyah = t.endAyah;
+        _startAyahController.text = _startAyah?.toString() ?? "";
+        _endAyahController.text = _endAyah?.toString() ?? "";
+      } catch (_) {}
+    } else if (t.unitType == PlanUnitType.juz) {
+      _selectedUnitIndex = 1;
+      _selectedJuz = t.unitId;
+      if (t.subtitle != null) {
+        // Try to match subdivision
+        if (_juzSubdivisions.contains(t.subtitle)) {
+          _juzSubdivision = t.subtitle!;
+        }
+      }
+    } else if (t.unitType == PlanUnitType.page) {
+      _selectedUnitIndex = 2;
+      _pageStartController.text = t.unitId.toString();
+      _pageEndController.text = (t.endUnitId ?? t.unitId).toString();
+    }
+    setState(() {});
   }
 
   Future<void> _selectSurah() async {
@@ -126,16 +173,21 @@ class _AssignPageState extends State<AssignPage> {
     _checkIsMemorized(isMemorized, "This", "Juz");
   }
 
-  Future<void> _checkPageSelection() async {
-    final start = int.tryParse(_pageStartController.text);
-    final end = int.tryParse(_pageEndController.text);
+  void _checkPageSelection() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 1000), () async {
+      final start = int.tryParse(_pageStartController.text);
+      final end = int.tryParse(_pageEndController.text);
 
-    if (start != null && end != null && start <= end) {
-      final isMemorized = await PlannerDatabaseHelper()
-          .isPageRangeFullyMemorized(start, end);
+      if (start != null && end != null && start <= end) {
+        final isMemorized = await PlannerDatabaseHelper()
+            .isPageRangeFullyMemorized(start, end);
 
-      _checkIsMemorized(isMemorized, "These", "pages");
-    }
+        if (mounted) {
+          _checkIsMemorized(isMemorized, "These", "pages");
+        }
+      }
+    });
   }
 
   void _checkIsMemorized(bool isMemorized, String prefix, String type) {
@@ -380,7 +432,9 @@ class _AssignPageState extends State<AssignPage> {
                   elevation: 2,
                 ),
                 child: Text(
-                  AppLocalizations.of(context)!.createPlan,
+                  widget.taskToEdit != null
+                      ? AppLocalizations.of(context)!.edit
+                      : AppLocalizations.of(context)!.createPlan,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -612,6 +666,7 @@ class _AssignPageState extends State<AssignPage> {
           child: TextField(
             controller: _pageStartController,
             keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: AppLocalizations.of(context)!.startPage,
             ),
@@ -623,6 +678,7 @@ class _AssignPageState extends State<AssignPage> {
           child: TextField(
             controller: _pageEndController,
             keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: AppLocalizations.of(context)!.endPage,
             ),
@@ -805,13 +861,30 @@ class _AssignPageState extends State<AssignPage> {
       );
     }
 
-    await PlannerDatabaseHelper().insertTask(newTask);
+    if (widget.taskToEdit != null) {
+      // Update
+      newTask = newTask.copyWith(
+        id: widget.taskToEdit!.id!,
+        title: newTask.title,
+        status: widget.taskToEdit!.status,
+        completedAt: widget.taskToEdit!.completedAt,
+        note: widget.taskToEdit!.note,
+      );
+      await PlannerDatabaseHelper().updateTask(newTask);
+    } else {
+      await PlannerDatabaseHelper().insertTask(newTask);
+    }
 
     if (mounted) {
       Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.planCreatedSuccess),
+          content: Text(
+            widget.taskToEdit != null
+                ? AppLocalizations.of(context)!
+                      .planCreatedSuccess // Reuse success msg or add Edit success
+                : AppLocalizations.of(context)!.planCreatedSuccess,
+          ),
         ),
       );
     }
@@ -878,6 +951,7 @@ class _AssignPageState extends State<AssignPage> {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: InputDecoration(
         labelText: label,
         helperText: helperText,

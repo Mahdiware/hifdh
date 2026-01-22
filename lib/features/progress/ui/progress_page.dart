@@ -34,6 +34,8 @@ class _ProgressPageState extends State<ProgressPage>
 
   // Chart Range
   int _selectedStatRange = 7;
+  // Metric for Header Card (1: Ayah, 2: Page, 3: Surah)
+  int _selectedHeaderMetric = 2;
 
   // Cache for Juz -> Surahs mapping
   final Map<int, List<int>> _juzSurahMap = {};
@@ -75,7 +77,9 @@ class _ProgressPageState extends State<ProgressPage>
     try {
       // Parallel fetch Basic Data
       final basicFutures = await Future.wait([
-        PlannerDatabaseHelper().getMemorizedPercentage(),
+        PlannerDatabaseHelper().getMemorizedPercentage(
+          type: _selectedHeaderMetric,
+        ),
         PlannerDatabaseHelper().getAllSurahProgress(),
         DatabaseHelper().getAllSurahs(),
         PlannerDatabaseHelper().getCompletionStats(
@@ -131,6 +135,8 @@ class _ProgressPageState extends State<ProgressPage>
 
       for (var row in allNotes) {
         final note = TaskNote.fromMap(row);
+
+        if (note.type == NoteType.correct) continue;
 
         if (note.ayahId != null && metaMap.containsKey(note.ayahId)) {
           final m = metaMap[note.ayahId]!;
@@ -224,6 +230,8 @@ class _ProgressPageState extends State<ProgressPage>
                     ProgressHeaderCard(
                       memPercentage: _memPercentage,
                       overallStats: _overallStats,
+                      selectedMetric: _selectedHeaderMetric,
+                      onMetricChanged: (val) => _updateHeaderMetric(val),
                       isDark: isDark,
                     ),
                     const SizedBox(height: 16),
@@ -281,6 +289,18 @@ class _ProgressPageState extends State<ProgressPage>
     if (mounted) {
       setState(() {
         _chartData = ProgressChartHelper.normalizeChartData(raw, days);
+      });
+    }
+  }
+
+  Future<void> _updateHeaderMetric(int type) async {
+    setState(() => _selectedHeaderMetric = type);
+    final pct = await PlannerDatabaseHelper().getMemorizedPercentage(
+      type: type,
+    );
+    if (mounted) {
+      setState(() {
+        _memPercentage = pct;
       });
     }
   }

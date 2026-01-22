@@ -254,6 +254,18 @@ class PlannerDatabaseHelper {
     return id;
   }
 
+  Future<int> updateTask(PlanTask task) async {
+    final db = await database;
+    final count = await db.update(
+      'tasks',
+      task.toMap(),
+      where: 'id = ?',
+      whereArgs: [task.id],
+    );
+    _notifyDataChanged();
+    return count;
+  }
+
   Future<int> updateTaskStatus(int id, TaskStatus status) async {
     final db = await database;
     final count = await db.update(
@@ -667,6 +679,32 @@ class PlannerDatabaseHelper {
       [unitType.index, unitId],
     );
     return maps.map((m) => TaskNote.fromMap(m)).toList();
+  }
+
+  Future<List<TaskNote>> getNotesForAyahs(List<int> ayahIds) async {
+    if (ayahIds.isEmpty) return [];
+    final db = await database;
+    // Split into chunks to respect SQLite variable limits (usually 999)
+    final chunks = <List<int>>[];
+    for (var i = 0; i < ayahIds.length; i += 500) {
+      chunks.add(
+        ayahIds.sublist(i, i + 500 > ayahIds.length ? ayahIds.length : i + 500),
+      );
+    }
+
+    final allNotes = <TaskNote>[];
+    for (final chunk in chunks) {
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      final maps = await db.query(
+        'task_notes',
+        where: 'ayahId IN ($placeholders)',
+        whereArgs: chunk,
+        // No orderBy here; the consumer often re-sorts this bulk data locally,
+        // and chunked results wouldn't be globally sorted anyway.
+      );
+      allNotes.addAll(maps.map((m) => TaskNote.fromMap(m)));
+    }
+    return allNotes;
   }
 
   Future<List<Map<String, dynamic>>> getAllNotesWithTasks() async {

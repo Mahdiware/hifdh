@@ -592,7 +592,11 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
   }
 
   void _loadNotes() {
-    _notesFuture = PlannerDatabaseHelper().getTaskNotes(widget.task.id!);
+    _notesFuture = PlannerDatabaseHelper()
+        .getTaskNotes(widget.task.id!)
+        .then(
+          (notes) => notes.where((n) => n.type != NoteType.correct).toList(),
+        );
   }
 
   Future<void> _deleteNote(int id) async {

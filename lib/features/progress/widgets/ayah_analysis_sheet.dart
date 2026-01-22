@@ -3,9 +3,12 @@ import 'package:hifdh/core/services/database_helper.dart';
 import 'package:hifdh/core/services/planner_database_helper.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/open_quran.dart';
+import 'package:hifdh/features/progress/models/ayah_color.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:hifdh/features/settings/logic/preferences_provider.dart';
 
 class AyahAnalysisSheet extends StatefulWidget {
   final int surahId;
@@ -25,22 +28,25 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _ayahs = []; // {id, number}
   Map<int, List<TaskNote>> _ayahNotes = {};
+  Map<int, int> _ayahConsecutiveRights = {};
   Map<int, int> _ayahMistakeCounts = {};
+  bool _isReadMode = false;
 
   @override
   void initState() {
     super.initState();
+    final prefs = Provider.of<PreferencesProvider>(context, listen: false);
+    _isReadMode = prefs.defaultToReadMode;
+
     _initialLoad();
   }
 
   Future<void> _initialLoad() async {
     setState(() => _isLoading = true);
-    // Fetch static Ayah structure only once
     final enrichedAyahs = await DatabaseHelper().getAyahsMetadataForSurah(
       widget.surahId,
     );
     _ayahs = enrichedAyahs;
-    // Then load dynamic data
     await _refreshMistakes();
   }
 
@@ -48,35 +54,51 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
     bool wasEmpty = _ayahs.isEmpty;
     if (wasEmpty) setState(() => _isLoading = true);
 
-    final allNotes = await PlannerDatabaseHelper().getNotesForUnit(
-      PlanUnitType.surah,
-      widget.surahId,
-    );
+    final ids = _ayahs.map((e) => e['id'] as int).toList();
+    final allNotes = await PlannerDatabaseHelper().getNotesForAyahs(ids);
 
     final noteMap = <int, List<TaskNote>>{};
+    final consecutiveRights = <int, int>{};
     final mistakeCounts = <int, int>{};
 
-    // Group notes by Ayah
     for (var note in allNotes) {
       if (note.ayahId != null) {
         noteMap.putIfAbsent(note.ayahId!, () => []).add(note);
       }
     }
 
-    // Calculate mistakes based on last 5 entries
     noteMap.forEach((ayahId, notes) {
-      // Sort recent first
-      notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      // Sort oldest to newest (ascending by date)
+      notes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-      // Analyze last 5 attempts
-      final recent = notes.take(5);
-      final count = recent.where((n) => n.type != NoteType.correct).length;
-      mistakeCounts[ayahId] = count;
+      // 1. Calculate Streak (Consecutive Rights from end)
+      int streak = 0;
+      for (int i = notes.length - 1; i >= 0; i--) {
+        if (notes[i].type == NoteType.correct) {
+          streak++;
+        } else {
+          break; // Stop as soon as a mistake/doubt is found
+        }
+      }
+      consecutiveRights[ayahId] = streak;
+
+      // 2. Calculate Recent Mistakes (Last 5 attempts)
+      int mistakes = 0;
+      int start = notes.length - 5;
+      if (start < 0) start = 0;
+      for (int i = start; i < notes.length; i++) {
+        if (notes[i].type == NoteType.mistake ||
+            notes[i].type == NoteType.doubt) {
+          mistakes++;
+        }
+      }
+      mistakeCounts[ayahId] = mistakes;
     });
 
     if (mounted) {
       setState(() {
         _ayahNotes = noteMap;
+        _ayahConsecutiveRights = consecutiveRights;
         _ayahMistakeCounts = mistakeCounts;
         _isLoading = false;
       });
@@ -84,19 +106,15 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
   }
 
   Color _getAyahColor(int ayahId, bool isDark) {
-    final count = _ayahMistakeCounts[ayahId] ?? 0;
-
-    if (count == 0) {
-      return isDark ? Colors.white : Colors.black;
-    } else if (count == 1) {
-      return AppColors.successGreen;
-    } else if (count == 2) {
-      return Colors.amber;
-    } else if (count == 3) {
-      return AppColors.accentOrange;
-    } else {
-      return AppColors.errorRed;
+    // If no history, return neutral
+    if (!_ayahNotes.containsKey(ayahId)) {
+      return Colors.transparent;
     }
+
+    final streak = _ayahConsecutiveRights[ayahId] ?? 0;
+
+    final mistakes = _ayahMistakeCounts[ayahId] ?? 0;
+    return AyahColor.getAyahHighlightColor(mistakes, streak);
   }
 
   @override
@@ -133,39 +151,88 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                     Container(
                       width: 40,
                       height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
+                      margin: const EdgeInsets.only(bottom: 24),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white24 : Colors.grey[300],
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    Text(
-                      widget.surahName,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "QuranFont",
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.mistakesAnalysis,
-                      style: TextStyle(
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.surahName,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: "QuranFont",
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.mistakesAnalysis,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.black26 : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildToggleItem(
+                                l10n.analyze,
+                                Icons.analytics_outlined,
+                                !_isReadMode,
+                                () => setState(() => _isReadMode = false),
+                                isDark,
+                              ),
+                              _buildToggleItem(
+                                l10n.read,
+                                Icons.menu_book_rounded,
+                                _isReadMode,
+                                () => setState(() => _isReadMode = true),
+                                isDark,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildLegendItem(AppColors.errorRed, "4+"),
-                        const SizedBox(width: 12),
-                        _buildLegendItem(AppColors.accentOrange, "3"),
-                        const SizedBox(width: 12),
-                        _buildLegendItem(Colors.amber, "2"),
-                        const SizedBox(width: 12),
-                        _buildLegendItem(AppColors.successGreen, "1"),
-                      ],
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildLegendItem(
+                            AyahColor.correctStrong,
+                            l10n.correct,
+                          ),
+                          const SizedBox(width: 8),
+                          _buildLegendItem(AyahColor.level1, "1"),
+                          const SizedBox(width: 8),
+                          _buildLegendItem(AyahColor.level2, "2"),
+                          const SizedBox(width: 8),
+                          _buildLegendItem(AyahColor.level3, "3"),
+                          const SizedBox(width: 8),
+                          _buildLegendItem(AyahColor.level4, "4"),
+                          const SizedBox(width: 8),
+                          _buildLegendItem(AyahColor.level5, "5+"),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -188,13 +255,12 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                             final id = ayah['id'] as int;
                             final number = ayah['ayahNumber'] as int;
                             final color = _getAyahColor(id, isDark);
-                            final isNeutral =
-                                color == (isDark ? Colors.white : Colors.black);
-
                             Color pillColor;
                             Color textColor;
 
-                            if (isNeutral) {
+                            // Check transparency (Mastered or Neutral)
+                            if (color == Colors.transparent ||
+                                color == AyahColor.level0) {
                               pillColor = isDark
                                   ? Colors.white10
                                   : Colors.grey[200]!;
@@ -203,10 +269,8 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                   : Colors.black87;
                             } else {
                               pillColor = color;
-                              if (color == AppColors.successGreen) {
-                                pillColor = const Color(0xFFA8E000);
-                                textColor = const Color(0xFF243B00);
-                              } else if (color == Colors.amber) {
+                              // Calculate text contrast
+                              if (pillColor.computeLuminance() > 0.5) {
                                 textColor = Colors.black87;
                               } else {
                                 textColor = Colors.white;
@@ -215,6 +279,10 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
 
                             return InkWell(
                               onTap: () async {
+                                if (_isReadMode) {
+                                  openQuranLink(widget.surahId, number);
+                                  return;
+                                }
                                 bool hasChanges = false;
                                 await showModalBottomSheet(
                                   context: context,
@@ -290,6 +358,59 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
         ),
       ],
+    );
+  }
+
+  Widget _buildToggleItem(
+    String label,
+    IconData icon,
+    bool isSelected,
+    VoidCallback onTap,
+    bool isDark,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? Colors.white24 : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isSelected
+                  ? (isDark ? Colors.white : AppColors.primaryNavy)
+                  : (isDark ? Colors.grey[400] : Colors.grey[600]),
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.primaryNavy,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -417,7 +538,6 @@ class _AyahHistorySheetState extends State<_AyahHistorySheet> {
                         onDelete: note.id == null
                             ? () {}
                             : () => _handleDelete(note.id!),
-                        showCorrectNote: true,
                       );
                     },
                   ),

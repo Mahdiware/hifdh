@@ -8,12 +8,16 @@ class PlanTaskCard extends StatelessWidget {
   final PlanTask task;
   final VoidCallback onAction;
   final VoidCallback onNote;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const PlanTaskCard({
     super.key,
     required this.task,
     required this.onAction,
     required this.onNote,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -129,6 +133,53 @@ class PlanTaskCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onEdit != null || onDelete != null) ...[
+                  const SizedBox(width: 4),
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onSelected: (value) {
+                      if (value == 'edit') onEdit?.call();
+                      if (value == 'delete') onDelete?.call();
+                    },
+                    itemBuilder: (context) => [
+                      if (onEdit != null)
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.edit, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.edit),
+                            ],
+                          ),
+                        ),
+                      if (onDelete != null)
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                color: AppColors.errorRed,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                l10n.delete,
+                                style: TextStyle(color: AppColors.errorRed),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 16),

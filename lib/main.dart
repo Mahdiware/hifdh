@@ -7,6 +7,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:hifdh/navigation/main_screen.dart';
 import 'package:hifdh/features/settings/logic/theme_provider.dart';
 import 'package:hifdh/features/settings/logic/locale_provider.dart';
+import 'package:hifdh/features/settings/logic/preferences_provider.dart';
 import 'package:hifdh/core/theme/app_theme.dart';
 import 'package:hifdh/l10n/fallback_localization_delegate.dart';
 
@@ -21,6 +22,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => PreferencesProvider()),
       ],
       child: const MyApp(),
     ),

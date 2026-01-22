@@ -35,12 +35,20 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
 
   void _loadNotes() {
     if (widget.preloadedNotes != null) {
-      _notesFuture = Future.value(widget.preloadedNotes);
-    } else {
-      _notesFuture = PlannerDatabaseHelper().getNotesForUnit(
-        widget.type,
-        widget.unitId,
+      _notesFuture = Future.value(
+        widget.preloadedNotes!
+            .where((n) => n.type != NoteType.correct)
+            .toList(),
       );
+    } else {
+      _notesFuture = PlannerDatabaseHelper()
+          .getNotesForUnit(
+            widget.type,
+            widget.unitId,
+          )
+          .then(
+            (notes) => notes.where((n) => n.type != NoteType.correct).toList(),
+          );
     }
   }
 

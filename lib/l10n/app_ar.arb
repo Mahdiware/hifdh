@@ -152,5 +152,11 @@
   "delete": "حذف",
   "mistakesAnalysis": "تحليل الأخطاء",
   "mistakes": "أخطاء",
-  "noMistakesRecorded": "لا توجد أخطاء مسجلة"
+  "noMistakesRecorded": "لا توجد أخطاء مسجلة",
+  "defaultToReadMode": "الوضع الافتراضي عند النقر على الآية: قراءة",
+  "defaultToReadModeDesc": "عند التفعيل، سيؤدي النقر على الآية لفتح المصحف مباشرة",
+  "analyze": "تحليل",
+  "read": "قراءة",
+  "mastered": "متقن",
+  "confirmDeleteTask": "هل أنت متأكد أنك تريد حذف هذه المهمة؟"
 }

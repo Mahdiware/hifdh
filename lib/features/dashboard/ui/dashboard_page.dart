@@ -47,7 +47,6 @@ class _DashboardPageState extends State<DashboardPage> {
         TaskStatus.inProgress,
       );
     } else if (task.status == TaskStatus.inProgress) {
-      // Complete logic
       await PlannerDatabaseHelper().completeTask(task.id!, DateTime.now());
     }
     _fetchTasks();
@@ -64,6 +63,42 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Future<void> _editTask(PlanTask task) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AssignPage(taskToEdit: task)),
+    );
+    if (result == true) {
+      _fetchTasks();
+    }
+  }
+
+  Future<void> _deleteTask(PlanTask task) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.delete),
+        content: Text(AppLocalizations.of(context)!.confirmDeleteTask),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(AppLocalizations.of(context)!.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await PlannerDatabaseHelper().deleteTask(task.id!);
+      _fetchTasks();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,50 +108,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        automaticallyImplyLeading: false, // Prevents back button if pushed
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        elevation: 0,
-        title: Text(l10n.dashboard, style: theme.appBarTheme.titleTextStyle),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.refresh,
-              color: theme.appBarTheme.iconTheme?.color,
-            ),
-            onPressed: _fetchTasks,
-          ),
-          Consumer<LocaleProvider>(
-            builder: (context, localeProvider, child) {
-              return PopupMenuButton<Locale>(
-                icon: Icon(
-                  Icons.language,
-                  color: theme.appBarTheme.iconTheme?.color,
-                ),
-                onSelected: (Locale locale) {
-                  localeProvider.setLocale(locale);
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
-                  const PopupMenuItem<Locale>(
-                    value: Locale('en'),
-                    child: Text('English'),
-                  ),
-                  const PopupMenuItem<Locale>(
-                    value: Locale('ar'),
-                    child: Text('العربية'),
-                  ),
-                  const PopupMenuItem<Locale>(
-                    value: Locale('so'),
-                    child: Text('Soomaali'),
-                  ),
-                ],
-              );
-            },
-          ),
-          const ThemeToggleButton(),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: _buildAppBar(context, theme, l10n),
       floatingActionButton: FloatingActionButton(
         backgroundColor: theme.primaryColor,
         child: const Icon(Icons.add, color: Colors.white, size: 28),
@@ -130,43 +122,99 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       body: Column(
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: isDark ? Colors.black12 : Colors.grey[100],
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "${l10n.activeTasks} (${_tasks.length})",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
+          _buildHeader(isDark, l10n),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _tasks.isEmpty
                 ? _buildEmptyState(l10n)
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _tasks.length,
-                    itemBuilder: (context, index) {
-                      return PlanTaskCard(
-                        task: _tasks[index],
-                        onAction: () => _handleTaskAction(_tasks[index]),
-                        onNote: () => _openNotes(_tasks[index]),
-                      );
-                    },
-                  ),
+                : _buildTaskList(),
           ),
         ],
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: theme.appBarTheme.backgroundColor,
+      elevation: 0,
+      title: Text(l10n.dashboard, style: theme.appBarTheme.titleTextStyle),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.refresh, color: theme.appBarTheme.iconTheme?.color),
+          onPressed: _fetchTasks,
+        ),
+        Consumer<LocaleProvider>(
+          builder: (context, localeProvider, child) {
+            return PopupMenuButton<Locale>(
+              icon: Icon(
+                Icons.language,
+                color: theme.appBarTheme.iconTheme?.color,
+              ),
+              onSelected: (Locale locale) {
+                localeProvider.setLocale(locale);
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
+                const PopupMenuItem<Locale>(
+                  value: Locale('en'),
+                  child: Text('English'),
+                ),
+                const PopupMenuItem<Locale>(
+                  value: Locale('ar'),
+                  child: Text('العربية'),
+                ),
+                const PopupMenuItem<Locale>(
+                  value: Locale('so'),
+                  child: Text('Soomaali'),
+                ),
+              ],
+            );
+          },
+        ),
+        const ThemeToggleButton(),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Widget _buildHeader(bool isDark, AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: isDark ? Colors.black12 : Colors.grey[100],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            "${l10n.activeTasks} (${_tasks.length})",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _tasks.length,
+      itemBuilder: (context, index) {
+        return PlanTaskCard(
+          task: _tasks[index],
+          onAction: () => _handleTaskAction(_tasks[index]),
+          onNote: () => _openNotes(_tasks[index]),
+          onEdit: () => _editTask(_tasks[index]),
+          onDelete: () => _deleteTask(_tasks[index]),
+        );
+      },
     );
   }
 

@@ -4,7 +4,7 @@ enum TaskStatus { notStarted, inProgress, completed }
 
 enum PlanUnitType { surah, juz, page, custom }
 
-enum NoteType { doubt,  correct, mistake}
+enum NoteType { doubt, correct, mistake }
 
 // Helper for UI display logic later
 extension PlanUnitTypeExtension on PlanUnitType {
@@ -98,6 +98,40 @@ class PlanTask {
           : null,
       status: TaskStatus.values[map['status']],
       note: map['note'],
+    );
+  }
+
+  PlanTask copyWith({
+    int? id,
+    PlanUnitType? unitType,
+    int? unitId,
+    int? endUnitId,
+    String? title,
+    String? subtitle,
+    int? startAyah,
+    int? endAyah,
+    TaskType? type,
+    DateTime? deadline,
+    DateTime? createdAt,
+    DateTime? completedAt,
+    TaskStatus? status,
+    String? note,
+  }) {
+    return PlanTask(
+      id: id ?? this.id,
+      unitType: unitType ?? this.unitType,
+      unitId: unitId ?? this.unitId,
+      endUnitId: endUnitId ?? this.endUnitId,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      startAyah: startAyah ?? this.startAyah,
+      endAyah: endAyah ?? this.endAyah,
+      type: type ?? this.type,
+      deadline: deadline ?? this.deadline,
+      createdAt: createdAt ?? this.createdAt,
+      completedAt: completedAt ?? this.completedAt,
+      status: status ?? this.status,
+      note: note ?? this.note,
     );
   }
 }

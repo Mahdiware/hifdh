@@ -485,4 +485,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noMistakesRecorded => 'No mistakes recorded yet';
+
+  @override
+  String get defaultToReadMode => 'Default to Read mode on tap';
+
+  @override
+  String get defaultToReadModeDesc =>
+      'Enable to open Quran link by default instead of Analysis';
+
+  @override
+  String get analyze => 'Analyze';
+
+  @override
+  String get read => 'Read';
+
+  @override
+  String get mastered => 'Mastered';
+
+  @override
+  String get confirmDeleteTask => 'Are you sure you want to delete this task?';
 }
