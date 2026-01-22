@@ -82,9 +82,9 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
       }
       consecutiveRights[ayahId] = streak;
 
-      // 2. Calculate Recent Mistakes (Last 5 attempts)
+      // 2. Calculate Recent Mistakes (Last 3 attempts)
       int mistakes = 0;
-      int start = notes.length - 5;
+      int start = notes.length - 3;
       if (start < 0) start = 0;
       for (int i = start; i < notes.length; i++) {
         if (notes[i].type == NoteType.mistake ||
