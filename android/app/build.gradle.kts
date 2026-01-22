@@ -25,11 +25,14 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
 
-        ndk {
-            // ONLY ARM32 and ARM64
-            abiFilters.add("armeabi-v7a")
-            abiFilters.add("arm64-v8a")
+    splits {
+        abi {
+            enable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a")
+            universalApk = false
         }
     }
 
