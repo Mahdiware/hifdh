@@ -27,12 +27,6 @@ android {
         versionName = flutter.versionName
     }
 
-    packaging {
-        jniLibs {
-             excludes += "**/libdatastore_shared_counter.so"
-        }
-    }
-
     // Force all APKs to have the exact same version code, ignoring ABI splits logic
     applicationVariants.all {
         outputs.forEach { output ->
