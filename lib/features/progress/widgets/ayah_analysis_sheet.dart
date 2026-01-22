@@ -217,20 +217,12 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _buildLegendItem(
-                            AyahColor.correctStrong,
-                            l10n.correct,
-                          ),
                           const SizedBox(width: 8),
                           _buildLegendItem(AyahColor.level1, "1"),
                           const SizedBox(width: 8),
                           _buildLegendItem(AyahColor.level2, "2"),
                           const SizedBox(width: 8),
                           _buildLegendItem(AyahColor.level3, "3"),
-                          const SizedBox(width: 8),
-                          _buildLegendItem(AyahColor.level4, "4"),
-                          const SizedBox(width: 8),
-                          _buildLegendItem(AyahColor.level5, "5+"),
                         ],
                       ),
                     ),
