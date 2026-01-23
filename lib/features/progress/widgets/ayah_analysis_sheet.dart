@@ -82,9 +82,9 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
       }
       consecutiveRights[ayahId] = streak;
 
-      // 2. Calculate Recent Mistakes (Last 5 attempts)
+      // 2. Calculate Recent Mistakes (Last 3 attempts)
       int mistakes = 0;
-      int start = notes.length - 5;
+      int start = notes.length - 3;
       if (start < 0) start = 0;
       for (int i = start; i < notes.length; i++) {
         if (notes[i].type == NoteType.mistake ||
@@ -217,20 +217,12 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _buildLegendItem(
-                            AyahColor.correctStrong,
-                            l10n.correct,
-                          ),
                           const SizedBox(width: 8),
                           _buildLegendItem(AyahColor.level1, "1"),
                           const SizedBox(width: 8),
                           _buildLegendItem(AyahColor.level2, "2"),
                           const SizedBox(width: 8),
                           _buildLegendItem(AyahColor.level3, "3"),
-                          const SizedBox(width: 8),
-                          _buildLegendItem(AyahColor.level4, "4"),
-                          const SizedBox(width: 8),
-                          _buildLegendItem(AyahColor.level5, "5+"),
                         ],
                       ),
                     ),
