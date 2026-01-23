@@ -26,8 +26,8 @@ class AyahColor {
   static Color getAyahHighlightColor(int mistakeCount, int correctStreak) {
     final baseColor = _baseColorFromMistakes(mistakeCount);
 
-  if (mistakeCount == 0) {
-    if (correctStreak >= 3) return level0;
+    if (mistakeCount == 0) {
+      if (correctStreak >= 3) return level0;
       if (correctStreak >= 1) return Color.lerp(level0, level0, 0.3)!;
       return level0;
     }
