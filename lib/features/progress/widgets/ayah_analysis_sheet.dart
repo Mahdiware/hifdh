@@ -250,15 +250,9 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                             Color pillColor;
                             Color textColor;
 
-                            // Check transparency (Mastered or Neutral)
-                            if (color == Colors.transparent ||
-                                color == AyahColor.level0) {
-                              pillColor = isDark
-                                  ? Colors.white10
-                                  : Colors.grey[200]!;
-                              textColor = isDark
-                                  ? Colors.white70
-                                  : Colors.black87;
+                            if (color == Colors.transparent) {
+                              pillColor = isDark ?Colors.white10 : Colors.grey[200]!;
+                              textColor = isDark  ? Colors.white70 :Colors.black87;
                             } else {
                               pillColor = color;
                               // Calculate text contrast
