@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hifdh/core/services/app_version_info.dart';
 import 'package:provider/provider.dart';
 import '../logic/theme_provider.dart';
 import '../logic/locale_provider.dart';
@@ -83,7 +84,45 @@ class SettingsPage extends StatelessWidget {
         _buildRestoreSection(context, l10n),
         const Divider(),
         _buildResetSection(context, l10n),
+        const Divider(),
+        _buildVersionInfo(context),
       ],
+    );
+  }
+
+  Widget _buildVersionInfo(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.6,
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "App Version",
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "${AppVersionInfo().version} (${AppVersionInfo().buildNumber})",
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -151,61 +190,47 @@ class SettingsPage extends StatelessWidget {
             ? activeColor
             : (isDark ? Colors.grey[400] : Colors.grey[600]);
 
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2C2E42) : Colors.white,
+        return SwitchListTile.adaptive(
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
-          child: SwitchListTile.adaptive(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 8,
+          ),
+          title: Text(
+            l10n.defaultToReadMode,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: isDark ? Colors.white : Colors.black87,
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 8,
-            ),
-            title: Text(
-              l10n.defaultToReadMode,
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              l10n.defaultToReadModeDesc,
               style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 13,
+                height: 1.3,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
               ),
             ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                l10n.defaultToReadModeDesc,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.3,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
-              ),
-            ),
-            secondary: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: (iconColor ?? Colors.blue).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isEnabled ? Icons.menu_book_rounded : Icons.touch_app_rounded,
-                color: iconColor,
-                size: 24,
-              ),
-            ),
-            value: isEnabled,
-            onChanged: (val) => prefs.toggleDefaultReadMode(val),
           ),
+          secondary: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: (iconColor ?? Colors.blue).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isEnabled ? Icons.menu_book_rounded : Icons.touch_app_rounded,
+              color: iconColor,
+              size: 24,
+            ),
+          ),
+          value: isEnabled,
+          onChanged: (val) => prefs.toggleDefaultReadMode(val),
         );
       },
     );

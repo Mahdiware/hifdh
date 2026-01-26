@@ -42,10 +42,7 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
       );
     } else {
       _notesFuture = PlannerDatabaseHelper()
-          .getNotesForUnit(
-            widget.type,
-            widget.unitId,
-          )
+          .getNotesForUnit(widget.type, widget.unitId)
           .then(
             (notes) => notes.where((n) => n.type != NoteType.correct).toList(),
           );
@@ -135,6 +132,46 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                             ? AppColors.textSecondaryDark
                             : AppColors.textSecondaryLight,
                       ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Stats Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            context,
+                            l10n.total,
+                            "${snapshot.data?.length ?? 0}",
+                            Colors.blue,
+                            Icons.list_alt_rounded,
+                            isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            context,
+                            l10n.mistake,
+                            "${snapshot.data?.where((n) => n.type == NoteType.mistake).length ?? 0}",
+                            AppColors.errorRed,
+                            Icons.cancel_outlined,
+                            isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            context,
+                            l10n.doubt,
+                            "${snapshot.data?.where((n) => n.type == NoteType.doubt).length ?? 0}",
+                            const Color(0xFFFFB74D), // Soft Orange
+                            Icons.help_outline_rounded,
+                            isDark,
+                          ),
+                        ),
+                      ],
                     ),
 
                     if (widget.type == PlanUnitType.surah) ...[
@@ -278,6 +315,68 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context,
+    String label,
+    String count,
+    Color color,
+    IconData icon,
+    bool isDark,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            count,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimaryLight,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }

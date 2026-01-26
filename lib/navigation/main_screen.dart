@@ -52,7 +52,8 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     // Only show the parent AppBar if the current page doesn't have one.
     // DashboardPage (index 0) has its own AppBar.
-    bool showMainAppBar = _selectedIndex != 0;
+    // ProgressPage (index 2) has its own AppBar.
+    bool showMainAppBar = _selectedIndex != 0 && _selectedIndex != 2;
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;

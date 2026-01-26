@@ -58,6 +58,12 @@ class BackupService {
     // Ensure the db directory exists (it should, but good to be safe)
     await File(dbPath).parent.create(recursive: true);
 
+    // Clean up potential WAL/SHM files to avoid stale data or corruption
+    final walFile = File('$dbPath-wal');
+    final shmFile = File('$dbPath-shm');
+    if (await walFile.exists()) await walFile.delete();
+    if (await shmFile.exists()) await shmFile.delete();
+
     await File(pickedPath).copy(dbPath);
 
     // Force re-open to verify

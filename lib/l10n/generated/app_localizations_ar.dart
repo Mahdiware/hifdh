@@ -505,4 +505,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirmDeleteTask => 'هل أنت متأكد أنك تريد حذف هذه المهمة؟';
+
+  @override
+  String get total => 'الإجمالي';
 }
