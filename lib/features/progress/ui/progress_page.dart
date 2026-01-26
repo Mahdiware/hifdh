@@ -9,6 +9,7 @@ import 'package:hifdh/core/utils/progress_chart_helper.dart';
 import 'package:hifdh/features/progress/widgets/activity_chart.dart';
 import 'package:hifdh/features/progress/widgets/progress_header_card.dart';
 import 'package:hifdh/features/progress/widgets/unit_details_sheet.dart';
+import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
@@ -71,8 +72,8 @@ class _ProgressPageState extends State<ProgressPage>
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadData({bool showFullLoading = true}) async {
+    if (showFullLoading) setState(() => _isLoading = true);
 
     try {
       // Parallel fetch Basic Data
@@ -117,7 +118,10 @@ class _ProgressPageState extends State<ProgressPage>
       if (_surahPageRanges.isEmpty) {
         final surahRanges = await DatabaseHelper().getAllSurahPageRanges();
         for (var r in surahRanges) {
-          _surahPageRanges[r['surahNumber']!] = r;
+          final sNum = r['surahNumber'];
+          if (sNum != null) {
+            _surahPageRanges[sNum] = r;
+          }
         }
       }
 
@@ -139,15 +143,20 @@ class _ProgressPageState extends State<ProgressPage>
         if (note.type == NoteType.correct) continue;
 
         if (note.ayahId != null && metaMap.containsKey(note.ayahId)) {
-          final m = metaMap[note.ayahId]!;
-          final surah = m['surahNumber'] as int;
-          final juz = m['juzNumber'] as int;
-          final rub = m['rubNumber'] as int;
-          final hizb = ((rub - 1) ~/ 4) + 1;
+          final m = metaMap[note.ayahId]; // Safe access
 
-          sNotes.putIfAbsent(surah, () => []).add(note);
-          jNotes.putIfAbsent(juz, () => []).add(note);
-          hNotes.putIfAbsent(hizb, () => []).add(note);
+          if (m != null) {
+            final surah = m['surahNumber'] as int?;
+            final juz = m['juzNumber'] as int?;
+            final rub = m['rubNumber'] as int?;
+
+            if (surah != null && juz != null && rub != null) {
+              final hizb = ((rub - 1) ~/ 4) + 1;
+              sNotes.putIfAbsent(surah, () => []).add(note);
+              jNotes.putIfAbsent(juz, () => []).add(note);
+              hNotes.putIfAbsent(hizb, () => []).add(note);
+            }
+          }
         } else {
           final uTypeVal = row['unitType'] as int;
           final uId = row['unitId'] as int;
@@ -170,14 +179,23 @@ class _ProgressPageState extends State<ProgressPage>
       }
 
       for (final s in surahAyahIds.keys) {
-        final ids = surahAyahIds[s]!;
+        final ids = surahAyahIds[s];
+        if (ids == null) continue;
         final total = ids.length;
         final soFar = ids.where((id) => coveredAyahs.contains(id)).length;
         granularProgress[s] = total == 0 ? 0.0 : soFar / total;
       }
 
       if (mounted) {
+        debugPrint(
+          "ProgressPage: Loaded ${(basicFutures[5] as List<PlanTask>).length} active tasks",
+        );
         setState(() {
+          // Explicit clear for safety
+          _surahProgress = [];
+          _activeTasks = [];
+          _chartData = [];
+
           _memPercentage = basicFutures[0] as double;
           _surahProgress = basicFutures[1] as List<QuranProgress>;
           _surahs = basicFutures[2] as List<Surah>;
@@ -218,66 +236,98 @@ class _ProgressPageState extends State<ProgressPage>
       backgroundColor: isDark
           ? AppColors.backgroundDark
           : AppColors.backgroundLight,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxScrolled) {
-          return [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ProgressHeaderCard(
-                      memPercentage: _memPercentage,
-                      overallStats: _overallStats,
-                      selectedMetric: _selectedHeaderMetric,
-                      onMetricChanged: (val) => _updateHeaderMetric(val),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 16),
-                    ActivityChart(
-                      chartData: _chartData,
-                      selectedStatRange: _selectedStatRange,
-                      onRangeChanged: (val) => _updateChartRange(val),
-                      isDark: isDark,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _SliverAppBarDelegate(
-                TabBar(
-                  controller: _tabController,
-                  labelColor: isDark
-                      ? AppColors.accentOrange
-                      : AppColors.primaryNavy,
-                  unselectedLabelColor: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                  indicatorColor: isDark
-                      ? AppColors.accentOrange
-                      : AppColors.primaryNavy,
-                  indicatorWeight: 3,
-                  tabs: [
-                    Tab(text: AppLocalizations.of(context)!.surah),
-                    Tab(text: AppLocalizations.of(context)!.juz),
-                    Tab(text: AppLocalizations.of(context)!.hizb),
-                  ],
-                ),
-                isDark,
-              ),
-            ),
-          ];
+      appBar: AppBar(
+        title: Text(
+          AppLocalizations.of(context)!.progress,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 20,
+          ),
+        ),
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
+        backgroundColor: isDark
+            ? AppColors.backgroundDark
+            : AppColors.backgroundLight,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _loadData(showFullLoading: false),
+          ),
+
+          ThemeToggleButton(),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: AppColors.accentOrange,
+        backgroundColor: isDark
+            ? AppColors.surfaceDark
+            : AppColors.surfaceLight,
+        onRefresh: () async {
+          await _loadData(showFullLoading: false);
         },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildSurahList(isDark),
-            _buildJuzList(isDark),
-            _buildHizbList(isDark),
-          ],
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxScrolled) {
+            return [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ProgressHeaderCard(
+                        memPercentage: _memPercentage,
+                        overallStats: _overallStats,
+                        selectedMetric: _selectedHeaderMetric,
+                        onMetricChanged: (val) => _updateHeaderMetric(val),
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      ActivityChart(
+                        chartData: _chartData,
+                        selectedStatRange: _selectedStatRange,
+                        onRangeChanged: (val) => _updateChartRange(val),
+                        isDark: isDark,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverAppBarDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: isDark
+                        ? AppColors.accentOrange
+                        : AppColors.primaryNavy,
+                    unselectedLabelColor: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                    indicatorColor: isDark
+                        ? AppColors.accentOrange
+                        : AppColors.primaryNavy,
+                    indicatorWeight: 3,
+                    tabs: [
+                      Tab(text: AppLocalizations.of(context)!.surah),
+                      Tab(text: AppLocalizations.of(context)!.juz),
+                      Tab(text: AppLocalizations.of(context)!.hizb),
+                    ],
+                  ),
+                  isDark,
+                ),
+              ),
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildSurahList(isDark),
+              _buildJuzList(isDark),
+              _buildHizbList(isDark),
+            ],
+          ),
         ),
       ),
     );

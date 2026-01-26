@@ -504,4 +504,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmDeleteTask => 'Are you sure you want to delete this task?';
+
+  @override
+  String get total => 'Total';
 }

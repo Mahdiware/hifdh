@@ -6,6 +6,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:hifdh/shared/models/plan_task.dart';
+import 'package:hifdh/core/services/app_version_info.dart';
 import 'database_helper.dart';
 
 class PlannerDatabaseHelper {
@@ -27,11 +28,6 @@ class PlannerDatabaseHelper {
 
   // Max Ayah ID is 6236. Uint16 holds up to 65535.
   static const int _totalAyahs = 6236;
-
-  // Metadata Arrays (Indexed by [AyahID - 1])
-  Uint16List? _metaPageNum;
-  Uint16List? _metaSurahNum;
-  Uint16List? _metaJuzNum;
 
   // Reverse Indices for Traversals
   // Uses List<List<int>> which is efficient enough for this scale.
@@ -71,9 +67,12 @@ class PlannerDatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'hifdh_planner.db');
 
+    int majorVersion = AppVersionInfo().buildNumber ~/ 100;
+
+    debugPrint("Database build number: $majorVersion");
     return await openDatabase(
       path,
-      version: 3,
+      version: majorVersion,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           try {
@@ -174,19 +173,25 @@ class PlannerDatabaseHelper {
   }
 
   Future<void> _ensureStaticDataLoaded() async {
-    if (_staticDataLoaded) return;
+    if (_staticDataLoaded && _pageToAyahIds != null) return;
 
-    if (_staticLoadFuture != null) {
-      return _staticLoadFuture;
-    }
-
-    _staticLoadFuture = _performStaticLoad();
+    // Determine if we need to start a new load
+    _staticLoadFuture ??= _performStaticLoad();
 
     try {
       await _staticLoadFuture;
+      // Verification: Ensure critical fields are actually populated.
+      // If _performStaticLoad aborted due to reset, these will be null.
+      if (_pageToAyahIds == null) {
+        _staticDataLoaded = false;
+        _staticLoadFuture = null;
+        // Throw to prevent caller from accessing null pointers
+        throw Exception("Static data load aborted or failed");
+      }
       _staticDataLoaded = true;
-    } catch (e, stack) {
-      debugPrint("Error loading static Quran data: $e\n$stack");
+    } catch (e) {
+      debugPrint("Error loading static Quran data: $e");
+      _staticDataLoaded = false;
       _staticLoadFuture = null;
       rethrow;
     }
@@ -196,13 +201,9 @@ class PlannerDatabaseHelper {
     final rawMeta = await DatabaseHelper().getAllQuranMeta();
     if (rawMeta.isEmpty) return;
 
-    _metaPageNum = Uint16List(_totalAyahs);
-    _metaSurahNum = Uint16List(_totalAyahs);
-    _metaJuzNum = Uint16List(_totalAyahs);
-
-    _pageToAyahIds = List.generate(605, (_) => <int>[]);
-    _surahToAyahIds = List.generate(115, (_) => <int>[]);
-    _juzToAyahIds = List.generate(31, (_) => <int>[]);
+    final pageToAyahIds = List.generate(605, (_) => <int>[]);
+    final surahToAyahIds = List.generate(115, (_) => <int>[]);
+    final juzToAyahIds = List.generate(31, (_) => <int>[]);
 
     for (final m in rawMeta) {
       final id = m['id'] as int;
@@ -214,39 +215,47 @@ class PlannerDatabaseHelper {
       final s = m['surahNumber'] as int;
       final j = m['juzNumber'] as int;
 
-      _metaPageNum![offset] = p;
-      _metaSurahNum![offset] = s;
-      _metaJuzNum![offset] = j;
-
-      if (p <= 604) _pageToAyahIds![p].add(id);
-      if (s <= 114) _surahToAyahIds![s].add(id);
-      if (j <= 30) _juzToAyahIds![j].add(id);
+      if (p <= 604) pageToAyahIds[p].add(id);
+      if (s <= 114) surahToAyahIds[s].add(id);
+      if (j <= 30) juzToAyahIds[j].add(id);
     }
 
     final rawSurahRanges = await DatabaseHelper().getAllSurahPageRanges();
-    _surahStartPage = Uint16List(115);
-    _surahEndPage = Uint16List(115);
+    final surahStartPage = Uint16List(115);
+    final surahEndPage = Uint16List(115);
 
     for (final r in rawSurahRanges) {
       final s = r['surahNumber']!;
       if (s <= 114) {
-        _surahStartPage![s] = r['startPage']!;
-        _surahEndPage![s] = r['endPage']!;
+        surahStartPage[s] = r['startPage']!;
+        surahEndPage[s] = r['endPage']!;
       }
     }
 
-    _juzStartPage = Uint16List(31);
-    _juzEndPage = Uint16List(31);
+    final juzStartPage = Uint16List(31);
+    final juzEndPage = Uint16List(31);
 
     for (int j = 1; j <= 30; j++) {
       final r = await DatabaseHelper().getJuzPageRange(j);
-      _juzStartPage![j] = r['startPage']!;
-      _juzEndPage![j] = r['endPage']!;
+      juzStartPage[j] = r['startPage']!;
+      juzEndPage[j] = r['endPage']!;
     }
+
+    // Atomic assignment at the end
+    // Check if we were reset while loading
+    if (_database == null) return;
+
+    _pageToAyahIds = pageToAyahIds;
+    _surahToAyahIds = surahToAyahIds;
+    _juzToAyahIds = juzToAyahIds;
+
+    _surahStartPage = surahStartPage;
+    _surahEndPage = surahEndPage;
+    _juzStartPage = juzStartPage;
+    _juzEndPage = juzEndPage;
   }
 
   // --- Tasks CRUD ---
-
   Future<int> insertTask(PlanTask task) async {
     final db = await database;
     final id = await db.insert('tasks', task.toMap());
@@ -835,12 +844,14 @@ class PlannerDatabaseHelper {
 
   Future<void> closeAndReset() async {
     _staticDataLoaded = false;
-    _metaPageNum = null;
-    _metaSurahNum = null;
-    _metaJuzNum = null;
+    _staticLoadFuture = null;
     // Release caches
     _pageToAyahIds = null;
+    _surahToAyahIds = null;
+    _juzToAyahIds = null;
     _cachedCoveredAyahs = null;
+    _cachedPageCoverage = null;
+    _cachedCoverageVersion = -1;
 
     if (_database != null) {
       await _database!.close();

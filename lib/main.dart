@@ -11,12 +11,15 @@ import 'package:hifdh/features/settings/logic/preferences_provider.dart';
 import 'package:hifdh/core/theme/app_theme.dart';
 import 'package:hifdh/l10n/fallback_localization_delegate.dart';
 
-void main() {
+import 'package:hifdh/core/services/app_version_info.dart';
+
+Future<void> main() async {
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
   WidgetsFlutterBinding.ensureInitialized();
+  await AppVersionInfo().init();
   runApp(
     MultiProvider(
       providers: [

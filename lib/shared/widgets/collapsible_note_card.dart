@@ -78,7 +78,7 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
       case NoteType.mistake:
         return (
           _isDark ? AppColors.errorRed : Colors.red.shade800,
-          Icons.warning_amber_rounded,
+          Icons.cancel_outlined,
         );
     }
   }

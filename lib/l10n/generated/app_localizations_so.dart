@@ -507,4 +507,7 @@ class AppLocalizationsSo extends AppLocalizations {
   @override
   String get confirmDeleteTask =>
       'Ma hubtaa inaad rabto inaad tirtirto hawshan?';
+
+  @override
+  String get total => 'Wadarta';
 }
