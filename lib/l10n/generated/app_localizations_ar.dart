@@ -508,4 +508,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get total => 'الإجمالي';
+
+  @override
+  String get all => 'الكل';
 }

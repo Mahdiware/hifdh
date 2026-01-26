@@ -8,6 +8,10 @@ import 'package:hifdh/features/dashboard/widgets/notes_sheet.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:hifdh/features/settings/logic/locale_provider.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
+
+enum DashboardSort { newest, oldest, typeMemorize, typeRevision }
+enum SortUnitType { all, surah, juz, page, custom }
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -17,6 +21,8 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  PlanUnitType? _selectedFilter;
+  DashboardSort _sortOption = DashboardSort.newest;
   List<PlanTask> _tasks = [];
   bool _isLoading = true;
 
@@ -32,11 +38,46 @@ class _DashboardPageState extends State<DashboardPage> {
       final tasks = await PlannerDatabaseHelper().getActiveTasks();
       setState(() {
         _tasks = tasks;
+        _sortTasks(); // Sort immediately after fetching
         _isLoading = false;
       });
     } catch (e) {
       debugPrint("Error fetching tasks: $e");
       setState(() => _isLoading = false);
+    }
+  }
+
+  void _sortTasks() {
+    switch (_sortOption) {
+      case DashboardSort.newest:
+        _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case DashboardSort.oldest:
+        _tasks.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case DashboardSort.typeMemorize:
+        _tasks.sort((a, b) {
+          int typeComp = a.type.index.compareTo(b.type.index);
+          if (typeComp != 0) return typeComp;
+          return b.createdAt.compareTo(a.createdAt);
+        });
+        break;
+      case DashboardSort.typeRevision:
+        _tasks.sort((a, b) {
+          int typeComp = b.type.index.compareTo(a.type.index);
+          if (typeComp != 0) return typeComp;
+          return b.createdAt.compareTo(a.createdAt);
+        });
+        break;
+    }
+  }
+
+  void _onSortChanged(DashboardSort? sort) {
+    if (sort != null) {
+      setState(() {
+        _sortOption = sort;
+        _sortTasks();
+      });
     }
   }
 
@@ -99,6 +140,11 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  List<PlanTask> get _filteredTasks {
+    if (_selectedFilter == null) return _tasks;
+    return _tasks.where((t) => t.unitType == _selectedFilter).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -126,7 +172,7 @@ class _DashboardPageState extends State<DashboardPage> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _tasks.isEmpty
+                : _filteredTasks.isEmpty
                 ? _buildEmptyState(l10n)
                 : _buildTaskList(),
           ),
@@ -184,18 +230,230 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHeader(bool isDark, AppLocalizations l10n) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: isDark ? Colors.black12 : Colors.grey[100],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            "${l10n.activeTasks} (${_tasks.length})",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.activeTasks,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                  color: isDark ? Colors.white : AppColors.primaryNavy,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "${_filteredTasks.length} ${l10n.pending}",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white54 : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              PopupMenuButton<SortUnitType>(
+                offset: const Offset(0, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                tooltip: "Filter",
+                icon: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.surfaceDark : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white10
+                          : Colors.grey.withValues(alpha: 0.2),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.filter_list_rounded,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.primaryNavy,
+                    size: 20,
+                  ),
+                ),
+                color: isDark ? const Color(0xFF2C2E42) : Colors.white,
+                elevation: 4,
+                onSelected: (SortUnitType type) {
+                  setState(() {
+                      final PlanUnitType? value = switch (type) {
+                          SortUnitType.all => null,
+                          SortUnitType.surah => PlanUnitType.surah,
+                          SortUnitType.juz => PlanUnitType.juz,
+                          SortUnitType.page => PlanUnitType.page,
+                          SortUnitType.custom => PlanUnitType.custom,
+                      };
+
+                      _selectedFilter = value;
+                  });
+                },
+                  itemBuilder: (BuildContext context) {
+                  return [
+                    _buildFilterMenuItem(
+                      context,
+                      l10n.all,
+                      SortUnitType.all,
+                      isDark,
+                    ),
+                    _buildFilterMenuItem(
+                      context,
+                      l10n.surah,
+                      SortUnitType.surah,
+                      isDark,
+                    ),
+                    _buildFilterMenuItem(
+                      context,
+                      l10n.juz,
+                      SortUnitType.juz,
+                      isDark,
+                    ),
+                    _buildFilterMenuItem(
+                      context,
+                      l10n.page,
+                      SortUnitType.page,
+                      isDark,
+                    ),
+                  ];
+                },
+              ),
+              PopupMenuButton<DashboardSort>(
+                offset: const Offset(0, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                tooltip: "Sort",
+                icon: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.surfaceDark : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white10
+                          : Colors.grey.withValues(alpha: 0.2),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.sort_rounded,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.primaryNavy,
+                    size: 20,
+                  ),
+                ),
+                color: isDark ? const Color(0xFF2C2E42) : Colors.white,
+                elevation: 4,
+                onSelected: _onSortChanged,
+                itemBuilder: (BuildContext context) =>
+                    <PopupMenuEntry<DashboardSort>>[
+                      PopupMenuItem<DashboardSort>(
+                        value: DashboardSort.newest,
+                        child: _buildSortItem(l10n.sortNewest, isDark),
+                      ),
+                      PopupMenuItem<DashboardSort>(
+                        value: DashboardSort.oldest,
+                        child: _buildSortItem(l10n.sortOldest, isDark),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem<DashboardSort>(
+                        value: DashboardSort.typeMemorize,
+                        child: _buildSortItem(l10n.memorizeTasksFirst, isDark),
+                      ),
+                      PopupMenuItem<DashboardSort>(
+                        value: DashboardSort.typeRevision,
+                        child: _buildSortItem(l10n.revisionTasksFirst, isDark),
+                      ),
+                    ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortItem(String text, bool isDark) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: isDark ? Colors.white : Colors.black87,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  PopupMenuItem<SortUnitType> _buildFilterMenuItem(
+    BuildContext context,
+    String label,
+    SortUnitType value,
+    bool isDark,
+  ) {
+
+    final isSelected = switch (_selectedFilter?.name) {
+        null => value.name == SortUnitType.all.name,
+        _ => _selectedFilter!.name == value.name,
+    };
+
+    debugPrint("isSelected: $isSelected = ${_selectedFilter?.name} + ${value.name}");
+    final theme = Theme.of(context);
+
+    return PopupMenuItem<SortUnitType>(
+      value: value,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
             ),
+          ),
+          // Round Checkbox
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? theme.primaryColor : Colors.transparent,
+              border: Border.all(
+                color: isSelected
+                    ? theme.primaryColor
+                    : (isDark ? Colors.white54 : Colors.grey),
+                width: 2,
+              ),
+            ),
+            child: isSelected
+                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                : null,
           ),
         ],
       ),
@@ -203,16 +461,17 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTaskList() {
+    final tasks = _filteredTasks;
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _tasks.length,
+      itemCount: tasks.length,
       itemBuilder: (context, index) {
         return PlanTaskCard(
-          task: _tasks[index],
-          onAction: () => _handleTaskAction(_tasks[index]),
-          onNote: () => _openNotes(_tasks[index]),
-          onEdit: () => _editTask(_tasks[index]),
-          onDelete: () => _deleteTask(_tasks[index]),
+          task: tasks[index],
+          onAction: () => _handleTaskAction(tasks[index]),
+          onNote: () => _openNotes(tasks[index]),
+          onEdit: () => _editTask(tasks[index]),
+          onDelete: () => _deleteTask(tasks[index]),
         );
       },
     );

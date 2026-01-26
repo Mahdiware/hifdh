@@ -201,5 +201,6 @@
   "read": "Read",
   "mastered": "Mastered",
   "confirmDeleteTask": "Are you sure you want to delete this task?",
-  "total": "Total"
+  "total": "Total",
+  "all": "All"
 }
