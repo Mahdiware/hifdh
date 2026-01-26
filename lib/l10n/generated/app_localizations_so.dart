@@ -510,4 +510,7 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get total => 'Wadarta';
+
+  @override
+  String get all => 'Dhammaan';
 }
