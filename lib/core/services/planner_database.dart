@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
-import 'package:hifdh/core/services/app_version_info.dart';
+// import 'package:hifdh/core/services/app_version_info.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -69,32 +69,25 @@ class PlannerDatabase {
 
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'hifdh_planner.db');
+    // V2 Database: Clean separation from V1.
+    final path = join(dbPath, 'hifdh_plannerV2.db');
 
-    // Use Major * 100 + Minor to prevent version overlap (e.g. 3.10 > 3.9)
-    // version 3.5.0 becomes 305
-    final version =
-        AppVersionInfo().versionMajor * 100 + AppVersionInfo().versionMinor;
-    debugPrint('Database version: $version');
+    // Use a fixed schema version rather than AppVersion.
+    // This prevents data loss when the app is updated but the schema hasn't changed.
+    const int schemaVersion = 1;
+    debugPrint('Database V2 Initializing: Version $schemaVersion');
 
     return await openDatabase(
       path,
-      version: version,
+      version: schemaVersion,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
+      // Schema migrations should be handled here incrementally in the future
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < version) {
-          await db.execute('DROP TABLE IF EXISTS quran_progress');
-          await db.execute('DROP TABLE IF EXISTS ayah_progress');
-          await db.execute('DROP TABLE IF EXISTS task_notes');
-          await db.execute('DROP TABLE IF EXISTS tasks');
-          await db.execute('DROP TABLE IF EXISTS unit_ayahs');
-          await db.execute('DROP TABLE IF EXISTS unit_progress');
-          await db.execute('DROP TABLE IF EXISTS units');
-          await db.execute('DROP TABLE IF EXISTS ayahs');
-
-          await _createDb(db);
+        if (oldVersion < newVersion) {
+          // Future migrations logic
+          debugPrint("Migrating DB from $oldVersion to $newVersion");
         }
       },
       onCreate: (db, version) async {
