@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/shared/models/quiz_settings.dart';
-import 'package:hifdh/core/services/database_helper.dart';
+import 'package:hifdh/core/services/quran_database.dart';
 import 'package:hifdh/features/quiz/ui/surah_selection_dialog.dart';
 import 'package:hifdh/features/quiz/ui/quiz_home_page.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/expandable_option_card.dart';
 
 class QuizPage extends StatefulWidget {
   const QuizPage({super.key});
@@ -31,7 +32,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> _loadSurahs() async {
-    final surahs = await DatabaseHelper().getAllSurahs();
+    final surahs = await QuranDatabase().getAllSurahs();
     setState(() {
       _allSurahs = surahs;
     });
@@ -178,148 +179,107 @@ class _QuizPageState extends State<QuizPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Page Range Card
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        title: Text(
-                          AppLocalizations.of(context)!.pageRangeTitle,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        trailing: Icon(
-                          _isPageRangeExpanded
-                              ? Icons.expand_less
-                              : Icons.expand_more,
-                        ),
-                        onTap: _togglePageRange,
-                      ),
-                      if (_isPageRangeExpanded)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _fromPageController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: AppLocalizations.of(
-                                      context,
-                                    )!.fromPageLabel,
-                                    border: const OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextField(
-                                  controller: _toPageController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: AppLocalizations.of(
-                                      context,
-                                    )!.toPageLabel,
-                                    border: const OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                            ],
+                ExpandableOptionCard(
+                  title: AppLocalizations.of(context)!.pageRangeTitle,
+                  isExpanded: _isPageRangeExpanded,
+                  onToggle: _togglePageRange,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _fromPageController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(
+                                context,
+                              )!.fromPageLabel,
+                              border: const OutlineInputBorder(),
+                            ),
                           ),
                         ),
-                    ],
-                  ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextField(
+                            controller: _toPageController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(
+                                context,
+                              )!.toPageLabel,
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
                 // Surah Selection Card
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        title: Text(
-                          AppLocalizations.of(context)!.surahSelectionTitle,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        trailing: Icon(
-                          _isSurahRangeExpanded
-                              ? Icons.expand_less
-                              : Icons.expand_more,
-                        ),
-                        onTap: _toggleSurahRange,
-                      ),
-                      if (_isSurahRangeExpanded)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: _showSurahSelectionDialog,
-                                icon: const Icon(Icons.add),
-                                label: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.selectSurahsButton,
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                              if (_selectedSurahs.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                Container(
-                                  height: 250, // Defined size
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.grey.withValues(alpha: 0.3),
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ListView.separated(
-                                    itemCount: _selectedSurahs.length,
-                                    separatorBuilder: (context, index) =>
-                                        const Divider(height: 1),
-                                    itemBuilder: (context, index) {
-                                      final surah = _selectedSurahs[index];
-                                      return ListTile(
-                                        title: Text(
-                                          surah.glyph,
-                                          style: const TextStyle(
-                                            fontFamily: 'SurahFont',
-                                            fontSize: 24,
-                                          ),
-                                        ),
-                                        trailing: IconButton(
-                                          icon: const Icon(
-                                            Icons.delete,
-                                            color: Colors.red,
-                                          ),
-                                          onPressed: () {
-                                            setState(() {
-                                              _selectedSurahs.remove(surah);
-                                            });
-                                          },
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ],
+                ExpandableOptionCard(
+                  title: AppLocalizations.of(context)!.surahSelectionTitle,
+                  isExpanded: _isSurahRangeExpanded,
+                  onToggle: _toggleSurahRange,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _showSurahSelectionDialog,
+                          icon: const Icon(Icons.add),
+                          label: Text(
+                            AppLocalizations.of(context)!.selectSurahsButton,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
-                    ],
-                  ),
+                        if (_selectedSurahs.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            height: 250,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.grey.withValues(alpha: 0.3),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ListView.separated(
+                              itemCount: _selectedSurahs.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final surah = _selectedSurahs[index];
+                                return ListTile(
+                                  title: Text(
+                                    surah.glyph,
+                                    style: const TextStyle(
+                                      fontFamily: 'SurahFont',
+                                      fontSize: 24,
+                                    ),
+                                  ),
+                                  subtitle: Text(surah.englishName),
+                                  trailing: IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedSurahs.remove(surah);
+                                      });
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),

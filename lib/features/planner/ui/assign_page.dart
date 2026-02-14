@@ -4,11 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
-import 'package:hifdh/core/services/database_helper.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/quran_database.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/features/quiz/ui/surah_selection_dialog.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/selection_card.dart';
 
 class AssignPage extends StatefulWidget {
   final PlanTask? taskToEdit;
@@ -65,6 +66,7 @@ class _AssignPageState extends State<AssignPage> {
   // Data
   List<Surah> _allSurahs = [];
   bool _isLoading = true;
+  bool _isSaving = false;
   Timer? _debounceTimer;
 
   @override
@@ -84,7 +86,7 @@ class _AssignPageState extends State<AssignPage> {
   }
 
   Future<void> _loadData() async {
-    final surahs = await DatabaseHelper().getAllSurahs();
+    final surahs = await QuranDatabase().getAllSurahs();
     if (mounted) {
       setState(() {
         _allSurahs = surahs;
@@ -107,7 +109,7 @@ class _AssignPageState extends State<AssignPage> {
       // Find surah
       try {
         _selectedSurah = _allSurahs.firstWhere((s) => s.number == t.unitId);
-        _maxAyah = await DatabaseHelper().getSurahAyahCount(
+        _maxAyah = await QuranDatabase().getSurahAyahCount(
           _selectedSurah!.number,
         );
         _startAyah = t.startAyah;
@@ -146,7 +148,7 @@ class _AssignPageState extends State<AssignPage> {
 
     if (result != null && result.isNotEmpty) {
       final selected = result.first;
-      final max = await DatabaseHelper().getSurahAyahCount(selected.number);
+      final max = await QuranDatabase().getSurahAyahCount(selected.number);
       setState(() {
         _selectedSurah = selected;
         _maxAyah = max;
@@ -161,7 +163,7 @@ class _AssignPageState extends State<AssignPage> {
   }
 
   Future<void> _checkSurahMemorization(Surah surah) async {
-    final isMemorized = await PlannerDatabaseHelper().isSurahFullyMemorized(
+    final isMemorized = await PlannerDatabase().isSurahFullyMemorized(
       surah.number,
     );
 
@@ -169,7 +171,7 @@ class _AssignPageState extends State<AssignPage> {
   }
 
   Future<void> _checkJuzMemorization(int juz) async {
-    final isMemorized = await PlannerDatabaseHelper().isJuzFullyMemorized(juz);
+    final isMemorized = await PlannerDatabase().isJuzFullyMemorized(juz);
     _checkIsMemorized(isMemorized, "This", "Juz");
   }
 
@@ -180,8 +182,10 @@ class _AssignPageState extends State<AssignPage> {
       final end = int.tryParse(_pageEndController.text);
 
       if (start != null && end != null && start <= end) {
-        final isMemorized = await PlannerDatabaseHelper()
-            .isPageRangeFullyMemorized(start, end);
+        final isMemorized = await PlannerDatabase().isPageRangeFullyMemorized(
+          start,
+          end,
+        );
 
         if (mounted) {
           _checkIsMemorized(isMemorized, "These", "pages");
@@ -372,49 +376,15 @@ class _AssignPageState extends State<AssignPage> {
             const SizedBox(height: 24),
 
             // Deadline
-            InkWell(
+            SelectionCard(
+              title: _targetDate == null
+                  ? AppLocalizations.of(context)!.selectDeadline
+                  : DateFormat(
+                      'EEE, MMM d, yyyy - h:mm a',
+                    ).format(_targetDate!),
+              icon: Icons.calendar_today,
               onTap: _selectDate,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: isDark ? Colors.transparent : AppColors.dividerLight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  color: isDark
-                      ? AppColors.surfaceDark
-                      : AppColors.surfaceLight,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _targetDate == null
-                          ? AppLocalizations.of(context)!.selectDeadline
-                          : DateFormat(
-                              'EEE, MMM d, yyyy - h:mm a',
-                            ).format(_targetDate!),
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: _targetDate == null
-                            ? (isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight)
-                            : (isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimaryLight),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              isSelected: _targetDate != null,
             ),
 
             const SizedBox(height: 32),
@@ -423,24 +393,36 @@ class _AssignPageState extends State<AssignPage> {
             SizedBox(
               height: 54,
               child: ElevatedButton(
-                onPressed: _savePlan,
+                onPressed: _isSaving ? null : _savePlan,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentOrange,
+                  disabledBackgroundColor: AppColors.accentOrange.withValues(
+                    alpha: 0.6,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 2,
                 ),
-                child: Text(
-                  widget.taskToEdit != null
-                      ? AppLocalizations.of(context)!.edit
-                      : AppLocalizations.of(context)!.createPlan,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        widget.taskToEdit != null
+                            ? AppLocalizations.of(context)!.edit
+                            : AppLocalizations.of(context)!.createPlan,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -488,56 +470,15 @@ class _AssignPageState extends State<AssignPage> {
   }
 
   Widget _buildSurahSelector() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Column(
       children: [
-        InkWell(
+        SelectionCard(
+          title:
+              _selectedSurah?.englishName ??
+              AppLocalizations.of(context)!.selectSurah,
+          icon: Icons.menu_book,
           onTap: _selectSurah,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: isDark ? Colors.transparent : AppColors.dividerLight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.menu_book,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  _selectedSurah?.englishName ??
-                      AppLocalizations.of(context)!.selectSurah,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: _selectedSurah == null
-                        ? (isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight)
-                        : (isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight),
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-              ],
-            ),
-          ),
+          isSelected: _selectedSurah != null,
         ),
         const SizedBox(height: 16),
         Row(
@@ -690,203 +631,246 @@ class _AssignPageState extends State<AssignPage> {
   }
 
   Future<void> _savePlan() async {
+    if (_isSaving) return;
+
     if (_targetDate == null) {
       _showError(AppLocalizations.of(context)!.pleaseSelectDeadline);
       return;
     }
 
-    PlanTask newTask;
-    var type = _isRevision ? TaskType.revision : TaskType.memorize;
-    final created = DateTime.now();
+    setState(() {
+      _isSaving = true;
+    });
 
-    if (_selectedUnitIndex == 0) {
-      // SURAH
-      if (_selectedSurah == null) {
-        _showError(AppLocalizations.of(context)!.pleaseSelectSurah);
-        return;
-      }
+    try {
+      PlanTask newTask;
+      var type = _isRevision ? TaskType.revision : TaskType.memorize;
+      final created = DateTime.now();
 
-      // Check Memorization Status (Surah)
-      final isMemorized = await PlannerDatabaseHelper().isSurahFullyMemorized(
-        _selectedSurah!.number,
-      );
-      if (!mounted) return;
-
-      if (isMemorized && !_isRevision) {
-        type = TaskType.revision;
-        if (mounted) {
-          _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
-        }
-      } else if (!isMemorized && _isRevision) {
-        type = TaskType.memorize;
-        if (mounted) {
-          _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
-        }
-      }
-
-      final start = _startAyah ?? 1;
-      final end = _endAyah ?? _maxAyah ?? 1;
-
-      if (_maxAyah != null) {
-        if (start < 1 || start > _maxAyah!) {
-          _showError(
-            AppLocalizations.of(context)!.startAyahErrorRange(_maxAyah!),
-          );
+      if (_selectedUnitIndex == 0) {
+        // SURAH
+        if (_selectedSurah == null) {
+          _showError(AppLocalizations.of(context)!.pleaseSelectSurah);
+          setState(() {
+            _isSaving = false;
+          });
           return;
         }
-        if (end < 1 || end > _maxAyah!) {
-          _showError(
-            AppLocalizations.of(context)!.endAyahErrorRange(_maxAyah!),
-          );
+
+        // Check Memorization Status (Surah)
+        final isMemorized = await PlannerDatabase().isSurahFullyMemorized(
+          _selectedSurah!.number,
+        );
+        if (!mounted) {
+          setState(() => _isSaving = false);
           return;
         }
-      }
 
-      if (start > end) {
-        _showError(AppLocalizations.of(context)!.startAyahErrorOrder);
-        return;
-      }
-
-      newTask = PlanTask(
-        unitType: PlanUnitType.surah,
-        unitId: _selectedSurah!.number,
-        title: _selectedSurah!.englishName,
-        startAyah: start,
-        endAyah: end,
-        type: type,
-        deadline: _targetDate!,
-        createdAt: created,
-        subtitle: "Ayah $start - $end", // Leaving generic for now
-      );
-    } else if (_selectedUnitIndex == 1) {
-      // Check Memorization Status (Juz)
-      // We start logically with Full Juz check.
-      final isJuzMemorized = await PlannerDatabaseHelper().isJuzFullyMemorized(
-        _selectedJuz,
-      );
-      if (!mounted) return;
-
-      // If whole Juz is memorized, any part is revision
-      if (isJuzMemorized && !_isRevision) {
-        type = TaskType.revision;
-        if (mounted) {
-          _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+        if (isMemorized && !_isRevision) {
+          type = TaskType.revision;
+          if (mounted) {
+            _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+          }
+        } else if (!isMemorized && _isRevision) {
+          type = TaskType.memorize;
+          if (mounted) {
+            _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+          }
         }
-      } else if (!isJuzMemorized &&
-          _isRevision &&
-          _juzSubdivision == "Full Juz") {
-        // Only force Memorize if selecting whole Juz and it's not done
-        type = TaskType.memorize;
-        if (mounted) {
-          _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+
+        final start = _startAyah ?? 1;
+        final end = _endAyah ?? _maxAyah ?? 1;
+
+        if (_maxAyah != null) {
+          if (start < 1 || start > _maxAyah!) {
+            _showError(
+              AppLocalizations.of(context)!.startAyahErrorRange(_maxAyah!),
+            );
+            if (mounted) setState(() => _isSaving = false);
+            return;
+          }
+          if (end < 1 || end > _maxAyah!) {
+            _showError(
+              AppLocalizations.of(context)!.endAyahErrorRange(_maxAyah!),
+            );
+            if (mounted) setState(() => _isSaving = false);
+            return;
+          }
         }
-      }
 
-      // JUZ
-      // Calculate Rubuc Range for Granular Juz Tasks
-      // 1 Juz = 8 Rubucs. Rubuc ID in DB is global (1-240).
-      int startRub = 0;
-      int endRub = 0;
-      final base = (_selectedJuz - 1) * 8;
-
-      if (_juzSubdivision == "Hizb 1") {
-        startRub = base + 1;
-        endRub = base + 4;
-      } else if (_juzSubdivision == "Hizb 2") {
-        startRub = base + 5;
-        endRub = base + 8;
-      } else if (_juzSubdivision.startsWith("Nisf Hizb")) {
-        // Nisf Hizb 1..4
-        // Nisf 1 = Rub 1-2, Nisf 2 = Rub 3-4, etc.
-        final n = int.parse(_juzSubdivision.split(" ").last);
-        startRub = base + (n - 1) * 2 + 1;
-        endRub = startRub + 1;
-      } else if (_juzSubdivision.startsWith("Rubuc")) {
-        // Rubuc 1..8
-        final n = int.parse(_juzSubdivision.split(" ").last);
-        startRub = base + n;
-        endRub = base + n;
-      }
-
-      // Localize Title only if creating new task
-      final l10n = AppLocalizations.of(context)!;
-      newTask = PlanTask(
-        unitType: PlanUnitType.juz,
-        unitId: _selectedJuz,
-        title: "${l10n.juz} $_selectedJuz",
-        subtitle:
-            _juzSubdivision, // Logic uses English string for identification, but display should be localized. DB stores English.
-        type: type,
-        deadline: _targetDate!,
-        createdAt: created,
-        // We use startAyah/endAyah fields to act as Global Rubuc Start/End for Juz tasks
-        startAyah: startRub > 0 ? startRub : null,
-        endAyah: endRub > 0 ? endRub : null,
-      );
-    } else {
-      // PAGE
-      final start = int.tryParse(_pageStartController.text);
-      final end = int.tryParse(_pageEndController.text);
-      if (start == null || end == null) {
-        _showError(AppLocalizations.of(context)!.pleaseEnterValidPages);
-        return;
-      }
-
-      // Check Memorization Status (Pages)
-      final isMemorized = await PlannerDatabaseHelper()
-          .isPageRangeFullyMemorized(start, end);
-      if (!mounted) return;
-
-      if (isMemorized && !_isRevision) {
-        type = TaskType.revision;
-        if (mounted) {
-          _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+        if (start > end) {
+          _showError(AppLocalizations.of(context)!.startAyahErrorOrder);
+          if (mounted) setState(() => _isSaving = false);
+          return;
         }
-      } else if (!isMemorized && _isRevision) {
-        type = TaskType.memorize;
-        if (mounted) {
-          _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+
+        newTask = PlanTask(
+          unitType: PlanUnitType.surah,
+          unitId: _selectedSurah!.number,
+          title: _selectedSurah!.englishName,
+          startAyah: start,
+          endAyah: end,
+          type: type,
+          deadline: _targetDate!,
+          createdAt: created,
+          subtitle: "Ayah $start - $end", // Leaving generic for now
+        );
+      } else if (_selectedUnitIndex == 1) {
+        // Check Memorization Status (Juz)
+        // We start logically with Full Juz check.
+        final isJuzMemorized = await PlannerDatabase().isJuzFullyMemorized(
+          _selectedJuz,
+        );
+        if (!mounted) return;
+
+        // If whole Juz is memorized, any part is revision
+        if (isJuzMemorized && !_isRevision) {
+          type = TaskType.revision;
+          if (mounted) {
+            _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+          }
+        } else if (!isJuzMemorized &&
+            _isRevision &&
+            _juzSubdivision == "Full Juz") {
+          // Only force Memorize if selecting whole Juz and it's not done
+          type = TaskType.memorize;
+          if (mounted) {
+            _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+          }
         }
+
+        // JUZ
+        // Calculate Rubuc Range for Granular Juz Tasks
+        // 1 Juz = 8 Rubucs. Rubuc ID in DB is global (1-240).
+        int startRub = 0;
+        int endRub = 0;
+        final base = (_selectedJuz - 1) * 8;
+
+        if (_juzSubdivision == "Hizb 1") {
+          startRub = base + 1;
+          endRub = base + 4;
+        } else if (_juzSubdivision == "Hizb 2") {
+          startRub = base + 5;
+          endRub = base + 8;
+        } else if (_juzSubdivision.startsWith("Nisf Hizb")) {
+          // Nisf Hizb 1..4
+          // Nisf 1 = Rub 1-2, Nisf 2 = Rub 3-4, etc.
+          final n = int.parse(_juzSubdivision.split(" ").last);
+          startRub = base + (n - 1) * 2 + 1;
+          endRub = startRub + 1;
+        } else if (_juzSubdivision.startsWith("Rubuc")) {
+          // Rubuc 1..8
+          final n = int.parse(_juzSubdivision.split(" ").last);
+          startRub = base + n;
+          endRub = base + n;
+        }
+
+        // Localize Title only if creating new task
+        final l10n = AppLocalizations.of(context)!;
+
+        String title = "${l10n.juz} $_selectedJuz";
+        if (_juzSubdivision != "Full Juz") {
+          String subLabel = _juzSubdivision;
+          if (_juzSubdivision.startsWith('Hizb')) {
+            final parts = _juzSubdivision.split(' ');
+            if (parts.length == 2) subLabel = "${l10n.hizb} ${parts[1]}";
+          } else if (_juzSubdivision.startsWith('Nisf Hizb')) {
+            final parts = _juzSubdivision.split(' ');
+            if (parts.length == 3) subLabel = "${l10n.nisfHizb} ${parts[2]}";
+          } else if (_juzSubdivision.startsWith('Rubuc')) {
+            final parts = _juzSubdivision.split(' ');
+            if (parts.length == 2) subLabel = "${l10n.rubuc} ${parts[1]}";
+          }
+          title = "$title - $subLabel";
+        }
+
+        newTask = PlanTask(
+          unitType: PlanUnitType.juz,
+          unitId: _selectedJuz,
+          title: title,
+          subtitle:
+              _juzSubdivision, // Logic uses English string for identification, but display should be localized. DB stores English.
+          type: type,
+          deadline: _targetDate!,
+          createdAt: created,
+          // We use startAyah/endAyah fields to act as Global Rubuc Start/End for Juz tasks
+          startAyah: startRub > 0 ? startRub : null,
+          endAyah: endRub > 0 ? endRub : null,
+        );
+      } else {
+        // PAGE
+        final start = int.tryParse(_pageStartController.text);
+        final end = int.tryParse(_pageEndController.text);
+        if (start == null || end == null) {
+          _showError(AppLocalizations.of(context)!.pleaseEnterValidPages);
+          if (mounted) setState(() => _isSaving = false);
+          return;
+        }
+
+        // Check Memorization Status (Pages)
+        final isMemorized = await PlannerDatabase().isPageRangeFullyMemorized(
+          start,
+          end,
+        );
+        if (!mounted) return;
+
+        if (isMemorized && !_isRevision) {
+          type = TaskType.revision;
+          if (mounted) {
+            _showError(AppLocalizations.of(context)!.contentMemorizedSwitch);
+          }
+        } else if (!isMemorized && _isRevision) {
+          type = TaskType.memorize;
+          if (mounted) {
+            _showError(AppLocalizations.of(context)!.contentNotMemorizedSwitch);
+          }
+        }
+
+        final l10n = AppLocalizations.of(context)!;
+        newTask = PlanTask(
+          unitType: PlanUnitType.page,
+          unitId: start,
+          endUnitId: end,
+          title: "${l10n.page} $start - $end",
+          type: type,
+          deadline: _targetDate!,
+          createdAt: created,
+        );
       }
 
-      final l10n = AppLocalizations.of(context)!;
-      newTask = PlanTask(
-        unitType: PlanUnitType.page,
-        unitId: start,
-        endUnitId: end,
-        title: "${l10n.page} $start - $end",
-        type: type,
-        deadline: _targetDate!,
-        createdAt: created,
-      );
-    }
+      if (widget.taskToEdit != null) {
+        // Update
+        newTask = newTask.copyWith(
+          id: widget.taskToEdit!.id!,
+          title: newTask.title,
+          status: widget.taskToEdit!.status,
+          completedAt: widget.taskToEdit!.completedAt,
+          note: widget.taskToEdit!.note,
+        );
+        await PlannerDatabase().updateTask(newTask);
+      } else {
+        await PlannerDatabase().insertTask(newTask);
+      }
 
-    if (widget.taskToEdit != null) {
-      // Update
-      newTask = newTask.copyWith(
-        id: widget.taskToEdit!.id!,
-        title: newTask.title,
-        status: widget.taskToEdit!.status,
-        completedAt: widget.taskToEdit!.completedAt,
-        note: widget.taskToEdit!.note,
-      );
-      await PlannerDatabaseHelper().updateTask(newTask);
-    } else {
-      await PlannerDatabaseHelper().insertTask(newTask);
-    }
-
-    if (mounted) {
-      Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.taskToEdit != null
-                ? AppLocalizations.of(context)!
-                      .planCreatedSuccess // Reuse success msg or add Edit success
-                : AppLocalizations.of(context)!.planCreatedSuccess,
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.taskToEdit != null
+                  ? AppLocalizations.of(context)!
+                        .planCreatedSuccess // Reuse success msg or add Edit success
+                  : AppLocalizations.of(context)!.planCreatedSuccess,
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      debugPrint("Error saving plan: $e");
+      if (mounted) {
+        setState(() => _isSaving = false);
+        _showError(e.toString());
+      }
     }
   }
 

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/shared/models/surah.dart';
-import 'package:hifdh/core/services/database_helper.dart';
+import 'package:hifdh/core/services/quran_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/progress_chart_helper.dart';
 import 'package:hifdh/features/progress/widgets/activity_chart.dart';
 import 'package:hifdh/features/progress/widgets/progress_header_card.dart';
 import 'package:hifdh/features/progress/widgets/unit_details_sheet.dart';
+import 'package:hifdh/features/progress/widgets/unit_progress_list_item.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 
 class ProgressPage extends StatefulWidget {
@@ -40,6 +41,7 @@ class _ProgressPageState extends State<ProgressPage>
 
   // Cache for Juz -> Surahs mapping
   final Map<int, List<int>> _juzSurahMap = {};
+  final Map<int, List<int>> _hizbSurahMap = {};
 
   // Page Coverage for granular calculation
   List<bool> _pageCoverage = [];
@@ -56,18 +58,31 @@ class _ProgressPageState extends State<ProgressPage>
   Map<int, List<TaskNote>> _juzNotes = {};
   Map<int, List<TaskNote>> _hizbNotes = {};
 
+  // Global Ayah Stats (key: AyahID) -> {m: bool, r: int}
+  Map<int, Map<String, dynamic>> _globalAyahStats = {};
+
+  // Ayah Mapping Cache
+  Map<int, List<int>> _juzToAyahIds = {};
+  Map<int, List<int>> _hizbToAyahIds = {};
+
+  // Overlap Ranges
+  Map<int, AyahRange> _taskRanges = {};
+  Map<int, AyahRange> _surahRanges = {};
+  Map<int, AyahRange> _juzRanges = {};
+  Map<int, AyahRange> _hizbRanges = {};
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadData();
     // Listen for data changes from other tabs
-    PlannerDatabaseHelper().dataUpdateNotifier.addListener(_loadData);
+    PlannerDatabase().dataUpdateNotifier.addListener(_loadData);
   }
 
   @override
   void dispose() {
-    PlannerDatabaseHelper().dataUpdateNotifier.removeListener(_loadData);
+    PlannerDatabase().dataUpdateNotifier.removeListener(_loadData);
     _tabController.dispose();
     super.dispose();
   }
@@ -78,23 +93,21 @@ class _ProgressPageState extends State<ProgressPage>
     try {
       // Parallel fetch Basic Data
       final basicFutures = await Future.wait([
-        PlannerDatabaseHelper().getMemorizedPercentage(
-          type: _selectedHeaderMetric,
-        ),
-        PlannerDatabaseHelper().getAllSurahProgress(),
-        DatabaseHelper().getAllSurahs(),
-        PlannerDatabaseHelper().getCompletionStats(
+        PlannerDatabase().getMemorizedPercentage(type: _selectedHeaderMetric),
+        PlannerDatabase().getAllSurahProgress(),
+        QuranDatabase().getAllSurahs(),
+        PlannerDatabase().getCompletionStats(
           days: _selectedStatRange,
         ), // Use selected range
-        PlannerDatabaseHelper().getStats(),
-        PlannerDatabaseHelper().getActiveTasks(),
+        PlannerDatabase().getStats(),
+        PlannerDatabase().getActiveTasks(),
       ]);
 
       // Fetch Juz Mappings (Parallel 30 queries)
       // Only if not loaded? Nah, load always for now to be safe or check cache.
       if (_juzSurahMap.isEmpty) {
         final juzFutures = await Future.wait(
-          List.generate(30, (i) => DatabaseHelper().getSurahsInJuz(i + 1)),
+          List.generate(30, (i) => QuranDatabase().getSurahsInJuz(i + 1)),
         );
         for (int i = 0; i < 30; i++) {
           _juzSurahMap[i + 1] = juzFutures[i];
@@ -102,36 +115,32 @@ class _ProgressPageState extends State<ProgressPage>
       }
 
       // Fetch Page Coverage and Juz/Surah Ranges
-      final coverageFuture = PlannerDatabaseHelper().getGlobalPageCoverage();
-      final ayahsFuture = PlannerDatabaseHelper().getGlobalCoveredAyahs();
-      final metaFuture = DatabaseHelper().getAllQuranMeta();
+      final coverageFuture = PlannerDatabase().getGlobalPageCoverage();
+      final ayahsFuture = PlannerDatabase().getGlobalCoveredAyahs();
+      final statsFuture = PlannerDatabase().getAyahProgressMap();
 
       if (_juzPageRanges.isEmpty) {
-        final rangeFutures = await Future.wait(
-          List.generate(30, (i) => DatabaseHelper().getJuzPageRange(i + 1)),
-        );
-        for (int i = 0; i < 30; i++) {
-          _juzPageRanges[i + 1] = rangeFutures[i];
+        // Optimized: Use PlannerDatabase cache
+        for (int i = 1; i <= 30; i++) {
+          _juzPageRanges[i] = await PlannerDatabase().getCachedJuzPageRange(i);
         }
       }
 
       if (_surahPageRanges.isEmpty) {
-        final surahRanges = await DatabaseHelper().getAllSurahPageRanges();
-        for (var r in surahRanges) {
-          final sNum = r['surahNumber'];
-          if (sNum != null) {
-            _surahPageRanges[sNum] = r;
-          }
+        // Optimized: Use PlannerDatabase cache
+        for (int i = 1; i <= 114; i++) {
+          _surahPageRanges[i] = await PlannerDatabase().getCachedSurahPageRange(
+            i,
+          );
         }
       }
 
       final coverage = await coverageFuture;
       final coveredAyahs = await ayahsFuture;
-      final quranMeta = await metaFuture;
+      final ayahStats = await statsFuture;
 
       // Fetch and Map Notes
-      final allNotes = await PlannerDatabaseHelper().getAllNotesWithTasks();
-      final metaMap = {for (var m in quranMeta) m['id'] as int: m};
+      final allNotes = await PlannerDatabase().getAllNotesWithTasks();
 
       final sNotes = <int, List<TaskNote>>{};
       final jNotes = <int, List<TaskNote>>{};
@@ -142,20 +151,17 @@ class _ProgressPageState extends State<ProgressPage>
 
         if (note.type == NoteType.correct) continue;
 
-        if (note.ayahId != null && metaMap.containsKey(note.ayahId)) {
-          final m = metaMap[note.ayahId]; // Safe access
+        if (note.ayahId != null) {
+          final m = await PlannerDatabase().getCachedAyahMeta(note.ayahId!);
 
-          if (m != null) {
-            final surah = m['surahNumber'] as int?;
-            final juz = m['juzNumber'] as int?;
-            final rub = m['rubNumber'] as int?;
+          if (m.isNotEmpty) {
+            final surah = m['surahNumber'];
+            final juz = m['juzNumber'];
+            final hizb = m['hizbNumber'];
 
-            if (surah != null && juz != null && rub != null) {
-              final hizb = ((rub - 1) ~/ 4) + 1;
-              sNotes.putIfAbsent(surah, () => []).add(note);
-              jNotes.putIfAbsent(juz, () => []).add(note);
-              hNotes.putIfAbsent(hizb, () => []).add(note);
-            }
+            if (surah != null) sNotes.putIfAbsent(surah, () => []).add(note);
+            if (juz != null) jNotes.putIfAbsent(juz, () => []).add(note);
+            if (hizb != null) hNotes.putIfAbsent(hizb, () => []).add(note);
           }
         } else {
           final uTypeVal = row['unitType'] as int;
@@ -173,9 +179,61 @@ class _ProgressPageState extends State<ProgressPage>
       // Compute Granular Progress per Surah
       final Map<int, double> granularProgress = {};
       final Map<int, List<int>> surahAyahIds = {};
-      for (final m in quranMeta) {
-        final s = m['surahNumber'] as int;
-        surahAyahIds.putIfAbsent(s, () => []).add(m['id'] as int);
+      final Map<int, List<int>> juzAyahIds = {};
+      final Map<int, List<int>> hizbAyahIds = {};
+
+      // Optimized: Use PlannerDatabase cached ID lists
+      for (int s = 1; s <= 114; s++) {
+        final ids = await PlannerDatabase().getCachedAyahIdsForSurah(s);
+        if (ids.isNotEmpty) surahAyahIds[s] = ids;
+      }
+      for (int j = 1; j <= 30; j++) {
+        final ids = await PlannerDatabase().getCachedAyahIdsForJuz(j);
+        if (ids.isNotEmpty) juzAyahIds[j] = ids;
+      }
+      for (int h = 1; h <= 60; h++) {
+        final ids = await PlannerDatabase().getCachedAyahIdsForHizb(h);
+        if (ids.isNotEmpty) hizbAyahIds[h] = ids;
+      }
+
+      // Map ranges for overlap detection
+      final tRanges = <int, AyahRange>{};
+      for (final t in (basicFutures[5] as List<PlanTask>)) {
+        if (t.id == null) continue;
+        final range = await QuranDatabase().getAyahRangeForPlanUnit(
+          unitType: t.unitType,
+          unitId: t.unitId,
+          endUnitId: t.endUnitId,
+          startAyah: t.startAyah,
+          endAyah: t.endAyah,
+        );
+        if (range['min']! > 0) {
+          tRanges[t.id!] = AyahRange(range['min']!, range['max']!);
+        }
+      }
+
+      final sRanges = <int, AyahRange>{};
+      final jRanges = <int, AyahRange>{};
+      final hRanges = <int, AyahRange>{};
+
+      for (final s in surahAyahIds.keys) {
+        final ids = surahAyahIds[s]!;
+        if (ids.isNotEmpty) {
+          // IDs are already sorted in PlannerDatabase cache usually, but safe to assume range
+          sRanges[s] = AyahRange(ids.first, ids.last);
+        }
+      }
+      for (final j in juzAyahIds.keys) {
+        final ids = juzAyahIds[j]!;
+        if (ids.isNotEmpty) {
+          jRanges[j] = AyahRange(ids.first, ids.last);
+        }
+      }
+      for (final h in hizbAyahIds.keys) {
+        final ids = hizbAyahIds[h]!;
+        if (ids.isNotEmpty) {
+          hRanges[h] = AyahRange(ids.first, ids.last);
+        }
       }
 
       for (final s in surahAyahIds.keys) {
@@ -184,6 +242,12 @@ class _ProgressPageState extends State<ProgressPage>
         final total = ids.length;
         final soFar = ids.where((id) => coveredAyahs.contains(id)).length;
         granularProgress[s] = total == 0 ? 0.0 : soFar / total;
+      }
+
+      // Load Hizb->Surah map efficiently
+      final newHizbSurahMap = <int, List<int>>{};
+      for (int h = 1; h <= 60; h++) {
+        newHizbSurahMap[h] = await PlannerDatabase().getCachedSurahsInHizb(h);
       }
 
       if (mounted) {
@@ -197,7 +261,9 @@ class _ProgressPageState extends State<ProgressPage>
           _chartData = [];
 
           _memPercentage = basicFutures[0] as double;
-          _surahProgress = basicFutures[1] as List<QuranProgress>;
+          _surahProgress = (basicFutures[1] as List<Map<String, dynamic>>)
+              .map((m) => QuranProgress.fromMap(m))
+              .toList();
           _surahs = basicFutures[2] as List<Surah>;
           _chartData = ProgressChartHelper.normalizeChartData(
             basicFutures[3] as List<Map<String, dynamic>>,
@@ -210,6 +276,17 @@ class _ProgressPageState extends State<ProgressPage>
           _surahNotes = sNotes;
           _juzNotes = jNotes;
           _hizbNotes = hNotes;
+          _globalAyahStats = ayahStats;
+          _juzToAyahIds = juzAyahIds;
+          _hizbToAyahIds = hizbAyahIds;
+          _hizbSurahMap.clear();
+          _hizbSurahMap.addAll(newHizbSurahMap);
+
+          _taskRanges = tRanges;
+          _surahRanges = sRanges;
+          _juzRanges = jRanges;
+          _hizbRanges = hRanges;
+
           _isLoading = false;
         });
       }
@@ -221,6 +298,10 @@ class _ProgressPageState extends State<ProgressPage>
 
   double _calculateSurahProgress(int surahNum) {
     return _surahExactProgress[surahNum] ?? 0.0;
+  }
+
+  bool _doesOverlap(AyahRange r1, AyahRange r2) {
+    return r1.min <= r2.max && r1.max >= r2.min;
   }
 
   @override
@@ -335,7 +416,7 @@ class _ProgressPageState extends State<ProgressPage>
 
   Future<void> _updateChartRange(int days) async {
     setState(() => _selectedStatRange = days);
-    final raw = await PlannerDatabaseHelper().getCompletionStats(days: days);
+    final raw = await PlannerDatabase().getCompletionStats(days: days);
     if (mounted) {
       setState(() {
         _chartData = ProgressChartHelper.normalizeChartData(raw, days);
@@ -345,9 +426,7 @@ class _ProgressPageState extends State<ProgressPage>
 
   Future<void> _updateHeaderMetric(int type) async {
     setState(() => _selectedHeaderMetric = type);
-    final pct = await PlannerDatabaseHelper().getMemorizedPercentage(
-      type: type,
-    );
+    final pct = await PlannerDatabase().getMemorizedPercentage(type: type);
     if (mounted) {
       setState(() {
         _memPercentage = pct;
@@ -379,200 +458,38 @@ class _ProgressPageState extends State<ProgressPage>
           ),
         );
 
-        // Find any active tasks for this Surah
-        final activeTask = _activeTasks.firstWhere(
-          (t) => t.unitType == PlanUnitType.surah && t.unitId == surah.number,
-          orElse: () => PlanTask(
-            id: -1,
-            unitType: PlanUnitType.surah,
-            unitId: 0,
-            title: '',
-            type: TaskType.memorize,
-            deadline: DateTime.now(),
-            createdAt: DateTime.now(),
-          ),
-        );
-        final hasActive = activeTask.id != -1;
+        // Find overlapping active tasks
+        final sRange = _surahRanges[surah.number];
+        final surahActiveTasks = _activeTasks.where((t) {
+          if (t.id == null) return false;
+          final tRange = _taskRanges[t.id!];
+          if (sRange != null && tRange != null) {
+            return _doesOverlap(tRange, sRange);
+          }
+          // Fallback to strict matching if ranges not ready (shouldn't happen usually)
+          return t.unitType == PlanUnitType.surah && t.unitId == surah.number;
+        }).toList();
+        final hasActive = surahActiveTasks.isNotEmpty;
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: isDark
-                  ? Colors.transparent
-                  : AppColors.dividerLight.withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              ListTile(
-                contentPadding: const EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  top: 4,
-                  bottom: 4,
-                ),
-                leading: Builder(
-                  builder: (context) {
-                    final pct = _calculateSurahProgress(surah.number);
-                    final isFull = progress.isMemorized || pct >= 0.999;
-
-                    if (isFull) {
-                      return Container(
-                        width: 42,
-                        height: 42,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.successGreen,
-                              AppColors.successGreenDark,
-                            ],
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      );
-                    } else if (pct > 0.0) {
-                      // Partial progress indicator
-                      return SizedBox(
-                        width: 42,
-                        height: 42,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                              value: pct,
-                              backgroundColor: isDark
-                                  ? Colors.white10
-                                  : Colors.grey.withValues(alpha: 0.1),
-                              color: AppColors.accentOrange,
-                              strokeWidth: 3,
-                            ),
-                            Text(
-                              "${(pct * 100).toInt()}%",
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textPrimaryLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      // Normal Number
-                      return Container(
-                        width: 42,
-                        height: 42,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDark
-                              ? AppColors.backgroundDark
-                              : AppColors.backgroundLight,
-                        ),
-                        child: Text(
-                          "${surah.number}",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                ),
-                title: Text(
-                  surah.englishName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                subtitle: hasActive
-                    ? Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: AppColors.accentOrange,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              AppLocalizations.of(context)!.inProgress,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.accentOrange,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : Text(
-                        surah.name,
-                        style: TextStyle(
-                          fontFamily: "QuranFont",
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (progress.revisionCount > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.accentOrange.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "${progress.revisionCount} ${AppLocalizations.of(context)!.revisionsShort}",
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accentOrange,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                onTap: () {
-                  _showUnitDetails(
-                    context,
-                    PlanUnitType.surah,
-                    surah.number,
-                    "${AppLocalizations.of(context)!.surah} ${surah.englishName}",
-                    preloadedNotes: _surahNotes[surah.number],
-                  );
-                },
-              ),
-            ],
-          ),
+        return UnitProgressListItem(
+          number: surah.number,
+          title: surah.englishName,
+          subtitle: hasActive ? null : surah.name,
+          progress: _calculateSurahProgress(surah.number),
+          isCompleted:
+              progress.isMemorized ||
+              _calculateSurahProgress(surah.number) >= 0.999,
+          activeTaskCount: surahActiveTasks.length,
+          revisionCount: progress.revisionCount,
+          onTap: () {
+            _showUnitDetails(
+              context,
+              PlanUnitType.surah,
+              surah.number,
+              "${AppLocalizations.of(context)!.surah} ${surah.englishName}",
+              preloadedNotes: _surahNotes[surah.number],
+            );
+          },
         );
       },
     );
@@ -585,33 +502,19 @@ class _ProgressPageState extends State<ProgressPage>
       itemBuilder: (context, index) {
         final juzNum = index + 1;
 
-        final explicitJuzTasks = _activeTasks.where(
-          (t) => t.unitType == PlanUnitType.juz && t.unitId == juzNum,
-        );
-
-        final surahsInJuz = _juzSurahMap[juzNum] ?? [];
-        final surahTasks = _activeTasks.where(
-          (t) =>
-              t.unitType == PlanUnitType.surah &&
-              surahsInJuz.contains(t.unitId),
-        );
-
-        final hizb1 = (juzNum * 2) - 1;
-        final hizb2 = (juzNum * 2);
-
-        final hizbTasks = _activeTasks.where((t) {
-          final sub = t.subtitle?.toLowerCase() ?? "";
-          return sub.contains("hizb $hizb1") || sub.contains("hizb $hizb2");
-        });
-
-        // Combined Active Tasks
-        final allActive = [...explicitJuzTasks, ...surahTasks, ...hizbTasks];
-        // Deduplicate by ID
-        final uniqueActive = <int, PlanTask>{};
-        for (var t in allActive) {
-          if (t.id != null) uniqueActive[t.id!] = t;
-        }
-        final displayTasks = uniqueActive.values.toList();
+        final jRange = _juzRanges[juzNum];
+        final displayTasks = _activeTasks.where((t) {
+          if (t.id == null) return false;
+          final tRange = _taskRanges[t.id!];
+          if (jRange != null && tRange != null) {
+            return _doesOverlap(tRange, jRange);
+          }
+          // Fallback
+          // We can keep the old comprehensive logic as fallback or just unit exact match
+          return (t.unitType == PlanUnitType.juz && t.unitId == juzNum) ||
+              (t.unitType == PlanUnitType.surah &&
+                  _juzSurahMap[juzNum]?.contains(t.unitId) == true);
+        }).toList();
 
         // Determine Juz Progress from Page Coverage
         final range = _juzPageRanges[juzNum];
@@ -624,164 +527,47 @@ class _ProgressPageState extends State<ProgressPage>
           int total = end - start + 1;
           int coveredCount = 0;
 
-          // Validate range against coverage array size (605)
           if (total > 0 && start > 0 && end < _pageCoverage.length) {
             for (int p = start; p <= end; p++) {
               if (_pageCoverage[p]) coveredCount++;
             }
             estimatedProg = coveredCount / total;
-            isFullyMemorized = estimatedProg >= 0.99; // Tolerance
+            isFullyMemorized = estimatedProg >= 0.99;
           }
         }
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: isDark
-                  ? Colors.transparent
-                  : AppColors.dividerLight.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              leading: Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: isFullyMemorized
-                      ? const LinearGradient(
-                          colors: [
-                            AppColors.successGreen,
-                            AppColors.successGreenDark,
-                          ],
-                        )
-                      : null,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (!isFullyMemorized)
-                      CircularProgressIndicator(
-                        value: estimatedProg,
-                        strokeWidth: 3,
-                        color: AppColors.accentOrange,
-                        backgroundColor: isDark
-                            ? AppColors.dividerDark
-                            : AppColors.dividerLight,
-                      )
-                    else
-                      const Icon(Icons.check, color: Colors.white, size: 24),
+        // Calculate Revision Stats (Min revisions across all ayahs in Juz)
+        final jAyahs = _juzToAyahIds[juzNum] ?? [];
+        int juzRevisions = 0;
 
-                    if (!isFullyMemorized)
-                      Text(
-                        "$juzNum",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              title: Text(
-                "${AppLocalizations.of(context)!.juz} $juzNum",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: displayTasks.isNotEmpty
-                  ? Text(
-                      "${displayTasks.length} ${AppLocalizations.of(context)!.activeTasks}",
-                      style: const TextStyle(color: AppColors.accentOrange),
-                    )
-                  : Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.percentMemorized((estimatedProg * 100).toInt()),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isFullyMemorized
-                            ? AppColors.successGreen
-                            : (isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight),
-                      ),
-                    ),
-              children: [
-                // Option to view all notes for the Juz
-                ListTile(
-                  leading: const Icon(
-                    Icons.history_edu,
-                    size: 20,
-                    color: AppColors.primaryNavy,
-                  ),
-                  title: Text(
-                    AppLocalizations.of(context)!.viewJuzHistoryNotes,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  trailing: const Icon(Icons.chevron_right, size: 16),
-                  dense: true,
-                  onTap: () => _showUnitDetails(
-                    context,
-                    PlanUnitType.juz,
-                    juzNum,
-                    "${AppLocalizations.of(context)!.juz} $juzNum",
-                    preloadedNotes: _juzNotes[juzNum],
-                  ),
-                ),
-                if (displayTasks.isNotEmpty) const Divider(),
-                ...displayTasks.map((task) {
-                  return ListTile(
-                    title: Text(task.title),
-                    subtitle: Text(
-                      task.subtitle ??
-                          (task.unitType == PlanUnitType.surah
-                              ? AppLocalizations.of(context)!.surahTask
-                              : AppLocalizations.of(context)!.juzTask),
-                    ),
-                    trailing: const Icon(Icons.arrow_forward, size: 16),
-                    leading: Icon(
-                      Icons.task_alt,
-                      size: 18,
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight,
-                    ),
-                    onTap: () {
-                      if (task.unitType == PlanUnitType.surah) {
-                        _showUnitDetails(
-                          context,
-                          PlanUnitType.surah,
-                          task.unitId,
-                          task.title,
-                          preloadedNotes: _surahNotes[task.unitId],
-                        );
-                      } else {
-                        _showUnitDetails(
-                          context,
-                          PlanUnitType.juz,
-                          task.unitId,
-                          task.title,
-                          preloadedNotes: _juzNotes[task.unitId],
-                        );
-                      }
-                    },
-                  );
-                }),
-              ],
-            ),
-          ),
+        if (jAyahs.isNotEmpty) {
+          int? minRev;
+          for (final aid in jAyahs) {
+            final r = (_globalAyahStats[aid]?['revisions'] as int?) ?? 0;
+            if (minRev == null || r < minRev) {
+              minRev = r;
+            }
+            if (minRev == 0) break;
+          }
+          juzRevisions = minRev ?? 0;
+        }
+
+        return UnitProgressListItem(
+          number: juzNum,
+          title: "${AppLocalizations.of(context)!.juz} $juzNum",
+          progress: estimatedProg,
+          isCompleted: isFullyMemorized,
+          activeTaskCount: displayTasks.length,
+          revisionCount: juzRevisions,
+          onTap: () {
+            _showUnitDetails(
+              context,
+              PlanUnitType.juz,
+              juzNum,
+              "${AppLocalizations.of(context)!.juz} $juzNum",
+              preloadedNotes: _juzNotes[juzNum],
+            );
+          },
         );
       },
     );
@@ -795,24 +581,24 @@ class _ProgressPageState extends State<ProgressPage>
         final hizbNum = index + 1;
 
         // Match active tasks for this Hizb
+        final hRange = _hizbRanges[hizbNum];
         final relevant = _activeTasks.where((t) {
+          if (t.id == null) return false;
+          final tRange = _taskRanges[t.id!];
+          if (hRange != null && tRange != null) {
+            return _doesOverlap(tRange, hRange);
+          }
+          // Fallback
+          // Try text based if range fails (unlikely)
           final sub = t.subtitle?.toLowerCase() ?? "";
           return sub.contains("hizb $hizbNum");
         }).toList();
 
         final parentJuz = ((hizbNum - 1) ~/ 2) + 1;
-        final parentJuzTasks = _activeTasks.where((t) {
-          if (t.unitType != PlanUnitType.juz || t.unitId != parentJuz) {
-            return false;
-          }
-          // Exclude partial Juz tasks (Rubuc/Hizb specific) from determining
-          // "Covered by Juz" status for the whole Juz.
-          // If a task is specific to a Hizb/Rubuc, it shouldn't imply the whole Juz is active.
-          final sub = t.subtitle?.toLowerCase() ?? "";
-          return !sub.contains("hizb") && !sub.contains("rubuc");
-        }).toList();
+        // With overlap logic, we don't need separate parentJuzTasks logic
+        // because a Full Juz task will overlap the Hizb range automatically.
 
-        final hasActive = relevant.isNotEmpty || parentJuzTasks.isNotEmpty;
+        final hasActive = relevant.isNotEmpty;
 
         // Calculate Hizb Progress
         final juzRange = _juzPageRanges[parentJuz];
@@ -844,133 +630,45 @@ class _ProgressPageState extends State<ProgressPage>
             isFullyMemorized = hizbProg >= 0.99;
           }
         }
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: isDark
-                  ? Colors.transparent
-                  : AppColors.dividerLight.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Column(
-            children: [
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                leading: Container(
-                  width: 42,
-                  height: 42,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: isFullyMemorized
-                        ? const LinearGradient(
-                            colors: [
-                              AppColors.successGreen,
-                              AppColors.successGreenDark,
-                            ],
-                          )
-                        : null,
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (!isFullyMemorized)
-                        CircularProgressIndicator(
-                          value: hizbProg,
-                          strokeWidth: 3,
-                          color: AppColors.accentOrange,
-                          backgroundColor: isDark
-                              ? AppColors.dividerDark
-                              : AppColors.dividerLight,
-                        )
-                      else
-                        const Icon(Icons.check, color: Colors.white, size: 24),
 
-                      if (!isFullyMemorized)
-                        Text(
-                          "$hizbNum",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.textPrimaryLight,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                title: Text(
-                  "${AppLocalizations.of(context)!.hizb} $hizbNum (${AppLocalizations.of(context)!.juz} $parentJuz)",
-                ),
-                subtitle: hasActive
-                    ? Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: AppColors.accentOrange,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              relevant.isNotEmpty
-                                  ? AppLocalizations.of(
-                                      context,
-                                    )!.activeTaskSingle
-                                  : "${AppLocalizations.of(context)!.coveredByJuz} $parentJuz",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.accentOrange,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.percentMemorized((hizbProg * 100).toInt()),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isFullyMemorized
-                              ? AppColors.successGreen
-                              : (isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondaryLight),
-                        ),
-                      ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ), // Always show arrow to imply tappable
-                onTap: () {
-                  _showUnitDetails(
-                    context,
-                    PlanUnitType.juz,
-                    parentJuz,
-                    "${AppLocalizations.of(context)!.hizb} $hizbNum (${AppLocalizations.of(context)!.juz} $parentJuz)",
-                    preloadedNotes: _hizbNotes[hizbNum],
-                  );
-                },
-              ),
-            ],
-          ),
+        // Calculate Revision Stats (Min revisions across all ayahs in Hizb)
+        final hAyahs = _hizbToAyahIds[hizbNum] ?? [];
+        int hizbRevisions = 0;
+
+        if (hAyahs.isNotEmpty) {
+          int? minRev;
+          for (final aid in hAyahs) {
+            final r = (_globalAyahStats[aid]?['revisions'] as int?) ?? 0;
+            if (minRev == null || r < minRev) {
+              minRev = r;
+            }
+            if (minRev == 0) break;
+          }
+          hizbRevisions = minRev ?? 0;
+        }
+
+        // final surahsInHizb = _hizbSurahMap[hizbNum] ?? []; // Unused
+
+        return UnitProgressListItem(
+          number: hizbNum,
+          title:
+              "${AppLocalizations.of(context)!.hizb} $hizbNum (${AppLocalizations.of(context)!.juz} $parentJuz)",
+          subtitle: hasActive
+              ? "${AppLocalizations.of(context)!.coveredByJuz} $parentJuz"
+              : null,
+          progress: hizbProg,
+          isCompleted: isFullyMemorized,
+          activeTaskCount: relevant.length,
+          revisionCount: hizbRevisions,
+          onTap: () {
+            _showUnitDetails(
+              context,
+              PlanUnitType.hizb,
+              hizbNum,
+              "${AppLocalizations.of(context)!.hizb} $hizbNum",
+              preloadedNotes: _hizbNotes[hizbNum],
+            );
+          },
         );
       },
     );
@@ -1034,4 +732,10 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return true;
   }
+}
+
+class AyahRange {
+  final int min;
+  final int max;
+  const AyahRange(this.min, this.max);
 }

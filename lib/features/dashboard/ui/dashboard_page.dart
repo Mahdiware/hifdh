@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 import 'package:hifdh/features/planner/ui/assign_page.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/features/dashboard/widgets/plan_task_card.dart';
 import 'package:hifdh/features/dashboard/widgets/notes_sheet.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
-import 'package:provider/provider.dart';
-import 'package:hifdh/features/settings/logic/locale_provider.dart';
-import 'package:hifdh/core/theme/app_colors.dart';
-
-enum DashboardSort { newest, oldest, typeMemorize, typeRevision }
-enum SortUnitType { all, surah, juz, page, custom }
+import 'package:hifdh/features/dashboard/widgets/dashboard_app_bar.dart';
+import 'package:hifdh/features/dashboard/widgets/dashboard_header.dart';
+import 'package:hifdh/features/dashboard/models/dashboard_filter_types.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -35,7 +31,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _fetchTasks() async {
     setState(() => _isLoading = true);
     try {
-      final tasks = await PlannerDatabaseHelper().getActiveTasks();
+      final tasks = await PlannerDatabase().getActiveTasks();
       setState(() {
         _tasks = tasks;
         _sortTasks(); // Sort immediately after fetching
@@ -81,14 +77,23 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  void _onFilterSelected(SortUnitType type) {
+    setState(() {
+      _selectedFilter = switch (type) {
+        SortUnitType.all => null,
+        SortUnitType.surah => PlanUnitType.surah,
+        SortUnitType.juz => PlanUnitType.juz,
+        SortUnitType.page => PlanUnitType.page,
+        SortUnitType.custom => PlanUnitType.custom,
+      };
+    });
+  }
+
   Future<void> _handleTaskAction(PlanTask task) async {
     if (task.status == TaskStatus.notStarted) {
-      await PlannerDatabaseHelper().updateTaskStatus(
-        task.id!,
-        TaskStatus.inProgress,
-      );
+      await PlannerDatabase().updateTaskStatus(task.id!, TaskStatus.inProgress);
     } else if (task.status == TaskStatus.inProgress) {
-      await PlannerDatabaseHelper().completeTask(task.id!, DateTime.now());
+      await PlannerDatabase().completeTask(task.id!, DateTime.now());
     }
     _fetchTasks();
   }
@@ -135,7 +140,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
 
     if (confirm == true) {
-      await PlannerDatabaseHelper().deleteTask(task.id!);
+      await PlannerDatabase().deleteTask(task.id!);
       _fetchTasks();
     }
   }
@@ -154,7 +159,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: _buildAppBar(context, theme, l10n),
+      appBar: DashboardAppBar(onRefresh: _fetchTasks),
       floatingActionButton: FloatingActionButton(
         backgroundColor: theme.primaryColor,
         child: const Icon(Icons.add, color: Colors.white, size: 28),
@@ -168,292 +173,18 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       body: Column(
         children: [
-          _buildHeader(isDark, l10n),
+          DashboardHeader(
+            activeCount: _filteredTasks.length,
+            selectedFilter: _selectedFilter,
+            onFilterSelected: _onFilterSelected,
+            onSortSelected: (sort) => _onSortChanged(sort),
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredTasks.isEmpty
                 ? _buildEmptyState(l10n)
                 : _buildTaskList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    return AppBar(
-      automaticallyImplyLeading: false,
-      backgroundColor: theme.appBarTheme.backgroundColor,
-      elevation: 0,
-      title: Text(l10n.dashboard, style: theme.appBarTheme.titleTextStyle),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.refresh, color: theme.appBarTheme.iconTheme?.color),
-          onPressed: _fetchTasks,
-        ),
-        Consumer<LocaleProvider>(
-          builder: (context, localeProvider, child) {
-            return PopupMenuButton<Locale>(
-              icon: Icon(
-                Icons.language,
-                color: theme.appBarTheme.iconTheme?.color,
-              ),
-              onSelected: (Locale locale) {
-                localeProvider.setLocale(locale);
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
-                const PopupMenuItem<Locale>(
-                  value: Locale('en'),
-                  child: Text('English'),
-                ),
-                const PopupMenuItem<Locale>(
-                  value: Locale('ar'),
-                  child: Text('العربية'),
-                ),
-                const PopupMenuItem<Locale>(
-                  value: Locale('so'),
-                  child: Text('Soomaali'),
-                ),
-              ],
-            );
-          },
-        ),
-        const ThemeToggleButton(),
-        const SizedBox(width: 8),
-      ],
-    );
-  }
-
-  Widget _buildHeader(bool isDark, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.activeTasks,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                  color: isDark ? Colors.white : AppColors.primaryNavy,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "${_filteredTasks.length} ${l10n.pending}",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white54 : Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              PopupMenuButton<SortUnitType>(
-                offset: const Offset(0, 40),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                tooltip: "Filter",
-                icon: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white10
-                          : Colors.grey.withValues(alpha: 0.2),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.filter_list_rounded,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.primaryNavy,
-                    size: 20,
-                  ),
-                ),
-                color: isDark ? const Color(0xFF2C2E42) : Colors.white,
-                elevation: 4,
-                onSelected: (SortUnitType type) {
-                  setState(() {
-                      final PlanUnitType? value = switch (type) {
-                          SortUnitType.all => null,
-                          SortUnitType.surah => PlanUnitType.surah,
-                          SortUnitType.juz => PlanUnitType.juz,
-                          SortUnitType.page => PlanUnitType.page,
-                          SortUnitType.custom => PlanUnitType.custom,
-                      };
-
-                      _selectedFilter = value;
-                  });
-                },
-                  itemBuilder: (BuildContext context) {
-                  return [
-                    _buildFilterMenuItem(
-                      context,
-                      l10n.all,
-                      SortUnitType.all,
-                      isDark,
-                    ),
-                    _buildFilterMenuItem(
-                      context,
-                      l10n.surah,
-                      SortUnitType.surah,
-                      isDark,
-                    ),
-                    _buildFilterMenuItem(
-                      context,
-                      l10n.juz,
-                      SortUnitType.juz,
-                      isDark,
-                    ),
-                    _buildFilterMenuItem(
-                      context,
-                      l10n.page,
-                      SortUnitType.page,
-                      isDark,
-                    ),
-                  ];
-                },
-              ),
-              PopupMenuButton<DashboardSort>(
-                offset: const Offset(0, 40),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                tooltip: "Sort",
-                icon: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white10
-                          : Colors.grey.withValues(alpha: 0.2),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.sort_rounded,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.primaryNavy,
-                    size: 20,
-                  ),
-                ),
-                color: isDark ? const Color(0xFF2C2E42) : Colors.white,
-                elevation: 4,
-                onSelected: _onSortChanged,
-                itemBuilder: (BuildContext context) =>
-                    <PopupMenuEntry<DashboardSort>>[
-                      PopupMenuItem<DashboardSort>(
-                        value: DashboardSort.newest,
-                        child: _buildSortItem(l10n.sortNewest, isDark),
-                      ),
-                      PopupMenuItem<DashboardSort>(
-                        value: DashboardSort.oldest,
-                        child: _buildSortItem(l10n.sortOldest, isDark),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem<DashboardSort>(
-                        value: DashboardSort.typeMemorize,
-                        child: _buildSortItem(l10n.memorizeTasksFirst, isDark),
-                      ),
-                      PopupMenuItem<DashboardSort>(
-                        value: DashboardSort.typeRevision,
-                        child: _buildSortItem(l10n.revisionTasksFirst, isDark),
-                      ),
-                    ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSortItem(String text, bool isDark) {
-    return Text(
-      text,
-      style: TextStyle(
-        color: isDark ? Colors.white : Colors.black87,
-        fontWeight: FontWeight.w500,
-      ),
-    );
-  }
-
-  PopupMenuItem<SortUnitType> _buildFilterMenuItem(
-    BuildContext context,
-    String label,
-    SortUnitType value,
-    bool isDark,
-  ) {
-
-    final isSelected = switch (_selectedFilter?.name) {
-        null => value.name == SortUnitType.all.name,
-        _ => _selectedFilter!.name == value.name,
-    };
-
-    debugPrint("isSelected: $isSelected = ${_selectedFilter?.name} + ${value.name}");
-    final theme = Theme.of(context);
-
-    return PopupMenuItem<SortUnitType>(
-      value: value,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black87,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              ),
-            ),
-          ),
-          // Round Checkbox
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isSelected ? theme.primaryColor : Colors.transparent,
-              border: Border.all(
-                color: isSelected
-                    ? theme.primaryColor
-                    : (isDark ? Colors.white54 : Colors.grey),
-                width: 2,
-              ),
-            ),
-            child: isSelected
-                ? const Icon(Icons.check, size: 14, color: Colors.white)
-                : null,
           ),
         ],
       ),

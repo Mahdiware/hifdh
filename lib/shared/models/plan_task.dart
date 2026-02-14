@@ -2,7 +2,7 @@ enum TaskType { memorize, revision }
 
 enum TaskStatus { notStarted, inProgress, completed }
 
-enum PlanUnitType { surah, juz, page, custom }
+enum PlanUnitType { surah, juz, page, custom, hizb }
 
 enum NoteType { doubt, correct, mistake }
 
@@ -14,6 +14,8 @@ extension PlanUnitTypeExtension on PlanUnitType {
         return 'Surah';
       case PlanUnitType.juz:
         return 'Juz';
+      case PlanUnitType.hizb:
+        return 'Hizb';
       case PlanUnitType.page:
         return 'Page';
       case PlanUnitType.custom:

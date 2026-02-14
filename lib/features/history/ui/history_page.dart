@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/ayah_search_query.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
@@ -27,13 +27,13 @@ class _HistoryPageState extends State<HistoryPage> {
   void initState() {
     super.initState();
     _loadHistory();
-    PlannerDatabaseHelper().dataUpdateNotifier.addListener(_loadHistory);
+    PlannerDatabase().dataUpdateNotifier.addListener(_loadHistory);
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    PlannerDatabaseHelper().dataUpdateNotifier.removeListener(_loadHistory);
+    PlannerDatabase().dataUpdateNotifier.removeListener(_loadHistory);
     _searchController.dispose();
     super.dispose();
   }
@@ -44,7 +44,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Future<void> _loadHistory() async {
     setState(() => _isLoading = true);
-    final history = await PlannerDatabaseHelper().getCompletedTasks();
+    final history = await PlannerDatabase().getCompletedTasks();
 
     // Sort logic
     _sortData(history); // Sort the raw list
@@ -592,7 +592,7 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
   }
 
   void _loadNotes() {
-    _notesFuture = PlannerDatabaseHelper()
+    _notesFuture = PlannerDatabase()
         .getTaskNotes(widget.task.id!)
         .then(
           (notes) => notes.where((n) => n.type != NoteType.correct).toList(),
@@ -600,7 +600,7 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
   }
 
   Future<void> _deleteNote(int id) async {
-    await PlannerDatabaseHelper().deleteTaskNote(id);
+    await PlannerDatabase().deleteTaskNote(id);
     if (mounted) {
       setState(() {
         _loadNotes();
@@ -716,7 +716,7 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
                           createdAt: widget.task.completedAt ?? DateTime.now(),
                         ),
                         onDelete: () async {
-                          await PlannerDatabaseHelper().updateTaskNote(
+                          await PlannerDatabase().updateTaskNote(
                             widget.task.id!,
                             '',
                           );

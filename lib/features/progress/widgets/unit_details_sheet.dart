@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/planner_database.dart';
+import 'package:hifdh/core/services/quran_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
@@ -26,11 +27,69 @@ class UnitDetailsSheet extends StatefulWidget {
 
 class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
   late Future<List<TaskNote>> _notesFuture;
+  Future<List<Map<String, dynamic>>>? _breakdownFuture;
+
+  Future<List<Map<String, dynamic>>> _fetchBreakdown() async {
+    try {
+      final quranDb = QuranDatabase();
+      final unitAyahs = await quranDb.getAyahsForPlanUnit(
+        unitType: widget.type,
+        unitId: widget.unitId,
+      );
+
+      if (unitAyahs.isEmpty) return [];
+
+      final surahMap = <int, Map<String, dynamic>>{};
+
+      // Fetch memorized IDs
+      final memorizedIds = await PlannerDatabase().getMemorizedAyahIds();
+      final memorizedSet = memorizedIds.toSet();
+
+      for (final ayah in unitAyahs) {
+        final sNum = ayah['surahNumber'] as int;
+        final id = ayah['id'] as int;
+        final ayahNum = ayah['ayahNumber'] as int;
+
+        if (!surahMap.containsKey(sNum)) {
+          surahMap[sNum] = {
+            'number': sNum,
+            'englishName': ayah['surahEnglishName'],
+            'arabicName': ayah['surahArabicName'],
+            'totalAyahs': 0,
+            'memorizedCount': 0,
+            'minAyah': ayahNum,
+            'maxAyah': ayahNum,
+          };
+        }
+        final data = surahMap[sNum]!;
+        data['totalAyahs'] = (data['totalAyahs'] as int) + 1;
+
+        if (ayahNum < (data['minAyah'] as int)) {
+          data['minAyah'] = ayahNum;
+        }
+        if (ayahNum > (data['maxAyah'] as int)) {
+          data['maxAyah'] = ayahNum;
+        }
+
+        if (memorizedSet.contains(id)) {
+          data['memorizedCount'] = (data['memorizedCount'] as int) + 1;
+        }
+      }
+
+      final list = surahMap.values.toList()
+        ..sort((a, b) => (a['number'] as int).compareTo(b['number'] as int));
+      return list;
+    } catch (e) {
+      debugPrint("Error loading breakdown: $e");
+      return [];
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _loadNotes();
+    _breakdownFuture = _fetchBreakdown();
   }
 
   void _loadNotes() {
@@ -41,7 +100,7 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
             .toList(),
       );
     } else {
-      _notesFuture = PlannerDatabaseHelper()
+      _notesFuture = PlannerDatabase()
           .getNotesForUnit(widget.type, widget.unitId)
           .then(
             (notes) => notes.where((n) => n.type != NoteType.correct).toList(),
@@ -50,10 +109,10 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
   }
 
   Future<void> _deleteNote(int id) async {
-    await PlannerDatabaseHelper().deleteTaskNote(id);
+    await PlannerDatabase().deleteTaskNote(id);
     if (mounted) {
       setState(() {
-        _notesFuture = PlannerDatabaseHelper().getNotesForUnit(
+        _notesFuture = PlannerDatabase().getNotesForUnit(
           widget.type,
           widget.unitId,
         );
@@ -174,7 +233,9 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                       ],
                     ),
 
-                    if (widget.type == PlanUnitType.surah) ...[
+                    if (widget.type == PlanUnitType.surah ||
+                        widget.type == PlanUnitType.juz ||
+                        widget.type == PlanUnitType.hizb) ...[
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
@@ -185,8 +246,9 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                               isScrollControlled: true,
                               backgroundColor: Colors.transparent,
                               builder: (context) => AyahAnalysisSheet(
-                                surahId: widget.unitId,
-                                surahName: widget.title,
+                                unitType: widget.type,
+                                unitId: widget.unitId,
+                                title: widget.title,
                               ),
                             );
                           },
@@ -209,6 +271,143 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                         ),
                       ),
                     ],
+
+                    if (_breakdownFuture != null)
+                      FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _breakdownFuture,
+                        builder: (context, snap) {
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          if (!snap.hasData || snap.data!.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 24),
+                              Text(
+                                l10n.juzContents,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.primaryNavy,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ...snap.data!.map((data) {
+                                final total = data['totalAyahs'] as int;
+                                final memorized = data['memorizedCount'] as int;
+                                final progress = total > 0
+                                    ? memorized / total
+                                    : 0.0;
+                                final isComplete = progress >= 0.99;
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.white10
+                                        : Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.white12
+                                          : Colors.grey[200]!,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? Colors.black26
+                                              : Colors.white,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isComplete
+                                                ? AppColors.successGreen
+                                                : (isDark
+                                                      ? Colors.white24
+                                                      : Colors.grey[300]!),
+                                          ),
+                                        ),
+                                        child: isComplete
+                                            ? const Icon(
+                                                Icons.check,
+                                                size: 16,
+                                                color: AppColors.successGreen,
+                                              )
+                                            : Text(
+                                                "${data['number']}",
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDark
+                                                      ? Colors.white70
+                                                      : Colors.grey[600],
+                                                ),
+                                              ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "${data['englishName']} (${l10n.ayah} ${data['minAyah']} - ${data['maxAyah']})",
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
+                                              child: LinearProgressIndicator(
+                                                value: progress,
+                                                minHeight: 4,
+                                                backgroundColor: isDark
+                                                    ? Colors.black26
+                                                    : Colors.grey[200],
+                                                color: isComplete
+                                                    ? AppColors.successGreen
+                                                    : AppColors.accentOrange,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        "${(progress * 100).toInt()}%",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: isComplete
+                                              ? AppColors.successGreen
+                                              : AppColors.accentOrange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
 
                     const SizedBox(height: 24),
                     // Notes Section Header

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hifdh/core/services/database_helper.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/quran_database.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/open_quran.dart';
 import 'package:hifdh/features/progress/models/ayah_color.dart';
@@ -11,13 +11,15 @@ import 'package:provider/provider.dart';
 import 'package:hifdh/features/settings/logic/preferences_provider.dart';
 
 class AyahAnalysisSheet extends StatefulWidget {
-  final int surahId;
-  final String surahName;
+  final PlanUnitType unitType;
+  final int unitId;
+  final String title;
 
   const AyahAnalysisSheet({
     super.key,
-    required this.surahId,
-    required this.surahName,
+    required this.unitType,
+    required this.unitId,
+    required this.title,
   });
 
   @override
@@ -26,7 +28,8 @@ class AyahAnalysisSheet extends StatefulWidget {
 
 class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
   bool _isLoading = true;
-  List<Map<String, dynamic>> _ayahs = []; // {id, number}
+  List<Map<String, dynamic>> _ayahs =
+      []; // {id, number, surahNumber, surahEnglishName}
   Map<int, List<TaskNote>> _ayahNotes = {};
   Map<int, int> _ayahConsecutiveRights = {};
   Map<int, int> _ayahMistakeCounts = {};
@@ -43,8 +46,9 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
 
   Future<void> _initialLoad() async {
     setState(() => _isLoading = true);
-    final enrichedAyahs = await DatabaseHelper().getAyahsMetadataForSurah(
-      widget.surahId,
+    final enrichedAyahs = await QuranDatabase().getAyahsForPlanUnit(
+      unitType: widget.unitType,
+      unitId: widget.unitId,
     );
     _ayahs = enrichedAyahs;
     await _refreshMistakes();
@@ -55,7 +59,7 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
     if (wasEmpty) setState(() => _isLoading = true);
 
     final ids = _ayahs.map((e) => e['id'] as int).toList();
-    final allNotes = await PlannerDatabaseHelper().getNotesForAyahs(ids);
+    final allNotes = await PlannerDatabase().getNotesForAyahs(ids);
 
     final noteMap = <int, List<TaskNote>>{};
     final consecutiveRights = <int, int>{};
@@ -164,7 +168,7 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.surahName,
+                                widget.title,
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -240,86 +244,151 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                           horizontal: 24,
                           vertical: 16,
                         ),
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 8,
-                          children: _ayahs.map((ayah) {
-                            final id = ayah['id'] as int;
-                            final number = ayah['ayahNumber'] as int;
-                            final color = _getAyahColor(id, isDark);
-                            Color pillColor;
-                            Color textColor;
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: _ayahs
+                              .fold<Map<int, List<Map<String, dynamic>>>>({}, (
+                                map,
+                                ayah,
+                              ) {
+                                final surahNum = ayah['surahNumber'] as int;
+                                map.putIfAbsent(surahNum, () => []).add(ayah);
+                                return map;
+                              })
+                              .entries
+                              .map((entry) {
+                                final ayahs = entry.value;
+                                final surahName =
+                                    ayahs.first['surahArabicName'] as String;
 
-                            if (color == Colors.transparent) {
-                              pillColor = isDark ?Colors.white10 : Colors.grey[200]!;
-                              textColor = isDark  ? Colors.white70 :Colors.black87;
-                            } else {
-                              pillColor = color;
-                              // Calculate text contrast
-                              if (pillColor.computeLuminance() > 0.5) {
-                                textColor = Colors.black87;
-                              } else {
-                                textColor = Colors.white;
-                              }
-                            }
-
-                            return InkWell(
-                              onTap: () async {
-                                if (_isReadMode) {
-                                  openQuranLink(widget.surahId, number);
-                                  return;
-                                }
-                                bool hasChanges = false;
-                                await showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => Container(
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).scaffoldBackgroundColor,
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(24),
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (widget.unitType != PlanUnitType.surah)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                          top: 4,
+                                        ),
+                                        child: Text(
+                                          surahName,
+                                          style: TextStyle(
+                                            fontFamily: "QuranFont",
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? Colors.white70
+                                                : Colors.black87,
+                                          ),
+                                        ),
                                       ),
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 8,
+                                      children: ayahs.map((ayah) {
+                                        final id = ayah['id'] as int;
+                                        final number =
+                                            ayah['ayahNumber'] as int;
+                                        final sNum = ayah['surahNumber'] as int;
+                                        final sName =
+                                            ayah['surahArabicName'] as String;
+
+                                        final color = _getAyahColor(id, isDark);
+                                        Color pillColor;
+                                        Color textColor;
+
+                                        if (color == Colors.transparent) {
+                                          pillColor = isDark
+                                              ? Colors.white10
+                                              : Colors.grey[200]!;
+                                          textColor = isDark
+                                              ? Colors.white70
+                                              : Colors.black87;
+                                        } else {
+                                          pillColor = color;
+                                          // Calculate text contrast
+                                          if (pillColor.computeLuminance() >
+                                              0.5) {
+                                            textColor = Colors.black87;
+                                          } else {
+                                            textColor = Colors.white;
+                                          }
+                                        }
+
+                                        return InkWell(
+                                          onTap: () async {
+                                            if (_isReadMode) {
+                                              openQuranLink(sNum, number);
+                                              return;
+                                            }
+                                            bool hasChanges = false;
+                                            await showModalBottomSheet(
+                                              context: context,
+                                              isScrollControlled: true,
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              builder: (context) => Container(
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).scaffoldBackgroundColor,
+                                                  borderRadius:
+                                                      const BorderRadius.vertical(
+                                                        top: Radius.circular(
+                                                          24,
+                                                        ),
+                                                      ),
+                                                ),
+                                                child: _AyahHistorySheet(
+                                                  surahNumber: sNum,
+                                                  surahName: sName,
+                                                  ayahNumber: number,
+                                                  initialNotes:
+                                                      _ayahNotes[id] ?? [],
+                                                  onDeleteNote:
+                                                      (int noteId) async {
+                                                        await PlannerDatabase()
+                                                            .deleteTaskNote(
+                                                              noteId,
+                                                            );
+                                                        hasChanges = true;
+                                                      },
+                                                ),
+                                              ),
+                                            );
+                                            if (hasChanges) {
+                                              _refreshMistakes();
+                                            }
+                                          },
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          child: Container(
+                                            width: 44,
+                                            height: 26,
+                                            decoration: BoxDecoration(
+                                              color: pillColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              "$number",
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: textColor,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
                                     ),
-                                    child: _AyahHistorySheet(
-                                      surahNumber: widget.surahId,
-                                      surahName: widget.surahName,
-                                      ayahNumber: number,
-                                      initialNotes: _ayahNotes[id] ?? [],
-                                      onDeleteNote: (int noteId) async {
-                                        await PlannerDatabaseHelper()
-                                            .deleteTaskNote(noteId);
-                                        hasChanges = true;
-                                      },
-                                    ),
-                                  ),
+                                    const SizedBox(height: 20),
+                                  ],
                                 );
-                                if (hasChanges) {
-                                  _refreshMistakes();
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                width: 44,
-                                height: 26,
-                                decoration: BoxDecoration(
-                                  color: pillColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  "$number",
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                              })
+                              .toList(),
                         ),
                       ),
               ),

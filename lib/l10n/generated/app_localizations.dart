@@ -1071,6 +1071,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All'**
   String get all;
+
+  /// No description provided for @juzContents.
+  ///
+  /// In en, this message translates to:
+  /// **'Contents'**
+  String get juzContents;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @openInQuranApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Quran app'**
+  String get openInQuranApp;
 }
 
 class _AppLocalizationsDelegate

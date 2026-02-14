@@ -513,4 +513,13 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get all => 'Dhammaan';
+
+  @override
+  String get juzContents => 'Tusmada';
+
+  @override
+  String get back => 'Dib';
+
+  @override
+  String get openInQuranApp => 'Ku fur abka Quraanka';
 }

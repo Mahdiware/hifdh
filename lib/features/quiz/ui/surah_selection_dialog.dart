@@ -105,7 +105,9 @@ class _SurahSelectionDialogState extends State<SurahSelectionDialog> {
                       fontSize: 24,
                     ),
                   ),
-                  subtitle: Text("${surah.number}. ${surah.englishName}"),
+                  subtitle: Text(
+                    "${surah.number}. ${Localizations.localeOf(context).languageCode == 'ar' ? surah.name : surah.englishName}",
+                  ),
                   value: isSelected,
                   onChanged: (bool? value) {
                     _toggleSurah(surah);
