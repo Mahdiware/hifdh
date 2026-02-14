@@ -5,7 +5,7 @@ import '../logic/theme_provider.dart';
 import '../logic/locale_provider.dart';
 import '../logic/preferences_provider.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/core/services/backup_service.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -33,7 +33,7 @@ class SettingsPage extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      await PlannerDatabaseHelper().resetAllData();
+      await PlannerDatabase().resetAllData();
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -272,7 +272,7 @@ class SettingsPage extends StatelessWidget {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text(l10n.backupRestored)));
-            PlannerDatabaseHelper().dataUpdateNotifier.value++;
+            PlannerDatabase().dataUpdateNotifier.value++;
           }
         } catch (e) {
           if (context.mounted) {

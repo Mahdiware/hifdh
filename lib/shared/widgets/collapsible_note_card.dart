@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hifdh/core/utils/open_quran.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
-import 'package:hifdh/core/services/database_helper.dart';
+import 'package:hifdh/core/services/quran_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 
@@ -56,7 +56,7 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
     // Skip loading for transient notes
     if (widget.note.id != null && widget.note.id! < 0) return;
 
-    final info = await DatabaseHelper().getAyahInfoById(widget.note.ayahId!);
+    final info = await QuranDatabase().getAyahInfoById(widget.note.ayahId!);
     if (info != null && mounted) {
       setState(() => _ayahInfo = info);
     }
@@ -193,13 +193,13 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
             ),
           ),
         if (_ayahInfo != null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'open_quran',
             child: Row(
               children: [
-                Icon(Icons.menu_book_rounded, size: 20),
-                SizedBox(width: 12),
-                Text('Open in Quran app'),
+                const Icon(Icons.menu_book_rounded, size: 20),
+                const SizedBox(width: 12),
+                Text(AppLocalizations.of(context)!.openInQuranApp),
               ],
             ),
           ),

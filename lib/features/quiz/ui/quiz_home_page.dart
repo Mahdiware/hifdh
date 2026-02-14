@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hifdh/core/services/database_helper.dart';
+import 'package:hifdh/core/services/quran_database.dart';
 import 'package:hifdh/features/quiz/ui/result_page.dart';
 import 'package:hifdh/shared/models/ayah.dart';
 import 'package:hifdh/shared/models/result_item.dart';
@@ -38,7 +38,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
     });
 
     try {
-      final dbHelper = DatabaseHelper();
+      final dbHelper = QuranDatabase();
       Ayah? ayah;
 
       if (widget.settings.surahNumbers != null &&
@@ -58,6 +58,8 @@ class _QuizHomePageState extends State<QuizHomePage> {
         ayah = await dbHelper.getRandomAyah();
       }
 
+      if (!mounted) return;
+
       if (ayah != null) {
         setState(() {
           _currentAyah = ayah;
@@ -68,13 +70,17 @@ class _QuizHomePageState extends State<QuizHomePage> {
         });
       }
     } catch (e) {
-      setState(() {
-        _debugInfo += 'Error: $e\n';
-      });
+      if (mounted) {
+        setState(() {
+          _debugInfo += 'Error: $e\n';
+        });
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -82,7 +88,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
     if (_currentAyah == null) return;
 
     // Preload next ayah
-    final dbHelper = DatabaseHelper();
+    final dbHelper = QuranDatabase();
     final nextAyah = await dbHelper.getAyahBySurahAyah(
       _currentAyah!.surahNumber,
       _currentAyah!.ayahNumber + 1,
@@ -101,7 +107,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
           builder: (context, setDialogState) {
             Future<void> navigateAyah(int direction) async {
               final newOffset = offset + direction;
-              final dbHelper = DatabaseHelper();
+              final dbHelper = QuranDatabase();
               final newAyah = await dbHelper.getAyahBySurahAyah(
                 _currentAyah!.surahNumber,
                 _currentAyah!.ayahNumber + newOffset,

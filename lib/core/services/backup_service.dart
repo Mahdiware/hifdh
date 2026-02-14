@@ -3,7 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
-import 'planner_database_helper.dart';
+import 'planner_database.dart';
 
 class BackupService {
   static const String _dbName = 'hifdh_planner.db';
@@ -50,7 +50,7 @@ class BackupService {
     if (pickedPath == null) return false;
 
     // Close current DB
-    await PlannerDatabaseHelper().closeAndReset();
+    await PlannerDatabase().closeAndReset();
 
     // Overwrite DB
     final dbPath = await _getDbPath();
@@ -67,7 +67,7 @@ class BackupService {
     await File(pickedPath).copy(dbPath);
 
     // Force re-open to verify
-    await PlannerDatabaseHelper().database;
+    await PlannerDatabase().database;
 
     return true;
   }

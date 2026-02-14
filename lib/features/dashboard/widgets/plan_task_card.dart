@@ -101,7 +101,8 @@ class PlanTaskCard extends StatelessWidget {
                               : AppColors.textPrimaryLight,
                         ),
                       ),
-                      if (task.subtitle != null) ...[
+                      if (task.subtitle != null &&
+                          task.unitType != PlanUnitType.juz) ...[
                         const SizedBox(height: 4),
                         Text(
                           _getLocalizedSubtitle(context, task) ??
@@ -275,7 +276,15 @@ class PlanTaskCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     switch (task.unitType) {
       case PlanUnitType.juz:
-        return "${l10n.juz} ${task.unitId}";
+        String title = "${l10n.juz} ${task.unitId}";
+        final subtitle = _getLocalizedSubtitle(context, task);
+        if (subtitle != null &&
+            subtitle != l10n.wholeJuz &&
+            task.subtitle != "Whole Juz" &&
+            task.subtitle != "Full Juz") {
+          title = "$title - $subtitle";
+        }
+        return title;
       case PlanUnitType.page:
         return "${l10n.page} ${task.unitId} - ${task.endUnitId}";
       case PlanUnitType.surah:

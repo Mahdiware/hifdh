@@ -511,4 +511,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get all => 'الكل';
+
+  @override
+  String get juzContents => 'المحتويات';
+
+  @override
+  String get back => 'رجوع';
+
+  @override
+  String get openInQuranApp => 'فتح في تطبيق القرآن';
 }

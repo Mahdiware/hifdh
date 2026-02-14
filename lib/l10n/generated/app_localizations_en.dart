@@ -510,4 +510,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get all => 'All';
+
+  @override
+  String get juzContents => 'Contents';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get openInQuranApp => 'Open in Quran app';
 }

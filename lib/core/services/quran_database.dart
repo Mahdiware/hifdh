@@ -8,16 +8,16 @@ import 'package:hifdh/shared/models/ayah.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 
-class DatabaseHelper {
-  static final DatabaseHelper _instance = DatabaseHelper._internal();
+class QuranDatabase {
+  static final QuranDatabase _instance = QuranDatabase._internal();
   static Database? _database;
   static Completer<Database>? _initCompleter;
 
-  factory DatabaseHelper() {
+  factory QuranDatabase() {
     return _instance;
   }
 
-  DatabaseHelper._internal();
+  QuranDatabase._internal();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -326,6 +326,17 @@ class DatabaseHelper {
     return maps.map((e) => e['surahNumber'] as int).toList();
   }
 
+  Future<List<int>> getSurahsInHizb(int hizbNumber) async {
+    final db = await database;
+    int startRub = (hizbNumber - 1) * 4 + 1;
+    int endRub = hizbNumber * 4;
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      "SELECT DISTINCT surahNumber FROM quran_meta WHERE rubNumber BETWEEN ? AND ?",
+      [startRub, endRub],
+    );
+    return maps.map((e) => e['surahNumber'] as int).toList();
+  }
+
   // Returns all distinct Juz numbers that a Surah spans across
   Future<List<int>> getJuzsForSurah(int surahNumber) async {
     final db = await database;
@@ -427,28 +438,42 @@ class DatabaseHelper {
     List<dynamic> args = [];
 
     if (unitType == PlanUnitType.surah) {
-      whereClause = "surahNumber = ?";
+      whereClause = "qm.surahNumber = ?";
       args.add(unitId);
       if (startAyah != null && endAyah != null) {
-        whereClause += " AND ayahNumber BETWEEN ? AND ?";
+        whereClause += " AND qm.ayahNumber BETWEEN ? AND ?";
         args.add(startAyah);
         args.add(endAyah);
       }
     } else if (unitType == PlanUnitType.page) {
-      whereClause = "pageNumber BETWEEN ? AND ?";
+      whereClause = "qm.pageNumber BETWEEN ? AND ?";
       args.add(unitId);
       args.add(endUnitId ?? unitId);
     } else if (unitType == PlanUnitType.juz) {
-      whereClause = "juzNumber = ?";
+      whereClause = "qm.juzNumber = ?";
       args.add(unitId);
+      // Support for granular Juz tasks (Hizb/Rubuc)
+      if (startAyah != null && endAyah != null) {
+        whereClause += " AND qm.rubNumber BETWEEN ? AND ?";
+        args.add(startAyah);
+        args.add(endAyah);
+      }
+    } else if (unitType == PlanUnitType.hizb) {
+      int startRub = (unitId - 1) * 4 + 1;
+      int endRub = unitId * 4;
+      whereClause = "qm.rubNumber BETWEEN ? AND ?";
+      args.add(startRub);
+      args.add(endRub);
     } else {
+      debugPrint("Invalid unit type: $unitType");
       return [];
     }
 
     return await db.rawQuery('''
-      SELECT qm.id, qm.surahNumber, qm.ayahNumber, SUBSTR(qt.text, 1, 50) as text
+      SELECT qm.id, qm.surahNumber, qm.ayahNumber, SUBSTR(qt.text, 1, 50) as text, si.surahName as surahEnglishName, si.surahArabicName
       FROM quran_meta qm
       JOIN quran_text qt ON qm.id = qt.id
+      JOIN surah_info si ON qm.surahNumber = si.surahNumber
       WHERE $whereClause
       ORDER BY qm.surahNumber, qm.ayahNumber
       ''', args);
@@ -482,6 +507,18 @@ class DatabaseHelper {
     } else if (unitType == PlanUnitType.juz) {
       whereClause = "juzNumber = ?";
       args.add(unitId);
+      // Support for granular Juz tasks (Hizb/Rubuc)
+      if (startAyah != null && endAyah != null) {
+        whereClause += " AND rubNumber BETWEEN ? AND ?";
+        args.add(startAyah);
+        args.add(endAyah);
+      }
+    } else if (unitType == PlanUnitType.hizb) {
+      int startRub = (unitId - 1) * 4 + 1;
+      int endRub = unitId * 4;
+      whereClause = "rubNumber BETWEEN ? AND ?";
+      args.add(startRub);
+      args.add(endRub);
     } else {
       return [];
     }
@@ -493,5 +530,60 @@ class DatabaseHelper {
       whereArgs: args,
     );
     return maps.map((m) => m['id'] as int).toList();
+  }
+
+  Future<Map<String, int>> getAyahRangeForPlanUnit({
+    required PlanUnitType unitType,
+    required int unitId,
+    int? endUnitId,
+    int? startAyah,
+    int? endAyah,
+  }) async {
+    final db = await database;
+    String whereClause = "";
+    List<dynamic> args = [];
+
+    if (unitType == PlanUnitType.surah) {
+      whereClause = "surahNumber = ?";
+      args.add(unitId);
+      if (startAyah != null && endAyah != null) {
+        whereClause += " AND ayahNumber BETWEEN ? AND ?";
+        args.add(startAyah);
+        args.add(endAyah);
+      }
+    } else if (unitType == PlanUnitType.page) {
+      whereClause = "pageNumber BETWEEN ? AND ?";
+      args.add(unitId);
+      args.add(endUnitId ?? unitId);
+    } else if (unitType == PlanUnitType.juz) {
+      whereClause = "juzNumber = ?";
+      args.add(unitId);
+      if (startAyah != null && endAyah != null) {
+        whereClause += " AND rubNumber BETWEEN ? AND ?";
+        args.add(startAyah);
+        args.add(endAyah);
+      }
+    } else if (unitType == PlanUnitType.hizb) {
+      int startRub = (unitId - 1) * 4 + 1;
+      int endRub = unitId * 4;
+      whereClause = "rubNumber BETWEEN ? AND ?";
+      args.add(startRub);
+      args.add(endRub);
+    } else {
+      return {'min': 0, 'max': 0};
+    }
+
+    final res = await db.rawQuery(
+      "SELECT MIN(id) as minId, MAX(id) as maxId FROM quran_meta WHERE $whereClause",
+      args,
+    );
+
+    if (res.isNotEmpty) {
+      return {
+        'min': res.first['minId'] as int? ?? 0,
+        'max': res.first['maxId'] as int? ?? 0,
+      };
+    }
+    return {'min': 0, 'max': 0};
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
-import 'package:hifdh/core/services/database_helper.dart';
-import 'package:hifdh/core/services/planner_database_helper.dart';
+import 'package:hifdh/core/services/quran_database.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/features/dashboard/widgets/ayah_search_dialog.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
@@ -32,7 +32,7 @@ class _NotesSheetState extends State<NotesSheet> {
   }
 
   Future<void> _loadNotes() async {
-    final notes = await PlannerDatabaseHelper().getTaskNotes(widget.task.id!);
+    final notes = await PlannerDatabase().getTaskNotes(widget.task.id!);
     if (mounted) {
       setState(() {
         _notes = notes;
@@ -42,7 +42,7 @@ class _NotesSheetState extends State<NotesSheet> {
   }
 
   Future<void> _loadAvailableAyahs() async {
-    final rows = await DatabaseHelper().getAyahsForPlanUnit(
+    final rows = await QuranDatabase().getAyahsForPlanUnit(
       unitType: widget.task.unitType,
       unitId: widget.task.unitId,
       endUnitId: widget.task.endUnitId,
@@ -95,7 +95,7 @@ class _NotesSheetState extends State<NotesSheet> {
       return;
     }
 
-    await PlannerDatabaseHelper().addNote(
+    await PlannerDatabase().addNote(
       widget.task.id!,
       _noteController.text.trim(),
       _selectedType,
@@ -106,13 +106,14 @@ class _NotesSheetState extends State<NotesSheet> {
   }
 
   Future<void> _deleteNote(int id) async {
-    await PlannerDatabaseHelper().deleteTaskNote(id);
+    await PlannerDatabase().deleteTaskNote(id);
     _loadNotes();
   }
 
   void _editNote(TaskNote note) {
     final controller = TextEditingController(text: note.content);
     NoteType selectedType = note.type;
+    int? selectedAyahId = note.ayahId;
 
     showDialog(
       context: context,
@@ -120,6 +121,20 @@ class _NotesSheetState extends State<NotesSheet> {
         title: Text(AppLocalizations.of(context)!.edit),
         content: StatefulBuilder(
           builder: (context, setState) {
+            String ayahLabel = AppLocalizations.of(context)!.selectSearchAyah;
+            if (selectedAyahId != null && _availableAyahs.isNotEmpty) {
+              final match = _availableAyahs.firstWhere(
+                (e) => e['id'] == selectedAyahId,
+                orElse: () => {},
+              );
+              if (match.isNotEmpty) {
+                ayahLabel =
+                    "${match['surahNumber']}:${match['ayahNumber']} - ${match['text']}";
+              } else {
+                ayahLabel = AppLocalizations.of(context)!.unknownAyah;
+              }
+            }
+
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,6 +159,61 @@ class _NotesSheetState extends State<NotesSheet> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (_availableAyahs.isNotEmpty) ...[
+                  InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AyahSearchDialog(
+                            ayahs: _availableAyahs,
+                            onSelected: (id) {
+                              setState(() => selectedAyahId = id);
+                            },
+                          );
+                        },
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white10
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search,
+                            size: 18,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              ayahLabel,
+                              style: const TextStyle(fontSize: 14),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: controller,
                   decoration: InputDecoration(
@@ -165,10 +235,11 @@ class _NotesSheetState extends State<NotesSheet> {
           TextButton(
             onPressed: () async {
               final navigator = Navigator.of(context);
-              await PlannerDatabaseHelper().updateTaskNoteEntry(
+              await PlannerDatabase().updateTaskNoteEntry(
                 note.id!,
                 controller.text.trim(),
                 selectedType,
+                ayahId: selectedAyahId,
               );
               // Check against parent state mounted property
               if (mounted) {
