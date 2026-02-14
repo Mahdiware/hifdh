@@ -28,8 +28,8 @@ class _DashboardPageState extends State<DashboardPage> {
     _fetchTasks();
   }
 
-  Future<void> _fetchTasks() async {
-    setState(() => _isLoading = true);
+  Future<void> _fetchTasks({bool showLoading = true}) async {
+    if (showLoading) setState(() => _isLoading = true);
     try {
       final tasks = await PlannerDatabase().getActiveTasks();
       setState(() {
@@ -39,7 +39,7 @@ class _DashboardPageState extends State<DashboardPage> {
       });
     } catch (e) {
       debugPrint("Error fetching tasks: $e");
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -95,7 +95,7 @@ class _DashboardPageState extends State<DashboardPage> {
     } else if (task.status == TaskStatus.inProgress) {
       await PlannerDatabase().completeTask(task.id!, DateTime.now());
     }
-    _fetchTasks();
+    _fetchTasks(showLoading: false);
   }
 
   void _openNotes(PlanTask task) {
