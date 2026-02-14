@@ -3,10 +3,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
+import 'package:hifdh/globals.dart';
 import 'planner_database.dart';
 
 class BackupService {
-  static const String _dbName = 'hifdh_planner.db';
+  static const String _dbName = Globals.dbName;
 
   Future<String> _getDbPath() async {
     final dbPath = await getDatabasesPath();

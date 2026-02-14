@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:hifdh/globals.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'quran_database.dart';
 
@@ -70,11 +71,11 @@ class PlannerDatabase {
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     // V2 Database: Clean separation from V1.
-    final path = join(dbPath, 'hifdh_plannerV2.db');
+    final path = join(dbPath, Globals.dbName);
 
     // Use a fixed schema version rather than AppVersion.
     // This prevents data loss when the app is updated but the schema hasn't changed.
-    const int schemaVersion = 1;
+    const int schemaVersion = Globals.dbVersion;
     debugPrint('Database V2 Initializing: Version $schemaVersion');
 
     return await openDatabase(
