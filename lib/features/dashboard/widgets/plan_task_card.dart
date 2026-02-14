@@ -4,9 +4,9 @@ import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
 
-class PlanTaskCard extends StatelessWidget {
+class PlanTaskCard extends StatefulWidget {
   final PlanTask task;
-  final VoidCallback onAction;
+  final Future<void> Function() onAction;
   final VoidCallback onNote;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -21,10 +21,30 @@ class PlanTaskCard extends StatelessWidget {
   });
 
   @override
+  State<PlanTaskCard> createState() => _PlanTaskCardState();
+}
+
+class _PlanTaskCardState extends State<PlanTaskCard> {
+  bool _isLoading = false;
+
+  Future<void> _handleAction() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await widget.onAction();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
+    final task = widget.task;
 
     Color statusColor;
     String statusText;
@@ -96,9 +116,10 @@ class PlanTaskCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? Colors.white
-                              : AppColors.textPrimaryLight,
+                          color:
+                              isDark
+                                  ? Colors.white
+                                  : AppColors.textPrimaryLight,
                         ),
                       ),
                       if (task.subtitle != null &&
@@ -134,7 +155,7 @@ class PlanTaskCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (onEdit != null || onDelete != null) ...[
+                if (widget.onEdit != null || widget.onDelete != null) ...[
                   const SizedBox(width: 4),
                   PopupMenuButton<String>(
                     icon: Icon(
@@ -145,40 +166,41 @@ class PlanTaskCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     onSelected: (value) {
-                      if (value == 'edit') onEdit?.call();
-                      if (value == 'delete') onDelete?.call();
+                      if (value == 'edit') widget.onEdit?.call();
+                      if (value == 'delete') widget.onDelete?.call();
                     },
-                    itemBuilder: (context) => [
-                      if (onEdit != null)
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.edit, size: 20),
-                              const SizedBox(width: 12),
-                              Text(l10n.edit),
-                            ],
-                          ),
-                        ),
-                      if (onDelete != null)
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete_outline,
-                                color: AppColors.errorRed,
-                                size: 20,
+                    itemBuilder:
+                        (context) => [
+                          if (widget.onEdit != null)
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.edit, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(l10n.edit),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                l10n.delete,
-                                style: TextStyle(color: AppColors.errorRed),
+                            ),
+                          if (widget.onDelete != null)
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    color: AppColors.errorRed,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    l10n.delete,
+                                    style: TextStyle(color: AppColors.errorRed),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                    ],
+                            ),
+                        ],
                   ),
                 ],
               ],
@@ -189,9 +211,7 @@ class PlanTaskCard extends StatelessWidget {
               children: [
                 _buildInfoPill(
                   Icons.flag,
-                  task.type == TaskType.memorize
-                      ? l10n.memorize
-                      : l10n.revision,
+                  task.type == TaskType.memorize ? l10n.memorize : l10n.revision,
                   isDark ? Colors.grey[400] : Colors.grey[700],
                 ),
                 _buildInfoPill(
@@ -211,7 +231,7 @@ class PlanTaskCard extends StatelessWidget {
             Row(
               children: [
                 InkWell(
-                  onTap: onNote,
+                  onTap: widget.onNote,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -228,8 +248,8 @@ class PlanTaskCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: onAction,
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleAction,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: statusColor,
                     padding: const EdgeInsets.symmetric(
@@ -237,14 +257,30 @@ class PlanTaskCard extends StatelessWidget {
                       vertical: 10,
                     ),
                   ),
-                  icon: Icon(btnIcon, size: 18, color: Colors.white),
-                  label: Text(
-                    btnText,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(btnIcon, size: 18, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Text(
+                                btnText,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
                 ),
               ],
             ),
@@ -298,14 +334,10 @@ class PlanTaskCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final s = task.subtitle!;
 
-    if (s == "Whole Juz") return l10n.wholeJuz;
-    if (s.startsWith("Nisf Hizb ")) {
-      return s.replaceFirst("Nisf Hizb", l10n.nisfHizb);
+    if (s.contains("Whole Juz") || s.contains("Full Juz")) {
+      return l10n.wholeJuz;
     }
-    if (s.startsWith("Hizb ")) return s.replaceFirst("Hizb", l10n.hizb);
-    if (s.startsWith("Rubuc ")) return s.replaceFirst("Rubuc", l10n.rubuc);
-    if (s.startsWith("Ayah ")) return s.replaceFirst("Ayah", l10n.ayah);
-
+    // Add logic for quarters/halves if needed, reusing logic from AssignPage
     return s;
   }
 }
