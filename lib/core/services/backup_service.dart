@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/globals.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'planner_database.dart';
 
 class BackupService {
@@ -14,7 +15,7 @@ class BackupService {
     return join(dbPath, _dbName);
   }
 
-  Future<void> backup() async {
+  Future<void> backup(AppLocalizations l10n) async {
     // Ensure WAL changes are merged to main DB file before exporting.
     await PlannerDatabase().checkpointWal(truncate: true);
 
@@ -22,7 +23,7 @@ class BackupService {
     final dbFile = File(dbPath);
 
     if (!await dbFile.exists()) {
-      throw Exception("Database not found");
+      throw Exception(l10n.databaseNotFound);
     }
 
     final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
@@ -33,7 +34,7 @@ class BackupService {
 
     // Use saveFile for all platforms.
     final saved = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save Backup',
+      dialogTitle: l10n.saveBackupDialogTitle,
       fileName: fileName,
       type: FileType.any,
       bytes: bytes,
@@ -45,10 +46,10 @@ class BackupService {
     }
   }
 
-  Future<bool> restore() async {
+  Future<bool> restore(AppLocalizations l10n) async {
     // Pick File
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Select Backup File',
+      dialogTitle: l10n.selectBackupFileDialogTitle,
       type: FileType.any,
       allowMultiple: false,
     );

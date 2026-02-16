@@ -71,7 +71,7 @@ class DashboardHeader extends StatelessWidget {
     return PopupMenuButton<SortUnitType>(
       offset: const Offset(0, 40),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      tooltip: "Filter",
+      tooltip: l10n.filter,
       icon: _buildIconContainer(Icons.filter_list_rounded, isDark),
       color: isDark ? const Color(0xFF2C2E42) : Colors.white,
       elevation: 4,
@@ -95,7 +95,7 @@ class DashboardHeader extends StatelessWidget {
     return PopupMenuButton<DashboardSort>(
       offset: const Offset(0, 40),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      tooltip: "Sort",
+      tooltip: l10n.sort,
       icon: _buildIconContainer(Icons.sort_rounded, isDark),
       color: isDark ? const Color(0xFF2C2E42) : Colors.white,
       elevation: 4,

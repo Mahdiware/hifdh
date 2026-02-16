@@ -448,6 +448,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get backupToFile => 'النسخ الاحتياطي إلى ملف';
 
   @override
+  String get saveBackupDialogTitle => 'حفظ النسخة الاحتياطية';
+
+  @override
+  String get selectBackupFileDialogTitle => 'اختر ملف النسخة الاحتياطية';
+
+  @override
+  String get databaseNotFound => 'قاعدة البيانات غير موجودة';
+
+  @override
   String backupFailed(Object error) {
     return 'فشل النسخ الاحتياطي: $error';
   }
@@ -520,4 +529,60 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get openInQuranApp => 'فتح في تطبيق القرآن';
+
+  @override
+  String get languageEnglish => 'الإنجليزية';
+
+  @override
+  String get languageArabic => 'العربية';
+
+  @override
+  String get languageSomali => 'الصومالية';
+
+  @override
+  String get filter => 'تصفية';
+
+  @override
+  String get sort => 'ترتيب';
+
+  @override
+  String get searchAyahExamplesHint => 'ابحث (مثل: 2:5، الفاتحة، ٱلْحَمْدُ)';
+
+  @override
+  String get noMatches => 'لا توجد نتائج';
+
+  @override
+  String get ayahs => 'آيات';
+
+  @override
+  String get appVersion => 'إصدار التطبيق';
+
+  @override
+  String get loadingAyahs => 'جارٍ تحميل الآيات...';
+
+  @override
+  String get completeSomeMemorizationToSeeHistory =>
+      'أكمل بعض الحفظ لتراها هنا!';
+
+  @override
+  String get undoCompletion => 'التراجع عن الإكمال';
+
+  @override
+  String get undo => 'تراجع';
+
+  @override
+  String moveTaskBackToDashboard(String title) {
+    return 'هل تريد إعادة \'$title\' إلى لوحة القيادة؟';
+  }
+
+  @override
+  String get taskMovedBackToDashboard => 'تمت إعادة المهمة إلى لوحة القيادة';
+
+  @override
+  String get taskMarkedIncomplete => 'تم تعليم المهمة كغير مكتملة';
+
+  @override
+  String errorWithMessage(Object error) {
+    return 'خطأ: $error';
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/ayah_search_query.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class AyahSearchDialog extends StatefulWidget {
   final List<Map<String, dynamic>> ayahs;
@@ -103,6 +104,7 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Theme aware
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
@@ -120,7 +122,7 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
               autofocus: true,
               style: TextStyle(color: isDark ? Colors.white : Colors.black),
               decoration: InputDecoration(
-                hintText: "Search (e.g. 2:200, 2 200, content)...",
+                hintText: l10n.searchAyahExamplesHint,
                 hintStyle: TextStyle(
                   color: isDark ? Colors.grey : Colors.grey[600],
                 ),
@@ -140,7 +142,7 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
             child: _listItems.isEmpty
                 ? Center(
                     child: Text(
-                      "No matches",
+                      l10n.noMatches,
                       style: TextStyle(
                         color: isDark ? Colors.grey : Colors.black54,
                       ),
@@ -170,7 +172,7 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                "(${isArabic ? 'الآيات' : 'Ayahs'} ${item['subtitle']})",
+                                '(${l10n.ayahs} ${item['subtitle']})',
                                 style: TextStyle(
                                   color: isDark
                                       ? Colors.grey

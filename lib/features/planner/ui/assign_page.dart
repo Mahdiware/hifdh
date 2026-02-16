@@ -713,7 +713,7 @@ class _AssignPageState extends State<AssignPage> {
           type: type,
           deadline: _targetDate!,
           createdAt: created,
-          subtitle: "Ayah $start - $end", // Leaving generic for now
+          subtitle: "${AppLocalizations.of(context)!.ayah} $start - $end",
         );
       } else if (_selectedUnitIndex == 1) {
         // Check Memorization Status (Juz)

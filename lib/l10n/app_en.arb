@@ -169,6 +169,9 @@
   "selectSurahsButton": "Select Surahs",
   "startQuizButton": "Start Quiz",
   "backupToFile": "Backup to a file",
+    "saveBackupDialogTitle": "Save Backup",
+    "selectBackupFileDialogTitle": "Select Backup File",
+    "databaseNotFound": "Database not found",
   "backupFailed": "Backup failed: {error}",
   "@backupFailed": {
     "placeholders": {
@@ -205,5 +208,36 @@
   "all": "All",
   "juzContents": "Contents",
   "back": "Back",
-  "openInQuranApp": "Open in Quran app"
+    "openInQuranApp": "Open in Quran app",
+    "languageEnglish": "English",
+    "languageArabic": "Arabic",
+    "languageSomali": "Somali",
+    "filter": "Filter",
+    "sort": "Sort",
+    "searchAyahExamplesHint": "Search (e.g. 2:5, Al-Fatiha, ٱلْحَمْدُ)",
+    "noMatches": "No matches",
+    "ayahs": "Ayahs",
+    "appVersion": "App Version",
+    "loadingAyahs": "Loading Ayahs...",
+    "completeSomeMemorizationToSeeHistory": "Complete some memorization to see them here!",
+    "undoCompletion": "Undo Completion",
+    "undo": "Undo",
+    "moveTaskBackToDashboard": "Move '{title}' back to Dashboard?",
+    "@moveTaskBackToDashboard": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "taskMovedBackToDashboard": "Task moved back to Dashboard",
+    "taskMarkedIncomplete": "Task marked as incomplete",
+    "errorWithMessage": "Error: {error}",
+    "@errorWithMessage": {
+        "placeholders": {
+            "error": {
+                "type": "Object"
+            }
+        }
+    }
 }

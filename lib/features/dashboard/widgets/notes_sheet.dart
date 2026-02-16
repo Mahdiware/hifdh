@@ -396,10 +396,10 @@ class _NotesSheetState extends State<NotesSheet> {
                     ),
                   )
                 else
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(8.0),
                     child: Text(
-                      "Loading Ayahs...",
+                      l10n.loadingAyahs,
                       style: TextStyle(
                         fontFamily: 'QuranFont',
                         fontSize: 12,

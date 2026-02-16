@@ -264,7 +264,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                   IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new),
                     onPressed: () => Navigator.pop(context),
-                    tooltip: 'Back',
+                    tooltip: AppLocalizations.of(context)!.back,
                   ),
                   const Spacer(),
                   const ThemeToggleButton(),
