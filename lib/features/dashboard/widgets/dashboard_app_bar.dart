@@ -35,17 +35,17 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                 localeProvider.setLocale(locale);
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
-                const PopupMenuItem<Locale>(
+                PopupMenuItem<Locale>(
                   value: Locale('en'),
-                  child: Text('English'),
+                  child: Text(l10n.languageEnglish),
                 ),
-                const PopupMenuItem<Locale>(
+                PopupMenuItem<Locale>(
                   value: Locale('ar'),
-                  child: Text('العربية'),
+                  child: Text(l10n.languageArabic),
                 ),
-                const PopupMenuItem<Locale>(
+                PopupMenuItem<Locale>(
                   value: Locale('so'),
-                  child: Text('Soomaali'),
+                  child: Text(l10n.languageSomali),
                 ),
               ],
             );

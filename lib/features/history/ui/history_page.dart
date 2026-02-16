@@ -355,6 +355,7 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildEmptyState(bool isDark) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -366,7 +367,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            "No completed tasks yet",
+            l10n.noHistory,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -377,7 +378,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Complete some memorization to see them here!",
+            l10n.completeSomeMemorizationToSeeHistory,
             style: TextStyle(
               color: isDark
                   ? AppColors.textSecondaryDark.withValues(alpha: 0.7)
@@ -549,7 +550,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           onPressed: _processingTaskId == null
                               ? () => _confirmUndoTask(task)
                               : null,
-                          tooltip: "Undo Completion",
+                          tooltip: AppLocalizations.of(context)!.undoCompletion,
                         ),
               ],
             ),
@@ -572,11 +573,11 @@ class _HistoryPageState extends State<HistoryPage> {
               ? AppColors.surfaceDark
               : AppColors.surfaceLight,
           title: Text(
-            "Undo Completion",
+            AppLocalizations.of(context)!.undoCompletion,
             style: TextStyle(color: isDark ? Colors.white : Colors.black),
           ),
           content: Text(
-            "Move '${task.title}' back to Dashboard?",
+            AppLocalizations.of(context)!.moveTaskBackToDashboard(task.title),
             style: TextStyle(
               color: isDark
                   ? AppColors.textSecondaryDark
@@ -591,7 +592,7 @@ class _HistoryPageState extends State<HistoryPage> {
             TextButton(
               onPressed: () => Navigator.pop(context, true),
               child: Text(
-                "Undo",
+                AppLocalizations.of(context)!.undo,
                 style: const TextStyle(color: AppColors.accentOrange),
               ),
             ),
@@ -606,7 +607,11 @@ class _HistoryPageState extends State<HistoryPage> {
         await PlannerDatabase().undoCompleteTask(task.id!);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Task moved back to Dashboard")),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.taskMovedBackToDashboard,
+              ),
+            ),
           );
         }
       } finally {
@@ -691,14 +696,19 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
       await PlannerDatabase().undoCompleteTask(widget.task.id!);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Task marked as incomplete")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.taskMarkedIncomplete),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorWithMessage(e)),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -874,7 +884,7 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
                               ),
                             )
                           : Text(
-                              "Undo Completion", // Should be localized
+                              l10n.undoCompletion,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,

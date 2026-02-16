@@ -85,12 +85,12 @@ class SettingsPage extends StatelessWidget {
         const Divider(),
         _buildResetSection(context, l10n),
         const Divider(),
-        _buildVersionInfo(context),
+        _buildVersionInfo(context, l10n),
       ],
     );
   }
 
-  Widget _buildVersionInfo(BuildContext context) {
+  Widget _buildVersionInfo(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
 
     return Padding(
@@ -108,7 +108,7 @@ class SettingsPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "App Version",
+              l10n.appVersion,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -243,7 +243,7 @@ class SettingsPage extends StatelessWidget {
       leading: const Icon(Icons.download_rounded),
       onTap: () async {
         try {
-          await BackupService().backup();
+          await BackupService().backup(l10n);
           if (context.mounted) {
             ScaffoldMessenger.of(
               context,
@@ -267,7 +267,7 @@ class SettingsPage extends StatelessWidget {
       leading: const Icon(Icons.restore_page_rounded),
       onTap: () async {
         try {
-          final success = await BackupService().restore();
+          final success = await BackupService().restore(l10n);
           if (context.mounted && success) {
             ScaffoldMessenger.of(
               context,

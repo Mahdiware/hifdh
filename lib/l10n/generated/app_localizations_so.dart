@@ -449,6 +449,15 @@ class AppLocalizationsSo extends AppLocalizations {
   String get backupToFile => 'Kaydi keyd ahaan fayl';
 
   @override
+  String get saveBackupDialogTitle => 'Kaydi Keydka';
+
+  @override
+  String get selectBackupFileDialogTitle => 'Dooro Faylka Keydka';
+
+  @override
+  String get databaseNotFound => 'Kaydka xogta lama helin';
+
+  @override
   String backupFailed(Object error) {
     return 'Kaydintii way fashilantay: $error';
   }
@@ -522,4 +531,63 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get openInQuranApp => 'Ku fur abka Quraanka';
+
+  @override
+  String get languageEnglish => 'Ingiriisi';
+
+  @override
+  String get languageArabic => 'Carabi';
+
+  @override
+  String get languageSomali => 'Soomaali';
+
+  @override
+  String get filter => 'Kala saar';
+
+  @override
+  String get sort => 'Habee';
+
+  @override
+  String get searchAyahExamplesHint =>
+      'Raadi (tusaale: 2:5, Al-Faatiha, ٱلْحَمْدُ)';
+
+  @override
+  String get noMatches => 'Wax is waafaqaya lama helin';
+
+  @override
+  String get ayahs => 'Aayado';
+
+  @override
+  String get appVersion => 'Nooca App-ka';
+
+  @override
+  String get loadingAyahs => 'Aayadaha waa la soo gelinayaa...';
+
+  @override
+  String get completeSomeMemorizationToSeeHistory =>
+      'Dhamee xoogaa xifdin ah si aad halkan ugu aragto!';
+
+  @override
+  String get undoCompletion => 'Ka noqo dhammaystirka';
+
+  @override
+  String get undo => 'Ka noqo';
+
+  @override
+  String moveTaskBackToDashboard(String title) {
+    return 'Hawsha \'$title\' dib ma ugu celin Dashboard-ka?';
+  }
+
+  @override
+  String get taskMovedBackToDashboard =>
+      'Hawsha waxaa dib loogu celiyay Dashboard-ka';
+
+  @override
+  String get taskMarkedIncomplete =>
+      'Hawsha waxaa loo calaamadeeyay mid aan dhamaystirnayn';
+
+  @override
+  String errorWithMessage(Object error) {
+    return 'Khalad: $error';
+  }
 }

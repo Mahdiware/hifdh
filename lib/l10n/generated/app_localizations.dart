@@ -952,6 +952,24 @@ abstract class AppLocalizations {
   /// **'Backup to a file'**
   String get backupToFile;
 
+  /// No description provided for @saveBackupDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Backup'**
+  String get saveBackupDialogTitle;
+
+  /// No description provided for @selectBackupFileDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Backup File'**
+  String get selectBackupFileDialogTitle;
+
+  /// No description provided for @databaseNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Database not found'**
+  String get databaseNotFound;
+
   /// No description provided for @backupFailed.
   ///
   /// In en, this message translates to:
@@ -1089,6 +1107,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open in Quran app'**
   String get openInQuranApp;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @languageArabic.
+  ///
+  /// In en, this message translates to:
+  /// **'Arabic'**
+  String get languageArabic;
+
+  /// No description provided for @languageSomali.
+  ///
+  /// In en, this message translates to:
+  /// **'Somali'**
+  String get languageSomali;
+
+  /// No description provided for @filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filter;
+
+  /// No description provided for @sort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sort;
+
+  /// No description provided for @searchAyahExamplesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search (e.g. 2:5, Al-Fatiha, ٱلْحَمْدُ)'**
+  String get searchAyahExamplesHint;
+
+  /// No description provided for @noMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matches'**
+  String get noMatches;
+
+  /// No description provided for @ayahs.
+  ///
+  /// In en, this message translates to:
+  /// **'Ayahs'**
+  String get ayahs;
+
+  /// No description provided for @appVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'App Version'**
+  String get appVersion;
+
+  /// No description provided for @loadingAyahs.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Ayahs...'**
+  String get loadingAyahs;
+
+  /// No description provided for @completeSomeMemorizationToSeeHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete some memorization to see them here!'**
+  String get completeSomeMemorizationToSeeHistory;
+
+  /// No description provided for @undoCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo Completion'**
+  String get undoCompletion;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @moveTaskBackToDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Move \'{title}\' back to Dashboard?'**
+  String moveTaskBackToDashboard(String title);
+
+  /// No description provided for @taskMovedBackToDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Task moved back to Dashboard'**
+  String get taskMovedBackToDashboard;
+
+  /// No description provided for @taskMarkedIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Task marked as incomplete'**
+  String get taskMarkedIncomplete;
+
+  /// No description provided for @errorWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String errorWithMessage(Object error);
 }
 
 class _AppLocalizationsDelegate

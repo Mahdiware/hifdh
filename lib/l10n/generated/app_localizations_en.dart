@@ -447,6 +447,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupToFile => 'Backup to a file';
 
   @override
+  String get saveBackupDialogTitle => 'Save Backup';
+
+  @override
+  String get selectBackupFileDialogTitle => 'Select Backup File';
+
+  @override
+  String get databaseNotFound => 'Database not found';
+
+  @override
   String backupFailed(Object error) {
     return 'Backup failed: $error';
   }
@@ -519,4 +528,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openInQuranApp => 'Open in Quran app';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageArabic => 'Arabic';
+
+  @override
+  String get languageSomali => 'Somali';
+
+  @override
+  String get filter => 'Filter';
+
+  @override
+  String get sort => 'Sort';
+
+  @override
+  String get searchAyahExamplesHint =>
+      'Search (e.g. 2:5, Al-Fatiha, ٱلْحَمْدُ)';
+
+  @override
+  String get noMatches => 'No matches';
+
+  @override
+  String get ayahs => 'Ayahs';
+
+  @override
+  String get appVersion => 'App Version';
+
+  @override
+  String get loadingAyahs => 'Loading Ayahs...';
+
+  @override
+  String get completeSomeMemorizationToSeeHistory =>
+      'Complete some memorization to see them here!';
+
+  @override
+  String get undoCompletion => 'Undo Completion';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String moveTaskBackToDashboard(String title) {
+    return 'Move \'$title\' back to Dashboard?';
+  }
+
+  @override
+  String get taskMovedBackToDashboard => 'Task moved back to Dashboard';
+
+  @override
+  String get taskMarkedIncomplete => 'Task marked as incomplete';
+
+  @override
+  String errorWithMessage(Object error) {
+    return 'Error: $error';
+  }
 }
