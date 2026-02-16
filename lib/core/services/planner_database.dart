@@ -303,29 +303,61 @@ class PlannerDatabase {
     // This prevents data loss when the app is updated but the schema hasn't changed.
     _log('Database Initializing: Version $_schemaVersion');
 
-    final db = await openDatabase(
-      path,
-      version: _schemaVersion,
-      onConfigure: (db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-        await db.execute('PRAGMA journal_mode = WAL');
-        await db.execute('PRAGMA synchronous = NORMAL');
-        await db.execute('PRAGMA wal_autocheckpoint = 1000');
-      },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        isUpgrading.value = true;
-        if (oldVersion < Globals.dbBaselineVersion) {
-          await _resetToBaseline(db);
-        } else {
-          await DatabaseMigrator.upgrade(db, oldVersion, newVersion);
-        }
-        isUpgrading.value = false;
-      },
-      onCreate: (db, version) async {
-        await _createTables(db);
-        await _createIndexes(db);
-      },
-    );
+    Future<Database> openPlannerDb() {
+      return openDatabase(
+        path,
+        version: _schemaVersion,
+        onConfigure: (db) async {
+          await db.execute('PRAGMA foreign_keys = ON');
+          await db.execute('PRAGMA journal_mode = WAL');
+          await db.execute('PRAGMA synchronous = NORMAL');
+          await db.execute('PRAGMA wal_autocheckpoint = 1000');
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          isUpgrading.value = true;
+          if (oldVersion < Globals.dbBaselineVersion) {
+            await _resetToBaseline(db);
+          } else {
+            await DatabaseMigrator.upgrade(db, oldVersion, newVersion);
+          }
+          isUpgrading.value = false;
+        },
+        onCreate: (db, version) async {
+          await _createTables(db);
+          await _createIndexes(db);
+        },
+      );
+    }
+
+    late final Database db;
+    try {
+      db = await openPlannerDb();
+    } catch (e, st) {
+      final message = e.toString().toLowerCase();
+      final isReadOnlyOpenFailure =
+          message.contains('read-only') || message.contains('readonly');
+
+      if (!isReadOnlyOpenFailure) rethrow;
+
+      _log(
+        'Planner DB open failed due to read-only state. Recreating local DB file.',
+        error: e,
+        st: st,
+      );
+
+      try {
+        await deleteDatabase(path);
+      } catch (deleteError, deleteSt) {
+        _log(
+          'Failed to delete read-only planner DB before recreate',
+          error: deleteError,
+          st: deleteSt,
+        );
+        rethrow;
+      }
+
+      db = await openPlannerDb();
+    }
 
     await _postOpenSetup(db);
     isUpgrading.value = false;

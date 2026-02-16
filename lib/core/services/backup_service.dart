@@ -15,6 +15,9 @@ class BackupService {
   }
 
   Future<void> backup() async {
+    // Ensure WAL changes are merged to main DB file before exporting.
+    await PlannerDatabase().checkpointWal(truncate: true);
+
     final dbPath = await _getDbPath();
     final dbFile = File(dbPath);
 
@@ -29,12 +32,17 @@ class BackupService {
     final bytes = await dbFile.readAsBytes();
 
     // Use saveFile for all platforms.
-    await FilePicker.platform.saveFile(
+    final saved = await FilePicker.platform.saveFile(
       dialogTitle: 'Save Backup',
       fileName: fileName,
       type: FileType.any,
       bytes: bytes,
     );
+
+    // User canceled save dialog.
+    if (saved == null) {
+      return;
+    }
   }
 
   Future<bool> restore() async {
@@ -48,7 +56,8 @@ class BackupService {
     if (result == null || result.files.isEmpty) return false;
 
     final pickedPath = result.files.single.path;
-    if (pickedPath == null) return false;
+    final pickedBytes = result.files.single.bytes;
+    if (pickedPath == null && pickedBytes == null) return false;
 
     // Close current DB
     await PlannerDatabase().closeAndReset();
@@ -62,10 +71,22 @@ class BackupService {
     // Clean up potential WAL/SHM files to avoid stale data or corruption
     final walFile = File('$dbPath-wal');
     final shmFile = File('$dbPath-shm');
+    final journalFile = File('$dbPath-journal');
+    final targetDbFile = File(dbPath);
+
+    // Replace existing DB file safely.
+    if (await targetDbFile.exists()) {
+      await targetDbFile.delete();
+    }
     if (await walFile.exists()) await walFile.delete();
     if (await shmFile.exists()) await shmFile.delete();
+    if (await journalFile.exists()) await journalFile.delete();
 
-    await File(pickedPath).copy(dbPath);
+    if (pickedPath != null) {
+      await File(pickedPath).copy(dbPath);
+    } else {
+      await targetDbFile.writeAsBytes(pickedBytes!, flush: true);
+    }
 
     // Force re-open to verify
     await PlannerDatabase().database;
