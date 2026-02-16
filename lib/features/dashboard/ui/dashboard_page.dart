@@ -25,7 +25,14 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+    PlannerDatabase().dataUpdateNotifier.addListener(_fetchTasks);
     _fetchTasks();
+  }
+
+  @override
+  void dispose() {
+    PlannerDatabase().dataUpdateNotifier.removeListener(_fetchTasks);
+    super.dispose();
   }
 
   Future<void> _fetchTasks({bool showLoading = true}) async {

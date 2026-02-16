@@ -7,6 +7,7 @@ import 'package:hifdh/features/progress/ui/progress_page.dart';
 import 'package:hifdh/features/history/ui/history_page.dart';
 import 'package:hifdh/features/settings/ui/settings_page.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -59,52 +60,89 @@ class _MainScreenState extends State<MainScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: showMainAppBar
-          ? AppBar(
-              backgroundColor: isDark
-                  ? AppColors.backgroundDark
-                  : AppColors.primaryNavy,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Colors.white),
-              title: Text(
-                _getAppBarTitle(context, _selectedIndex),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontSize: 20,
-                ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: PlannerDatabase().isUpgrading,
+      builder: (context, upgrading, child) {
+        if (upgrading) {
+          return Scaffold(
+            backgroundColor: isDark
+                ? AppColors.backgroundDark
+                : AppColors.backgroundLight,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 24),
+                  Text(
+                    "Upgrading Database...",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Please wait while we update your data.",
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
-              actions: const [ThemeToggleButton(), SizedBox(width: 8)],
-            )
-          : null,
-      body: IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_filled),
-            label: l10n.dashboard,
+            ),
+          );
+        }
+
+        return Scaffold(
+          appBar: showMainAppBar
+              ? AppBar(
+                  backgroundColor: isDark
+                      ? AppColors.backgroundDark
+                      : AppColors.primaryNavy,
+                  elevation: 0,
+                  iconTheme: const IconThemeData(color: Colors.white),
+                  title: Text(
+                    _getAppBarTitle(context, _selectedIndex),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
+                  ),
+                  actions: const [ThemeToggleButton(), SizedBox(width: 8)],
+                )
+              : null,
+          body: IndexedStack(index: _selectedIndex, children: _pages),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            items: [
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.home_filled),
+                label: l10n.dashboard,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.quiz_outlined),
+                label: l10n.quiz,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.donut_large),
+                label: l10n.progress,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.history),
+                label: l10n.history,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.settings),
+                label: l10n.settings,
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.quiz_outlined),
-            label: l10n.quiz,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.donut_large),
-            label: l10n.progress,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.history),
-            label: l10n.history,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings),
-            label: l10n.settings,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

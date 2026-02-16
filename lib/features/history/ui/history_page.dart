@@ -20,6 +20,7 @@ class _HistoryPageState extends State<HistoryPage> {
   List<PlanTask> _history = [];
   List<PlanTask> _filteredHistory = []; // Display list
   bool _isLoading = true;
+  int? _processingTaskId;
   HistorySort _sortOption = HistorySort.newest;
   final TextEditingController _searchController = TextEditingController();
 
@@ -527,12 +528,91 @@ class _HistoryPageState extends State<HistoryPage> {
                     ],
                   ),
                 ),
+                if (task.completedAt != null &&
+                    task.completedAt!.year == DateTime.now().year &&
+                    task.completedAt!.month == DateTime.now().month &&
+                    task.completedAt!.day == DateTime.now().day)
+                  _processingTaskId == task.id
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          icon: const Icon(
+                            Icons.undo,
+                            color: AppColors.textSecondaryLight,
+                          ),
+                          onPressed: _processingTaskId == null
+                              ? () => _confirmUndoTask(task)
+                              : null,
+                          tooltip: "Undo Completion",
+                        ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _confirmUndoTask(PlanTask task) async {
+    // Disable clicks if any task is processing
+    if (_processingTaskId != null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark
+              ? AppColors.surfaceDark
+              : AppColors.surfaceLight,
+          title: Text(
+            "Undo Completion",
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
+          content: Text(
+            "Move '${task.title}' back to Dashboard?",
+            style: TextStyle(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                "Undo",
+                style: const TextStyle(color: AppColors.accentOrange),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && task.id != null) {
+      if (mounted) setState(() => _processingTaskId = task.id);
+      try {
+        await PlannerDatabase().undoCompleteTask(task.id!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Task moved back to Dashboard")),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _processingTaskId = null);
+      }
+    }
   }
 
   Widget _buildChip(String label, Color color, bool isDark) {
@@ -584,6 +664,7 @@ class _TaskHistoryDetailsSheet extends StatefulWidget {
 class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
   late Future<List<TaskNote>> _notesFuture;
   bool _legacyNoteDeleted = false;
+  bool _isProcessingUndo = false;
 
   @override
   void initState() {
@@ -597,6 +678,36 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
         .then(
           (notes) => notes.where((n) => n.type != NoteType.correct).toList(),
         );
+  }
+
+  Future<void> _handleUndo() async {
+    if (_isProcessingUndo) return;
+
+    setState(() {
+      _isProcessingUndo = true;
+    });
+
+    try {
+      await PlannerDatabase().undoCompleteTask(widget.task.id!);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Task marked as incomplete")));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingUndo = false;
+        });
+      }
+    }
   }
 
   Future<void> _deleteNote(int id) async {
@@ -735,6 +846,45 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
                     ),
                   ],
                   const SizedBox(height: 24),
+
+                  // Undo Completion Button (Added)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isProcessingUndo ? null : _handleUndo,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.errorRed, // Or accentOrange?
+                        disabledBackgroundColor: AppColors.errorRed.withValues(
+                          alpha: 0.6,
+                        ),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isProcessingUndo
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              "Undo Completion", // Should be localized
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

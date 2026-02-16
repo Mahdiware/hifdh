@@ -31,11 +31,20 @@ class _QuizPageState extends State<QuizPage> {
     _loadSurahs();
   }
 
+  @override
+  void dispose() {
+    _fromPageController.dispose();
+    _toPageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadSurahs() async {
     final surahs = await QuranDatabase().getAllSurahs();
-    setState(() {
-      _allSurahs = surahs;
-    });
+    if (mounted) {
+      setState(() {
+        _allSurahs = surahs;
+      });
+    }
   }
 
   Future<void> _loadPreferences() async {
@@ -44,10 +53,12 @@ class _QuizPageState extends State<QuizPage> {
     int start = prefs.getInt('start_page') ?? 1;
     int end = prefs.getInt('end_page') ?? 604;
 
-    setState(() {
-      _fromPageController.text = start.toString();
-      _toPageController.text = end.toString();
-    });
+    if (mounted) {
+      setState(() {
+        _fromPageController.text = start.toString();
+        _toPageController.text = end.toString();
+      });
+    }
   }
 
   Future<void> _savePreferences(int start, int end) async {
@@ -89,7 +100,7 @@ class _QuizPageState extends State<QuizPage> {
       ),
     );
 
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() {
         _selectedSurahs = result;
         // Sort by number
