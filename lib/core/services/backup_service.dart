@@ -70,6 +70,9 @@ class BackupService {
     // Force re-open to verify
     await PlannerDatabase().database;
 
+    // Notify app that data has changed entirely
+    PlannerDatabase().notifyDataChanged();
+
     return true;
   }
 }

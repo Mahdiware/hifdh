@@ -1,5 +1,6 @@
 class Globals {
   static const String appName = 'Hifdh';
-  static const String dbName = 'hifdh_plannerV2.db';
-  static const int dbVersion = 1;
+  static const String dbName = 'hifdh.db';
+  static const int dbBaselineVersion = 3;
+  static const int dbVersion = 3;
 }

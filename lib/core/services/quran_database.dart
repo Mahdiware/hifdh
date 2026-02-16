@@ -390,6 +390,32 @@ class QuranDatabase {
     return {'startPage': 0, 'endPage': 0};
   }
 
+  Future<List<Map<String, int>>> getAllJuzPageRanges() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT juzNumber, MIN(pageNumber) as startPage, MAX(pageNumber) as endPage '
+      'FROM quran_meta '
+      'GROUP BY juzNumber '
+      'ORDER BY juzNumber ASC',
+    );
+
+    return result
+        .where(
+          (row) =>
+              row['juzNumber'] != null &&
+              row['startPage'] != null &&
+              row['endPage'] != null,
+        )
+        .map((row) {
+          return {
+            'juzNumber': row['juzNumber'] as int,
+            'startPage': row['startPage'] as int,
+            'endPage': row['endPage'] as int,
+          };
+        })
+        .toList();
+  }
+
   // Get distinct pages that contain the specific Ayah range
   // Useful for marking partial memorization
   Future<List<int>> getPagesForSurahAyahRange(

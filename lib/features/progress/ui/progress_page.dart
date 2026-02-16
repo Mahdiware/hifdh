@@ -75,16 +75,22 @@ class _ProgressPageState extends State<ProgressPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadData();
-    // Listen for data changes from other tabs
-    PlannerDatabase().dataUpdateNotifier.addListener(_loadData);
+    _loadData(); // Initial load shows spinner
+
+    // Listen for updates but don't show spinner for background refreshes
+    PlannerDatabase().dataUpdateNotifier.addListener(_handleDataUpdate);
   }
 
   @override
   void dispose() {
-    PlannerDatabase().dataUpdateNotifier.removeListener(_loadData);
+    PlannerDatabase().dataUpdateNotifier.removeListener(_handleDataUpdate);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _handleDataUpdate() {
+    // Refresh data without showing full screen loading spinner
+    _loadData(showFullLoading: false);
   }
 
   Future<void> _loadData({bool showFullLoading = true}) async {
