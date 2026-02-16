@@ -308,11 +308,33 @@ class PlannerDatabase {
         path,
         version: _schemaVersion,
         onConfigure: (db) async {
-          await db.execute('PRAGMA foreign_keys = ON');
-          await db.execute('PRAGMA journal_mode = WAL');
-          await db.execute('PRAGMA synchronous = NORMAL');
-          await db.execute('PRAGMA wal_autocheckpoint = 1000');
+          try {
+            await db.execute('PRAGMA foreign_keys = ON');
+          } catch (e, st) {
+            debugPrint('PRAGMA foreign_keys failed: $e\n$st');
+          }
+
+          try {
+            // PRAGMA journal_mode returns a result, use rawQuery
+            final res = await db.rawQuery('PRAGMA journal_mode=WAL');
+            debugPrint("PRAGMA journal_mode=WAL result: $res");
+          } catch (e, st) {
+            debugPrint("PRAGMA journal_mode failed: $e\n$st");
+          }
+
+          try {
+            await db.execute("PRAGMA synchronous = NORMAL");
+          } catch (e, st) {
+            debugPrint("PRAGMA synchronous failed: $e\n$st");
+          }
+
+          try {
+            await db.execute("PRAGMA wal_autocheckpoint = 1000");
+          } catch (e, st) {
+            debugPrint("PRAGMA wal_autocheckpoint failed: $e\n$st");
+          }
         },
+
         onUpgrade: (db, oldVersion, newVersion) async {
           isUpgrading.value = true;
           if (oldVersion < Globals.dbBaselineVersion) {
