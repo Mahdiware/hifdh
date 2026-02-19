@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:hifdh/core/services/export_statistics.dart';
+import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class ProgressHeaderCard extends StatelessWidget {
-  final double memPercentage;
+  final Map<String, int> memPercentage;
   final Map<String, int> overallStats;
   final int selectedMetric;
   final Function(int) onMetricChanged;
@@ -108,7 +110,42 @@ class ProgressHeaderCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    _buildMetricSelector(context, textColor),
+
+                    Row(
+                      children: [
+                        _buildMetricSelector(context, textColor),
+                        const SizedBox(width: 4),
+                        Tooltip(
+                          message: "Export as PDF", // Shows on hover/long press
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final data = await PlannerDatabase()
+                                  .buildDynamicJuzRows();
+                              await exportJuzRevisionPdf(
+                                data['rows'],
+                                maxRevisions: data['maxRevisions'],
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  12,
+                                ), // soft rounded corners
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              backgroundColor:
+                                  Colors.orange, // AppColors.accentOrange
+                              elevation: 4,
+                            ),
+                            child: const Icon(
+                              Icons.picture_as_pdf,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -215,48 +252,58 @@ class ProgressHeaderCard extends StatelessWidget {
   }
 
   Widget _buildAnimatedCircularProgress(BuildContext context, Color textColor) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: TweenAnimationBuilder<double>(
-        duration: const Duration(milliseconds: 1500),
-        curve: Curves.easeOutCubic,
-        tween: Tween<double>(begin: 0, end: memPercentage / 100),
-        builder: (context, value, child) {
-          return CustomPaint(
-            painter: _ModernProgressPainter(
-              percentage: value,
-              backgroundColor: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.grey.withValues(alpha: 0.1),
-              color: const Color(0xFF69F0AE), // Accent Green
-            ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "${(value * 100).toStringAsFixed(1)}%",
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -1,
-                    ),
+    final int memorized = (memPercentage['memorized'] ?? 0);
+    final int total = (memPercentage['total'] ?? 0);
+    final double percentage = total > 0 ? (memorized / total) : 0.0;
+
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 1500),
+            curve: Curves.easeOutCubic,
+            tween: Tween<double>(begin: 0, end: percentage),
+            builder: (context, value, child) {
+              return CustomPaint(
+                painter: _ModernProgressPainter(
+                  percentage: value,
+                  backgroundColor: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
+                  color: const Color(0xFF69F0AE), // Accent Green
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "${(value * 100).toStringAsFixed(1)}%",
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                      Text(
+                        AppLocalizations.of(context)!.done,
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.7),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    AppLocalizations.of(context)!.done,
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(" ${memPercentage['memorized']} / ${memPercentage['total']}"),
+      ],
     );
   }
 

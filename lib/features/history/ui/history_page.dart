@@ -669,7 +669,6 @@ class _TaskHistoryDetailsSheet extends StatefulWidget {
 class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
   late Future<List<TaskNote>> _notesFuture;
   bool _legacyNoteDeleted = false;
-  bool _isProcessingUndo = false;
 
   @override
   void initState() {
@@ -685,40 +684,7 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
         );
   }
 
-  Future<void> _handleUndo() async {
-    if (_isProcessingUndo) return;
 
-    setState(() {
-      _isProcessingUndo = true;
-    });
-
-    try {
-      await PlannerDatabase().undoCompleteTask(widget.task.id!);
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.taskMarkedIncomplete),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorWithMessage(e)),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessingUndo = false;
-        });
-      }
-    }
-  }
 
   Future<void> _deleteNote(int id) async {
     await PlannerDatabase().deleteTaskNote(id);
@@ -856,44 +822,6 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
                     ),
                   ],
                   const SizedBox(height: 24),
-
-                  // Undo Completion Button (Added)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isProcessingUndo ? null : _handleUndo,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.errorRed, // Or accentOrange?
-                        disabledBackgroundColor: AppColors.errorRed.withValues(
-                          alpha: 0.6,
-                        ),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isProcessingUndo
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              l10n.undoCompletion,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
 
                   SizedBox(
                     width: double.infinity,

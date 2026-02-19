@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:hifdh/core/services/export_statistics.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -1614,9 +1615,100 @@ class PlannerDatabase {
     _notifyDataChanged();
   }
 
+  Future<Map<String, dynamic>> buildDynamicJuzRows() async {
+    final db = await database;
+    List<JuzRow> rows = [];
+    int absoluteMaxRevisions = 0;
+
+    for (int j = 1; j <= 30; j++) {
+      final List<int> juzAyahIds = await getCachedAyahIdsForJuz(j);
+      final int totalAyahsInJuz = juzAyahIds.length;
+
+      // 1. Find Memorization Task (Only if it covers most of the Juz)
+      final List<Map<String, dynamic>> memTaskResult = await db.rawQuery(
+        '''
+      SELECT t.id FROM tasks t
+      JOIN unit_ayahs ua ON t.unit_id = ua.unit_id
+      WHERE ua.ayah_id IN (${juzAyahIds.join(',')}) 
+        AND t.task_type = 0
+      GROUP BY t.id
+      HAVING COUNT(DISTINCT ua.ayah_id) >= ? 
+      ORDER BY t.completed_at DESC LIMIT 1
+    ''',
+        [(totalAyahsInJuz * 0.9).floor()],
+      ); // 90% threshold
+
+      // 2. Find Revision Tasks (Only if it covers most of the Juz)
+      final List<Map<String, dynamic>> revTasksResult = await db.rawQuery(
+        '''
+      SELECT t.id FROM tasks t
+      JOIN unit_ayahs ua ON t.unit_id = ua.unit_id
+      WHERE ua.ayah_id IN (${juzAyahIds.join(',')}) 
+        AND t.task_type = 1
+      GROUP BY t.id
+      HAVING COUNT(DISTINCT ua.ayah_id) >= ? 
+      ORDER BY t.completed_at ASC
+    ''',
+        [(totalAyahsInJuz * 0.9).floor()],
+      );
+
+      // Skip if nothing found for this specific Juz
+      if (memTaskResult.isEmpty && revTasksResult.isEmpty) continue;
+
+      // Update global max revisions
+      if (revTasksResult.length > absoluteMaxRevisions) {
+        absoluteMaxRevisions = revTasksResult.length;
+      }
+
+      // --- Data Processing (Same as before) ---
+      int totalDoubt = -1;
+      int totalMistake = -1;
+      if (memTaskResult.isNotEmpty) {
+        int taskId = memTaskResult.first['id'];
+        totalDoubt = await _countNotesInDb(db, taskId, 0);
+        totalMistake = await _countNotesInDb(db, taskId, 2);
+      }
+
+      List<int> revDoubts = [];
+      List<int> revMistakes = [];
+      for (var row in revTasksResult) {
+        int taskId = row['id'];
+        revDoubts.add(await _countNotesInDb(db, taskId, 0));
+        revMistakes.add(await _countNotesInDb(db, taskId, 2));
+      }
+
+      // Pad with -1 so we know these columns are truly empty
+      while (revDoubts.length < 6) {
+        revDoubts.add(-1);
+        revMistakes.add(-1);
+      }
+
+      rows.add(
+        JuzRow(
+          juz: j,
+          doubt: totalDoubt,
+          mistake: totalMistake,
+          revisionsDoubt: revDoubts,
+          revisionsMistake: revMistakes,
+        ),
+      );
+    }
+
+    return {'rows': rows, 'maxRevisions': absoluteMaxRevisions};
+  }
+
+  // Helper to count specific note types for a task
+  Future<int> _countNotesInDb(Database db, int taskId, int type) async {
+    final res = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM task_notes WHERE task_id = ? AND type = ?',
+      [taskId, type],
+    );
+    return Sqflite.firstIntValue(res) ?? 0;
+  }
+
   // --- Global Coverage ---
 
-  Future<double> getMemorizedPercentage({dynamic type}) async {
+  Future<Map<String, int>> getMemorizedPercentage({dynamic type}) async {
     await _ensureStaticDataLoaded();
     final db = await database;
 
@@ -1630,8 +1722,10 @@ class PlannerDatabase {
 
     if (type == 1) {
       // Ayah
-      if (_totalAyahs == 0) return 0.0;
-      return (memorizedIds.length / _totalAyahs) * 100;
+      int memorized = 0;
+
+      if (_totalAyahs != 0) memorized = memorizedIds.length;
+      return {'memorized': memorized, 'total': _totalAyahs};
     } else if (type == 2) {
       // Page
       int memorizedPages = 0;
@@ -1646,7 +1740,8 @@ class PlannerDatabase {
           }
         }
       }
-      return (memorizedPages / totalPages) * 100;
+
+      return {'memorized': memorizedPages, 'total': totalPages};
     } else if (type == 3) {
       // Surah
       int memorizedSurahs = 0;
@@ -1661,12 +1756,15 @@ class PlannerDatabase {
           }
         }
       }
-      return (memorizedSurahs / totalSurahs) * 100;
+
+      return {'memorized': memorizedSurahs, 'total': totalSurahs};
     }
 
     // Default: Ayah
-    if (_totalAyahs == 0) return 0.0;
-    return (memorizedIds.length / _totalAyahs) * 100;
+    int memorized = 0;
+
+    if (_totalAyahs != 0) memorized = memorizedIds.length;
+    return {'memorized': memorized, 'total': _totalAyahs};
   }
 
   Future<bool> isJuzFullyMemorized(int juzNumber) async {

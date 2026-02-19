@@ -25,7 +25,7 @@ class _ProgressPageState extends State<ProgressPage>
 
   // Data State
   bool _isLoading = true;
-  double _memPercentage = 0.0;
+  Map<String, int> _memPercentage = {'memorized': 0, 'total': 0};
   List<QuranProgress> _surahProgress = [];
   List<Surah> _surahs = [];
   List<Map<String, dynamic>> _chartData = [];
@@ -266,7 +266,7 @@ class _ProgressPageState extends State<ProgressPage>
           _activeTasks = [];
           _chartData = [];
 
-          _memPercentage = basicFutures[0] as double;
+          _memPercentage = basicFutures[0] as Map<String, int>;
           _surahProgress = (basicFutures[1] as List<Map<String, dynamic>>)
               .map((m) => QuranProgress.fromMap(m))
               .toList();
