@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/shared/models/result_item.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 import 'package:hifdh/core/utils/surah_glyphs.dart';
@@ -13,6 +14,9 @@ class ResultPage extends StatelessWidget {
   Widget build(BuildContext context) {
     int correctCount = results.where((r) => r.isCorrect).length;
     int totalCount = results.length;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     double percent = totalCount == 0 ? 0 : (correctCount / totalCount);
 
     Color scoreColor = percent >= 0.8
@@ -22,117 +26,85 @@ class ResultPage extends StatelessWidget {
         : Colors.red;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            automaticallyImplyLeading: false,
-            title: Text(AppLocalizations.of(context)!.quizResults),
-            centerTitle: true,
-            actions: const [ThemeToggleButton(), SizedBox(width: 8)],
-          ),
-          SliverToBoxAdapter(
-            child: _buildScoreSection(
-              context,
-              percent,
-              scoreColor,
-              correctCount,
-              totalCount,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              pinned: true,
+              automaticallyImplyLeading: false,
+
+              backgroundColor: isDark
+                  ? AppColors.backgroundDark
+                  : AppColors.backgroundLight,
+              foregroundColor: isDark ? Colors.white : Colors.black,
+              title: Text(
+                AppLocalizations.of(context)!.quizResults,
+
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              ),
+              centerTitle: true,
+              iconTheme: IconThemeData(
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              actions: const [ThemeToggleButton(), SizedBox(width: 8)],
             ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            sliver: SliverToBoxAdapter(
-              child: Row(
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.detailedReview,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context)!.questionsCount(totalCount),
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                  ),
-                ],
+            SliverToBoxAdapter(
+              child: _buildScoreSection(
+                context,
+                percent,
+                scoreColor,
+                correctCount,
+                totalCount,
               ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final item = results[index];
-              return _ResultItemCard(item: item);
-            }, childCount: results.length),
-          ),
-          const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.detailedReview,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.questionsCount(totalCount),
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final item = results[index];
+                return _ResultItemCard(item: item);
+              }, childCount: results.length),
+            ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
           ],
-        ),
-        child: SafeArea(
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                  label: Text(AppLocalizations.of(context)!.back),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.color,
-                    side: BorderSide(color: Theme.of(context).dividerColor),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
-                  icon: const Icon(Icons.home),
-                  label: Text(AppLocalizations.of(context)!.home),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

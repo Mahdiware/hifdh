@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/services/quran_database.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/features/quiz/ui/result_page.dart';
 import 'package:hifdh/shared/models/ayah.dart';
 import 'package:hifdh/shared/models/result_item.dart';
@@ -389,8 +390,10 @@ class _QuizHomePageState extends State<QuizHomePage> {
                     child: ElevatedButton(
                       onPressed: _showAnswerDialog,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
-                        foregroundColor: Colors.black,
+                        backgroundColor: isDark
+                            ? AppColors.surfaceDark
+                            : AppColors.backgroundLight,
+                        foregroundColor: isDark ? Colors.white : Colors.black,
                         padding: const EdgeInsets.all(12),
                       ),
                       child: Text(
@@ -404,8 +407,10 @@ class _QuizHomePageState extends State<QuizHomePage> {
                     child: ElevatedButton(
                       onPressed: _checkAnswerDialog,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2BA403),
-                        foregroundColor: Colors.white,
+                        backgroundColor: isDark
+                            ? AppColors.surfaceDark
+                            : AppColors.backgroundLight,
+                        foregroundColor: isDark ? Colors.white : Colors.black,
                         padding: const EdgeInsets.all(12),
                       ),
                       child: Text(

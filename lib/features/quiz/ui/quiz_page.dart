@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/shared/models/quiz_settings.dart';
@@ -180,6 +181,10 @@ class _QuizPageState extends State<QuizPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       children: [
         // CONTENT
@@ -306,6 +311,10 @@ class _QuizPageState extends State<QuizPage> {
             child: ElevatedButton(
               onPressed: _startTesting,
               style: ElevatedButton.styleFrom(
+                backgroundColor: isDark
+                    ? AppColors.surfaceDark
+                    : AppColors.backgroundLight,
+                foregroundColor: isDark ? Colors.white : Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

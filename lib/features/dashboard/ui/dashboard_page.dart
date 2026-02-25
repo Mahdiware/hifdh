@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/features/planner/ui/assign_page.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/planner_database.dart';
@@ -161,15 +162,23 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? theme.scaffoldBackgroundColor : Colors.white;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       appBar: DashboardAppBar(onRefresh: _fetchTasks),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: theme.primaryColor,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
+        backgroundColor: isDark
+            ? AppColors.surfaceDark
+            : AppColors.backgroundLight,
+
+        child: Icon(
+          Icons.add,
+          color: isDark ? Colors.white : Colors.black,
+          size: 28,
+        ),
         onPressed: () async {
           final res = await Navigator.push(
             context,
