@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/features/settings/logic/locale_provider.dart';
@@ -13,15 +14,30 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final isDark = theme.brightness == Brightness.dark;
 
     return AppBar(
       automaticallyImplyLeading: false,
-      backgroundColor: theme.appBarTheme.backgroundColor,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       elevation: 0,
-      title: Text(l10n.dashboard, style: theme.appBarTheme.titleTextStyle),
+      title: Text(
+        l10n.dashboard,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.white : Colors.black,
+          fontSize: 20,
+        ),
+      ),
+      iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
+
       actions: [
         IconButton(
-          icon: Icon(Icons.refresh, color: theme.appBarTheme.iconTheme?.color),
+          icon: Icon(
+            Icons.refresh,
+            color: isDark ? Colors.white : Colors.black,
+          ),
           onPressed: onRefresh,
         ),
         Consumer<LocaleProvider>(
@@ -29,8 +45,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
             return PopupMenuButton<Locale>(
               icon: Icon(
                 Icons.language,
-                color: theme.appBarTheme.iconTheme?.color,
-              ),
+                color: isDark ? Colors.white : Colors.black              ),
               onSelected: (Locale locale) {
                 localeProvider.setLocale(locale);
               },

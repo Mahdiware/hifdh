@@ -100,21 +100,25 @@ class _MainScreenState extends State<MainScreen> {
               ? AppBar(
                   backgroundColor: isDark
                       ? AppColors.backgroundDark
-                      : AppColors.primaryNavy,
+                      : AppColors.backgroundLight,
                   elevation: 0,
-                  iconTheme: const IconThemeData(color: Colors.white),
+                  iconTheme: IconThemeData(
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
                   title: Text(
                     _getAppBarTitle(context, _selectedIndex),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black,
                       fontSize: 20,
                     ),
                   ),
                   actions: const [ThemeToggleButton(), SizedBox(width: 8)],
                 )
               : null,
-          body: IndexedStack(index: _selectedIndex, children: _pages),
+          body: SafeArea(
+            child: IndexedStack(index: _selectedIndex, children: _pages),
+          ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
