@@ -1,0 +1,52 @@
+name: Deploy Flutter Web Docs
+
+on:
+  push:
+    branches: ["main"] # Triggers when you push to main
+  workflow_dispatch: # Allows you to trigger it manually
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Web
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Required to push to the gh-pages branch
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. Setup Flutter with the same caching you used in Android
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - name: Cache Pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      # 2. Build the Flutter Web App
+      # IMPORTANT: Change 'YOUR_REPO_NAME' to the actual name of your GitHub repository!
+      - name: Build Web
+        run: flutter build web --release --base-href "/hifdh/"
+
+      # 3. Deploy the generated web files to GitHub Pages
+      # This uses the same action you used in your snake workflow
+      - name: Deploy to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v3.1.0
+        with:
+          target_branch: gh-pages # Standard branch name for GitHub Pages
+          build_dir: build/web # The folder where Flutter outputs the web build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
