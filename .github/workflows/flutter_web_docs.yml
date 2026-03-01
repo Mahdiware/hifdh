@@ -37,9 +37,8 @@ jobs:
         run: flutter pub get
 
       # 2. Build the Flutter Web App
-      # IMPORTANT: Change 'YOUR_REPO_NAME' to the actual name of your GitHub repository!
       - name: Build Web
-        run: flutter build web --release --base-href "/hifdh/"
+        run: flutter build web --release --base-href "/"
 
       # 3. Deploy the generated web files to GitHub Pages
       # This uses the same action you used in your snake workflow
