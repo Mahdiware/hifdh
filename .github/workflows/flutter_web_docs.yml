@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Setup Flutter with the same caching you used in Android
+      # Setup Flutter with the same caching you used in Android
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -36,11 +36,13 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      # 2. Build the Flutter Web App
       - name: Build Web
         run: flutter build web --release --base-href "/"
 
-      # 3. Deploy the generated web files to GitHub Pages
+      - name: Add CNAME
+        run: echo "mahdiware.me" > build/web/CNAME
+
+      # Deploy the generated web files to GitHub Pages
       # This uses the same action you used in your snake workflow
       - name: Deploy to GitHub Pages
         uses: crazy-max/ghaction-github-pages@v3.1.0
