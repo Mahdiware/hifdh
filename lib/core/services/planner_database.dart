@@ -268,10 +268,10 @@ class PlannerDatabase {
   }
 
   Future<void> checkpointWal({bool truncate = true}) async {
-     // Web relies on IndexedDB or similar backends and typically doesn't support WAL mode or checkpoints.
-     // Skipping this for web.
+    // Web relies on IndexedDB or similar backends and typically doesn't support WAL mode or checkpoints.
+    // Skipping this for web.
     if (kIsWeb) return;
-    
+
     final db = await database;
     final mode = truncate ? 'TRUNCATE' : 'PASSIVE';
     try {
