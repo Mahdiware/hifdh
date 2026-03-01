@@ -24,6 +24,17 @@ class BackupService {
   }
 
   Future<void> backup(AppLocalizations l10n) async {
+    // Run VACUUM to simplify the DB file and ensure clean state before export.
+    // This helps with cross-platform compatibility (e.g. page sizes).
+    try {
+      final db = await PlannerDatabase().database;
+      await db.execute('VACUUM');
+    } catch (e) {
+      if (kDebugMode) {
+        print('VACUUM failed during backup: $e');
+      }
+    }
+
     // Ensure WAL changes are merged to main DB file before exporting.
     await PlannerDatabase().checkpointWal(truncate: true);
 
@@ -113,8 +124,40 @@ class BackupService {
     if (kIsWeb) {
       // Web Restore: Write bytes directly to virtual DB
       // We must prefer bytes here because `path` is not usable on web.
+
+      // Ensure factory is correct for web restore
+      if (databaseFactory != databaseFactoryFfiWeb) {
+        databaseFactory = databaseFactoryFfiWeb;
+      }
+
       if (pickedBytes != null) {
-        await databaseFactory.writeDatabaseBytes(_dbName, pickedBytes);
+        try {
+          // Overwrite the existing virtual file with the backup bytes
+
+          // Hack: If we suspect the incoming bytes are from a WAL database (Android),
+          // we need to make sure SQLite doesn't freak out about missing WAL file.
+          // Usually, SQLite handles missing WAL as "crash recovery", rolling back uncommitted changes.
+          // If the file was checkpointed properly, it should be fine.
+          // But just in case, let's try to clear the WAL/SHM virtual files if they exist.
+          if (await databaseFactoryFfiWeb.databaseExists('$_dbName-wal')) {
+            await databaseFactoryFfiWeb.deleteDatabase('$_dbName-wal');
+          }
+          if (await databaseFactoryFfiWeb.databaseExists('$_dbName-shm')) {
+            await databaseFactoryFfiWeb.deleteDatabase('$_dbName-shm');
+          }
+
+          await databaseFactoryFfiWeb.writeDatabaseBytes(_dbName, pickedBytes);
+        } catch (e) {
+          debugPrint('Error writing database bytes: $e');
+          // If write fails, try deleting first
+          if (await databaseFactoryFfiWeb.databaseExists(_dbName)) {
+            await databaseFactoryFfiWeb.deleteDatabase(_dbName);
+            await databaseFactoryFfiWeb.writeDatabaseBytes(
+              _dbName,
+              pickedBytes,
+            );
+          }
+        }
       } else {
         // Fallback or error if for some reason bytes are null on web
         return false;

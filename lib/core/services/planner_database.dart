@@ -343,6 +343,13 @@ class PlannerDatabase {
               debugPrint('PRAGMA foreign_keys failed: $e\n$st');
             }
 
+            // Enforce standard page size for compatibility across platforms (Web/Mobile)
+            try {
+              await db.execute('PRAGMA page_size = 4096');
+            } catch (e) {
+              debugPrint('PRAGMA page_size failed: $e');
+            }
+
             try {
               // PRAGMA journal_mode returns a result, use rawQuery
               final res = await db.rawQuery('PRAGMA journal_mode=WAL');
