@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:hifdh/core/services/export_statistics.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+// Conditional import for web
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
+    if (dart.library.io) 'package:hifdh/core/services/stub_sqflite_web.dart';
 
 import 'package:hifdh/globals.dart';
 import 'package:hifdh/core/services/database_migrator.dart';
@@ -296,9 +299,25 @@ class PlannerDatabase {
   }
 
   Future<Database> _initDatabase() async {
-    final dbPath = await getDatabasesPath();
+    String path;
+    if (kIsWeb) {
+      // Use dynamic to bypass strong mode checks
+      try {
+        var factory = databaseFactoryFfiWeb as dynamic;
+        if (factory != null) {
+          databaseFactory = factory;
+        }
+      } catch (e) {
+        debugPrint("Failed to set databaseFactory: $e");
+      }
+      // Ensure we consistently use Globals.dbName ('hifdh.db') on the web.
+      path = Globals.dbName;
+    } else {
+      final dbPath = await getDatabasesPath();
+      path = join(dbPath, Globals.dbName);
+    }
+
     // V3 Baseline database. Legacy schemas are reset automatically.
-    final path = join(dbPath, Globals.dbName);
 
     // Use a fixed schema version rather than AppVersion.
     // This prevents data loss when the app is updated but the schema hasn't changed.
@@ -309,30 +328,36 @@ class PlannerDatabase {
         path,
         version: _schemaVersion,
         onConfigure: (db) async {
-          try {
-            await db.execute('PRAGMA foreign_keys = ON');
-          } catch (e, st) {
-            debugPrint('PRAGMA foreign_keys failed: $e\n$st');
-          }
+          // PRAGMA commands may not be supported on all web backends,
+          // or may be silently ignored. We wrap them in try/catch to maintain compatibility.
 
-          try {
-            // PRAGMA journal_mode returns a result, use rawQuery
-            final res = await db.rawQuery('PRAGMA journal_mode=WAL');
-            debugPrint("PRAGMA journal_mode=WAL result: $res");
-          } catch (e, st) {
-            debugPrint("PRAGMA journal_mode failed: $e\n$st");
-          }
+          if (!kIsWeb) {
+            // Only execute potentially locked or unsupported pragmas on native platforms
+            try {
+              await db.execute('PRAGMA foreign_keys = ON');
+            } catch (e, st) {
+              debugPrint('PRAGMA foreign_keys failed: $e\n$st');
+            }
 
-          try {
-            await db.execute("PRAGMA synchronous = NORMAL");
-          } catch (e, st) {
-            debugPrint("PRAGMA synchronous failed: $e\n$st");
-          }
+            try {
+              // PRAGMA journal_mode returns a result, use rawQuery
+              final res = await db.rawQuery('PRAGMA journal_mode=WAL');
+              debugPrint("PRAGMA journal_mode=WAL result: $res");
+            } catch (e, st) {
+              debugPrint("PRAGMA journal_mode failed: $e\n$st");
+            }
 
-          try {
-            await db.execute("PRAGMA wal_autocheckpoint = 1000");
-          } catch (e, st) {
-            debugPrint("PRAGMA wal_autocheckpoint failed: $e\n$st");
+            try {
+              await db.execute("PRAGMA synchronous = NORMAL");
+            } catch (e, st) {
+              debugPrint("PRAGMA synchronous failed: $e\n$st");
+            }
+
+            try {
+              await db.execute("PRAGMA wal_autocheckpoint = 1000");
+            } catch (e, st) {
+              debugPrint("PRAGMA wal_autocheckpoint failed: $e\n$st");
+            }
           }
         },
 

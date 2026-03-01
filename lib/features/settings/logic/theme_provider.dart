@@ -3,35 +3,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
+  bool _initialized = false;
 
   ThemeMode get themeMode => _themeMode;
 
-  ThemeProvider() {
-    _loadTheme();
-  }
+  Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
 
-  void toggleTheme(bool isDark) {
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    _saveTheme(_themeMode);
-    notifyListeners();
-  }
-
-  void setThemeMode(ThemeMode mode) {
-    _themeMode = mode;
-    _saveTheme(mode);
-    notifyListeners();
-  }
-
-  Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final themeIndex = prefs.getInt('theme_mode');
-    if (themeIndex != null) {
+
+    if (themeIndex != null &&
+        themeIndex >= 0 &&
+        themeIndex < ThemeMode.values.length) {
       _themeMode = ThemeMode.values[themeIndex];
       notifyListeners();
     }
   }
 
-  Future<void> _saveTheme(ThemeMode mode) async {
+  void toggleTheme(bool isDark) {
+    final mode = isDark ? ThemeMode.dark : ThemeMode.light;
+    setThemeMode(mode);
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    notifyListeners();
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('theme_mode', mode.index);
   }

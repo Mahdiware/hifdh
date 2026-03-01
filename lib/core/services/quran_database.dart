@@ -1,9 +1,12 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+// Conditional import for web
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
+    if (dart.library.io) 'package:hifdh/core/services/stub_sqflite_web.dart';
 import 'package:hifdh/shared/models/ayah.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
@@ -38,8 +41,55 @@ class QuranDatabase {
   }
 
   Future<Database> _initDatabase() async {
-    var databasesPath = await getDatabasesPath();
-    var path = join(databasesPath, 'quran.db');
+    if (kIsWeb) {
+      // Initialize FFI for Web if needed
+      // Note: databaseFactoryFfiWeb is imported conditionally
+      // We set the global factory if it's available (which it is on web via import)
+      // On web we often need to ensure the factory is set for openDatabase to work
+      // or use the factory directly.
+
+      // Use dynamic to bypass strong mode checks if necessary, or just rely on kIsWeb guard.
+      // Since databaseFactoryFfiWeb is non-nullable on web, the check is redundant there.
+      // On mobile, it's null, but kIsWeb prevents execution.
+      // So we can safely assign.
+      // However, to silence the analyzer warning about non-nullable type on Web:
+      try {
+        // Cast to dynamic to avoid static analysis complaints about nullability mismatch across imports
+        var factory = databaseFactoryFfiWeb as dynamic;
+        if (factory != null) {
+          databaseFactory = factory;
+        }
+      } catch (e) {
+        debugPrint("Failed to set databaseFactory: $e");
+      }
+
+      var path = 'quran.db';
+      // On Web, checking existence is tricky with path string only,
+      // but openDatabase will create it. We want to check if it has data.
+      // We can try to open it and check tables.
+
+      // However, to populate from asset, we use writeDatabaseBytes
+      // if the DB doesn't exist.
+      // Since 'databaseExists' works on web standard implementation (checks IndexedDB),
+      // let's try to follow similar pattern.
+      var exists = await databaseFactory.databaseExists(path);
+
+      if (!exists) {
+        debugPrint("Web: Creating new copy from asset");
+        ByteData data = await rootBundle.load(join("assets", "quran.db"));
+        Uint8List bytes = data.buffer.asUint8List(
+          data.offsetInBytes,
+          data.lengthInBytes,
+        );
+        await databaseFactory.writeDatabaseBytes(path, bytes);
+      }
+
+      return await openDatabase(path, readOnly: true);
+    }
+
+    // Non-web implementation
+    final databasesPath = await getDatabasesPath();
+    final path = join(databasesPath, 'quran.db');
 
     // Check if the database exists
     var exists = await databaseExists(path);

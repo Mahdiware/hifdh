@@ -6,11 +6,10 @@ class PreferencesProvider extends ChangeNotifier {
 
   bool get defaultToReadMode => _defaultToReadMode;
 
-  PreferencesProvider() {
-    _loadPreferences();
-  }
+  PreferencesProvider();
 
-  Future<void> _loadPreferences() async {
+  /// Call this before runApp to load async preferences
+  Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _defaultToReadMode = prefs.getBool('default_ayah_read_mode') ?? false;
     notifyListeners();
