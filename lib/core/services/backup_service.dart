@@ -46,22 +46,26 @@ class BackupService {
           databaseFactory = databaseFactoryFfiWeb;
         }
 
+        // Extremely important on web: Close the DB connection before reading the bytes.
+        // This ensures the WASM worker flushes all INSERTs and updates from memory to IndexedDB.
+        await PlannerDatabase().closeAndReset();
+
         if (await databaseFactoryFfiWeb.databaseExists(_dbName)) {
           bytes = await databaseFactoryFfiWeb.readDatabaseBytes(_dbName);
         } else {
+          // Should not happen normally as we just closed it, but just in case
           await PlannerDatabase().database;
+          await PlannerDatabase().closeAndReset();
           bytes = await databaseFactoryFfiWeb.readDatabaseBytes(_dbName);
         }
+
+        // Re-open for app usage
+        await PlannerDatabase().database;
       } catch (e) {
+        // Fallback...
         try {
-          // If we failed with VfsException(14), maybe the file is locked or path is wrong.
-          // Let's try to close the DB connection to release locks.
           await PlannerDatabase().closeAndReset();
-
-          // Now try reading again.
           bytes = await databaseFactoryFfiWeb.readDatabaseBytes(_dbName);
-
-          // Re-open for app usage.
           await PlannerDatabase().database;
         } catch (retryError) {
           if (kDebugMode) {
