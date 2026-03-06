@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/l10n/somali_material_localizations.dart';
 import 'features/settings/logic/theme_provider.dart';
 import 'features/settings/logic/locale_provider.dart';
 import 'features/settings/logic/preferences_provider.dart';
@@ -62,6 +63,8 @@ class MyApp extends StatelessWidget {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
+        FallbackMaterialLocalizationDelegate(),
+        FallbackCupertinoLocalizationDelegate(),
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.lightTheme,
