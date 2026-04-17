@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/services/export_statistics.dart';
 import 'package:hifdh/core/services/planner_database.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class ProgressHeaderCard extends StatelessWidget {
@@ -25,24 +26,25 @@ class ProgressHeaderCard extends StatelessWidget {
     final memCount = overallStats['completed'] ?? 0;
     final pendingCount = overallStats['pending'] ?? 0;
 
-    // Premium Gradients or Solid Colors
     final gradient = isDark
         ? const LinearGradient(
-            colors: [Color(0xFF2E2F49), Color(0xFF181824)],
+            colors: [Color(0xFF263F65), Color(0xFF172A45)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
         : const LinearGradient(
-            colors: [Colors.white, Colors.white],
+            colors: [Color(0xFFEFF5FF), Colors.white],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
 
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final subTextColor = isDark
+        ? Colors.white.withValues(alpha: 0.72)
+        : AppColors.textSecondaryLight;
     final iconBgColor = isDark
         ? Colors.white.withValues(alpha: 0.1)
-        : Colors.grey.withValues(alpha: 0.1);
+        : AppColors.primaryNavy.withValues(alpha: 0.1);
     final cardShadow = isDark
         ? Colors.black.withValues(alpha: 0.35)
         : Colors.grey.withValues(alpha: 0.2);
@@ -51,6 +53,11 @@ class ProgressHeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : AppColors.primaryNavy.withValues(alpha: 0.12),
+        ),
         boxShadow: [
           BoxShadow(
             color: cardShadow,
@@ -72,7 +79,7 @@ class ProgressHeaderCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: isDark
                     ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.blue.withValues(alpha: 0.05),
+                    : AppColors.primaryNavy.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -128,19 +135,16 @@ class ProgressHeaderCard extends StatelessWidget {
                             },
                             style: ElevatedButton.styleFrom(
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  12,
-                                ), // soft rounded corners
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               padding: const EdgeInsets.all(12),
-                              backgroundColor:
-                                  Colors.orange, // AppColors.accentOrange
-                              elevation: 4,
+                              backgroundColor: AppColors.primaryNavy,
+                              elevation: 0,
                             ),
                             child: const Icon(
                               Icons.picture_as_pdf,
                               color: Colors.white,
-                              size: 28,
+                              size: 24,
                             ),
                           ),
                         ),
@@ -201,12 +205,12 @@ class ProgressHeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? Colors.black.withValues(alpha: 0.2)
-            : Colors.grey.withValues(alpha: 0.1),
+            : AppColors.primaryNavy.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.1)
-              : Colors.black.withValues(alpha: 0.05),
+              : AppColors.primaryNavy.withValues(alpha: 0.12),
           width: 1,
         ),
       ),
@@ -214,7 +218,7 @@ class ProgressHeaderCard extends StatelessWidget {
         child: DropdownButton<int>(
           value: selectedMetric,
           isDense: true,
-          dropdownColor: isDark ? const Color(0xFF2C2E42) : Colors.white,
+          dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
           icon: Padding(
             padding: const EdgeInsets.only(left: 8),
             child: Icon(
@@ -227,7 +231,6 @@ class ProgressHeaderCard extends StatelessWidget {
             color: textColor,
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            fontFamily: 'Roboto', // Or system default
           ),
           items: [
             DropdownMenuItem(
@@ -271,7 +274,9 @@ class ProgressHeaderCard extends StatelessWidget {
                   backgroundColor: isDark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.grey.withValues(alpha: 0.1),
-                  color: const Color(0xFF69F0AE), // Accent Green
+                  color: isDark
+                      ? const Color(0xFF8DB2FF)
+                      : AppColors.primaryNavy,
                 ),
                 child: Center(
                   child: Column(
@@ -302,7 +307,15 @@ class ProgressHeaderCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(" ${memPercentage['memorized']} / ${memPercentage['total']}"),
+        Text(
+          " ${memPercentage['memorized']} / ${memPercentage['total']}",
+          style: TextStyle(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.72)
+                : AppColors.textSecondaryLight,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
@@ -321,7 +334,7 @@ class ProgressHeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withValues(alpha: 0.07)
-            : Colors.grey.withValues(alpha: 0.05),
+            : AppColors.primaryNavy.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

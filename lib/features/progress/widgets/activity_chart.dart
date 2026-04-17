@@ -79,12 +79,24 @@ class ActivityChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rangeLabels = _getRangeLabels(context);
+    final primary = isDark ? const Color(0xFF8DB2FF) : AppColors.primaryNavy;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [AppColors.surfaceDark, const Color(0xFF243C60)]
+              : [Colors.white, const Color(0xFFF6FAFF)],
+        ),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : AppColors.dividerLight,
+        ),
         boxShadow: [
           BoxShadow(
             color: isDark
@@ -128,16 +140,20 @@ class ActivityChart extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? (isDark
-                                  ? AppColors.accentOrange
-                                  : AppColors.primaryNavy)
+                                  ? primary.withValues(alpha: 0.25)
+                                  : AppColors.primaryNavy.withValues(
+                                      alpha: 0.12,
+                                    ))
                             : (isDark
-                                  ? Colors.white.withValues(alpha: 0.05)
-                                  : Colors.grey[100]),
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : const Color(0xFFF2F6FF)),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isSelected
-                              ? Colors.transparent
-                              : (isDark ? Colors.white10 : Colors.grey[300]!),
+                              ? primary.withValues(alpha: 0.35)
+                              : (isDark
+                                    ? Colors.white10
+                                    : AppColors.dividerLight),
                         ),
                       ),
                       child: Text(
@@ -148,7 +164,7 @@ class ActivityChart extends StatelessWidget {
                               ? FontWeight.bold
                               : FontWeight.normal,
                           color: isSelected
-                              ? Colors.white
+                              ? (isDark ? Colors.white : AppColors.primaryNavy)
                               : (isDark ? Colors.grey : Colors.grey[600]),
                         ),
                       ),
@@ -212,9 +228,7 @@ class ActivityChart extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.grey
-                                  : AppColors.primaryNavy,
+                              color: isDark ? Colors.grey : primary,
                             ),
                           ),
                         ),
@@ -225,7 +239,7 @@ class ActivityChart extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isDark
                               ? Colors.white.withValues(alpha: 0.05)
-                              : Colors.grey[100],
+                              : const Color(0xFFF0F4FB),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: count > 0
@@ -233,22 +247,16 @@ class ActivityChart extends StatelessWidget {
                                 width: barWidth,
                                 height: normalizedHeight.clamp(barWidth, 80.0),
                                 decoration: BoxDecoration(
-                                  color: isDark
-                                      ? AppColors.accentOrange
-                                      : AppColors.primaryNavy,
+                                  color: primary,
                                   borderRadius: BorderRadius.circular(4),
-                                  gradient: isDark
-                                      ? null
-                                      : LinearGradient(
-                                          begin: Alignment.bottomCenter,
-                                          end: Alignment.topCenter,
-                                          colors: [
-                                            AppColors.primaryNavy,
-                                            AppColors.primaryNavy.withValues(
-                                              alpha: 0.8,
-                                            ),
-                                          ],
-                                        ),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [
+                                      primary,
+                                      primary.withValues(alpha: 0.72),
+                                    ],
+                                  ),
                                 ),
                               )
                             : null,

@@ -150,325 +150,349 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
         return FutureBuilder<List<TaskNote>>(
           future: _notesFuture,
           builder: (context, snapshot) {
-            return ScrollConfiguration(
-              behavior: ScrollConfiguration.of(
-                context,
-              ).copyWith(scrollbars: false),
-              child: SingleChildScrollView(
-                controller: scrollController,
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white24 : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      widget.title,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.primaryNavy,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    Text(
-                      "$typeName ${l10n.progressAndNotes}",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Stats Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            context,
-                            l10n.total,
-                            "${snapshot.data?.length ?? 0}",
-                            Colors.blue,
-                            Icons.list_alt_rounded,
-                            isDark,
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: isDark
+                      ? [const Color(0xFF1A2E4E), AppColors.backgroundDark]
+                      : [const Color(0xFFF3F8FF), AppColors.backgroundLight],
+                ),
+              ),
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(
+                  context,
+                ).copyWith(scrollbars: false),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white24 : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatCard(
-                            context,
-                            l10n.mistake,
-                            "${snapshot.data?.where((n) => n.type == NoteType.mistake).length ?? 0}",
-                            AppColors.errorRed,
-                            Icons.cancel_outlined,
-                            isDark,
-                          ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppColors.primaryNavy,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatCard(
-                            context,
-                            l10n.doubt,
-                            "${snapshot.data?.where((n) => n.type == NoteType.doubt).length ?? 0}",
-                            const Color(0xFFFFB74D), // Soft Orange
-                            Icons.help_outline_rounded,
-                            isDark,
+                      ),
+                      const SizedBox(height: 8),
+
+                      Text(
+                        "$typeName ${l10n.progressAndNotes}",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Stats Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              context,
+                              l10n.total,
+                              "${snapshot.data?.length ?? 0}",
+                              AppColors.primaryNavy,
+                              Icons.list_alt_rounded,
+                              isDark,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              context,
+                              l10n.mistake,
+                              "${snapshot.data?.where((n) => n.type == NoteType.mistake).length ?? 0}",
+                              AppColors.errorRed,
+                              Icons.cancel_outlined,
+                              isDark,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard(
+                              context,
+                              l10n.doubt,
+                              "${snapshot.data?.where((n) => n.type == NoteType.doubt).length ?? 0}",
+                              const Color(0xFFFFB74D), // Soft Orange
+                              Icons.help_outline_rounded,
+                              isDark,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (widget.type == PlanUnitType.surah ||
+                          widget.type == PlanUnitType.juz ||
+                          widget.type == PlanUnitType.hizb) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => AyahAnalysisSheet(
+                                  unitType: widget.type,
+                                  unitId: widget.unitId,
+                                  title: widget.title,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.analytics_outlined),
+                            label: Text(l10n.mistakesAnalysis),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: BorderSide(
+                                color: isDark
+                                    ? AppColors.accentOrange
+                                    : AppColors.primaryNavy,
+                              ),
+                              foregroundColor: isDark
+                                  ? AppColors.accentOrange
+                                  : AppColors.primaryNavy,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ),
                       ],
-                    ),
 
-                    if (widget.type == PlanUnitType.surah ||
-                        widget.type == PlanUnitType.juz ||
-                        widget.type == PlanUnitType.hizb) ...[
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (context) => AyahAnalysisSheet(
-                                unitType: widget.type,
-                                unitId: widget.unitId,
-                                title: widget.title,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.analytics_outlined),
-                          label: Text(l10n.mistakesAnalysis),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            side: BorderSide(
-                              color: isDark
-                                  ? AppColors.accentOrange
-                                  : AppColors.primaryNavy,
-                            ),
-                            foregroundColor: isDark
-                                ? AppColors.accentOrange
-                                : AppColors.primaryNavy,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    if (_breakdownFuture != null)
-                      FutureBuilder<List<Map<String, dynamic>>>(
-                        future: _breakdownFuture,
-                        builder: (context, snap) {
-                          if (snap.connectionState == ConnectionState.waiting) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-                          if (!snap.hasData || snap.data!.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 24),
-                              Text(
-                                l10n.juzContents,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.primaryNavy,
+                      if (_breakdownFuture != null)
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _breakdownFuture,
+                          builder: (context, snap) {
+                            if (snap.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
                                 ),
-                              ),
-                              const SizedBox(height: 12),
-                              ...snap.data!.map((data) {
-                                final total = data['totalAyahs'] as int;
-                                final memorized = data['memorizedCount'] as int;
-                                final progress = total > 0
-                                    ? memorized / total
-                                    : 0.0;
-                                final isComplete = progress >= 0.99;
-
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
+                              );
+                            }
+                            if (!snap.hasData || snap.data!.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 24),
+                                Text(
+                                  l10n.juzContents,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                     color: isDark
-                                        ? Colors.white10
-                                        : Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isDark
-                                          ? Colors.white12
-                                          : Colors.grey[200]!,
-                                    ),
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.primaryNavy,
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 32,
-                                        height: 32,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? Colors.black26
-                                              : Colors.white,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isComplete
-                                                ? AppColors.successGreen
-                                                : (isDark
-                                                      ? Colors.white24
-                                                      : Colors.grey[300]!),
-                                          ),
-                                        ),
-                                        child: isComplete
-                                            ? const Icon(
-                                                Icons.check,
-                                                size: 16,
-                                                color: AppColors.successGreen,
+                                ),
+                                const SizedBox(height: 12),
+                                ...snap.data!.map((data) {
+                                  final total = data['totalAyahs'] as int;
+                                  final memorized =
+                                      data['memorizedCount'] as int;
+                                  final progress = total > 0
+                                      ? memorized / total
+                                      : 0.0;
+                                  final isComplete = progress >= 0.99;
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.14,
                                               )
-                                            : Text(
-                                                "${data['number']}",
-                                                style: TextStyle(
-                                                  fontSize: 12,
+                                            : AppColors.dividerLight,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? Colors.black26
+                                                : Colors.white,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: isComplete
+                                                  ? AppColors.successGreen
+                                                  : (isDark
+                                                        ? Colors.white24
+                                                        : Colors.grey[300]!),
+                                            ),
+                                          ),
+                                          child: isComplete
+                                              ? const Icon(
+                                                  Icons.check,
+                                                  size: 16,
+                                                  color: AppColors.successGreen,
+                                                )
+                                              : Text(
+                                                  "${data['number']}",
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isDark
+                                                        ? Colors.white70
+                                                        : Colors.grey[600],
+                                                  ),
+                                                ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "${data['englishName']} (${l10n.ayah} ${data['minAyah']} - ${data['maxAyah']})",
+                                                style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : Colors.grey[600],
+                                                  fontSize: 14,
                                                 ),
                                               ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "${data['englishName']} (${l10n.ayah} ${data['minAyah']} - ${data['maxAyah']})",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
+                                              const SizedBox(height: 4),
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(2),
+                                                child: LinearProgressIndicator(
+                                                  value: progress,
+                                                  minHeight: 4,
+                                                  backgroundColor: isDark
+                                                      ? Colors.black26
+                                                      : Colors.grey[200],
+                                                  color: isComplete
+                                                      ? AppColors.successGreen
+                                                      : AppColors.accentOrange,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(2),
-                                              child: LinearProgressIndicator(
-                                                value: progress,
-                                                minHeight: 4,
-                                                backgroundColor: isDark
-                                                    ? Colors.black26
-                                                    : Colors.grey[200],
-                                                color: isComplete
-                                                    ? AppColors.successGreen
-                                                    : AppColors.accentOrange,
-                                              ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        "${(progress * 100).toInt()}%",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                          color: isComplete
-                                              ? AppColors.successGreen
-                                              : AppColors.accentOrange,
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          "${(progress * 100).toInt()}%",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: isComplete
+                                                ? AppColors.successGreen
+                                                : AppColors.accentOrange,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ],
-                          );
-                        },
-                      ),
-
-                    const SizedBox(height: 24),
-                    // Notes Section Header
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.sticky_note_2_outlined,
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.primaryNavy,
-                          size: 20,
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ],
+                            );
+                          },
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.notesHistory,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+
+                      const SizedBox(height: 24),
+                      // Notes Section Header
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.sticky_note_2_outlined,
                             color: isDark
                                 ? AppColors.textPrimaryDark
                                 : AppColors.primaryNavy,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.notesHistory,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.primaryNavy,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (!snapshot.hasData || snapshot.data!.isEmpty)
+                        _buildEmptyNotesState(isDark)
+                      else
+                        ...snapshot.data!.map(
+                          (note) => CollapsibleNoteCard(
+                            note: note,
+                            onDelete: () => _deleteNote(note.id!),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
 
-                    if (snapshot.connectionState == ConnectionState.waiting)
-                      const Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (!snapshot.hasData || snapshot.data!.isEmpty)
-                      _buildEmptyNotesState(isDark)
-                    else
-                      ...snapshot.data!.map(
-                        (note) => CollapsibleNoteCard(
-                          note: note,
-                          onDelete: () => _deleteNote(note.id!),
-                        ),
-                      ),
-
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryNavy,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDark
+                                ? const Color(0xFF2F65BA)
+                                : AppColors.primaryNavy,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
+                          child: Text(l10n.close),
                         ),
-                        child: Text(l10n.close),
                       ),
-                    ),
-                    SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-                  ],
+                      SizedBox(
+                        height: MediaQuery.of(context).viewInsets.bottom,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -528,7 +552,13 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [AppColors.surfaceDark, const Color(0xFF263F66)]
+              : [Colors.white, const Color(0xFFF7FAFF)],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1),

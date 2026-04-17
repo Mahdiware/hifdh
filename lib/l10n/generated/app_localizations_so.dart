@@ -590,4 +590,87 @@ class AppLocalizationsSo extends AppLocalizations {
   String errorWithMessage(Object error) {
     return 'Khalad: $error';
   }
+
+  @override
+  String get revisionQueueTitle => 'Safka Murajacada Caqliga Leh';
+
+  @override
+  String get queueStartSession => 'Bilow Fadhi';
+
+  @override
+  String get queueSession => 'Fadhiga Murajacada';
+
+  @override
+  String get queueSessionComplete => 'Fadhigu wuu dhammaaday';
+
+  @override
+  String get queueDue => 'La gaaray';
+
+  @override
+  String get queueWeak => 'Daciif';
+
+  @override
+  String get queueMastered => 'La adkeeyay';
+
+  @override
+  String get queueHighestPriority => 'Mudnaanta Ugu Sareysa';
+
+  @override
+  String get queueOldestFirst => 'Dib-u-eegistii Ugu Horeysay';
+
+  @override
+  String get queueNoItems => 'Aayado kuma jiraan safkan';
+
+  @override
+  String get queueOptionalNote => 'Qoraal ikhtiyaari ah';
+
+  @override
+  String get queueMarkedCorrect => 'Waxaa loo calaamadeeyay sax';
+
+  @override
+  String get queueMarkedDoubt => 'Waxaa loo calaamadeeyay shaki';
+
+  @override
+  String get queueMarkedMistake => 'Waxaa loo calaamadeeyay qalad';
+
+  @override
+  String get queueReasonNotMemorized => 'Weli lama xifdin';
+
+  @override
+  String get queueReasonMaintenance => 'Murajaco joogto ah';
+
+  @override
+  String get queueReasonLastNeedsWork =>
+      'Natiijadii ugu dambeysay waxay u baahan tahay shaqo';
+
+  @override
+  String get queueSettingsDescription =>
+      'Xakamee cabbirka safka iyo sida aayadaha la adkeeyay loo muujiyo';
+
+  @override
+  String get queueIncludeMastered => 'Ku dar aayadaha la adkeeyay';
+
+  @override
+  String get queueIncludeMasteredDescription =>
+      'Muuji aayadaha hore loo adkeeyay safka';
+
+  @override
+  String queueDailyTarget(int target) {
+    return 'Hadaf maalinle: $target aayado';
+  }
+
+  @override
+  String queueReasonMistakes(int count) {
+    return 'Qaladaad: $count';
+  }
+
+  @override
+  String queueReasonDoubts(int count) {
+    return 'Shaki: $count';
+  }
+
+  @override
+  String queueReasonDays(int days) {
+    return '${days}m tan iyo dib-u-eegis';
+  }
 }

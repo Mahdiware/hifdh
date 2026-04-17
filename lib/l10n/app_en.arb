@@ -239,5 +239,57 @@
                 "type": "Object"
             }
         }
+    },
+    "revisionQueueTitle": "Smart Revision Queue",
+    "queueStartSession": "Start Session",
+    "queueSession": "Revision Session",
+    "queueSessionComplete": "Session complete",
+    "queueDue": "Due",
+    "queueWeak": "Weak",
+    "queueMastered": "Mastered",
+    "queueHighestPriority": "Highest Priority",
+    "queueOldestFirst": "Oldest Review",
+    "queueNoItems": "No ayahs in this queue",
+    "queueOptionalNote": "Optional note",
+    "queueMarkedCorrect": "Marked as correct",
+    "queueMarkedDoubt": "Marked as doubt",
+    "queueMarkedMistake": "Marked as mistake",
+    "queueReasonNotMemorized": "Not memorized yet",
+    "queueReasonMaintenance": "Maintenance review",
+    "queueReasonLastNeedsWork": "Last result needs work",
+    "queueSettingsDescription": "Control queue size and mastered ayahs behavior",
+    "queueIncludeMastered": "Include mastered ayahs",
+    "queueIncludeMasteredDescription": "Show already-mastered ayahs in queue results",
+    "queueDailyTarget": "Daily target: {target} ayahs",
+    "@queueDailyTarget": {
+        "placeholders": {
+            "target": {
+                "type": "int"
+            }
+        }
+    },
+    "queueReasonMistakes": "Mistakes: {count}",
+    "@queueReasonMistakes": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "queueReasonDoubts": "Doubts: {count}",
+    "@queueReasonDoubts": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "queueReasonDays": "{days}d since review",
+    "@queueReasonDays": {
+        "placeholders": {
+            "days": {
+                "type": "int"
+            }
+        }
     }
 }

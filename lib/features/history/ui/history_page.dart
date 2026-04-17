@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/planner_database.dart';
+import 'package:hifdh/core/theme/app_background.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/ayah_search_query.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
@@ -157,12 +158,16 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Widget _buildSearchField(bool isDark) {
     return Container(
-      height: 40,
+      height: 42,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.grey[200],
-        borderRadius: BorderRadius.circular(20),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDark ? Colors.transparent : Colors.grey[300]!,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.15)
+              : AppColors.dividerLight,
         ),
       ),
       child: TextField(
@@ -176,13 +181,15 @@ class _HistoryPageState extends State<HistoryPage> {
         decoration: InputDecoration(
           hintText: AppLocalizations.of(context)!.searchHistory,
           hintStyle: TextStyle(
-            color: isDark ? Colors.grey[500] : Colors.grey[600],
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.65)
+                : AppColors.textSecondaryLight,
             fontSize: 13,
           ),
           prefixIcon: Icon(
-            Icons.search,
+            Icons.search_rounded,
             size: 18,
-            color: isDark ? Colors.grey[500] : Colors.grey[600],
+            color: isDark ? Colors.white70 : AppColors.primaryNavy,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 0),
@@ -240,28 +247,45 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final groupedTasks = _groupTasksByDate(context);
+    final groupedTasks = _groupTasksByDate(context).entries.toList();
 
     return Scaffold(
       backgroundColor: isDark
           ? AppColors.backgroundDark
           : AppColors.backgroundLight,
       appBar: AppBar(
-        title: _buildSearchField(isDark), // Replaced title with search
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: isDark
+                  ? [const Color(0xFF152B4D), AppColors.backgroundDark]
+                  : [const Color(0xFFEAF1FF), AppColors.backgroundLight],
+            ),
+          ),
+        ),
+        title: _buildSearchField(isDark), // Replaced title with search
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0),
+            padding: const EdgeInsets.only(right: 12),
             child: PopupMenuButton<HistorySort>(
               icon: Container(
-                padding: const EdgeInsets.all(8),
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : AppColors.primaryNavy.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDark ? Colors.transparent : AppColors.dividerLight,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : AppColors.primaryNavy.withValues(alpha: 0.16),
                   ),
                 ),
                 child: Icon(
@@ -281,7 +305,9 @@ class _HistoryPageState extends State<HistoryPage> {
                       child: Text(
                         AppLocalizations.of(context)!.sortNewest,
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
                     ),
@@ -290,7 +316,9 @@ class _HistoryPageState extends State<HistoryPage> {
                       child: Text(
                         AppLocalizations.of(context)!.sortOldest,
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
                     ),
@@ -299,7 +327,9 @@ class _HistoryPageState extends State<HistoryPage> {
                       child: Text(
                         AppLocalizations.of(context)!.memorizeTasksFirst,
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
                     ),
@@ -308,7 +338,9 @@ class _HistoryPageState extends State<HistoryPage> {
                       child: Text(
                         AppLocalizations.of(context)!.revisionTasksFirst,
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
                     ),
@@ -317,40 +349,164 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : groupedTasks.isEmpty
-          ? _buildEmptyState(isDark)
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: groupedTasks.length,
-              itemBuilder: (context, index) {
-                String dateKey = groupedTasks.keys.elementAt(index);
-                List<PlanTask> tasks = groupedTasks[dateKey]!;
+      body: DecoratedBox(
+        decoration: AppBackground.pageDecoration(theme),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : groupedTasks.isEmpty
+            ? _buildEmptyState(isDark)
+            : _buildGroupedHistoryList(groupedTasks, isDark),
+      ),
+    );
+  }
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12.0,
-                        horizontal: 4,
-                      ),
-                      child: Text(
-                        dateKey,
-                        style: TextStyle(
-                          color: AppColors.accentOrange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    ...tasks.map((task) => _buildTaskItem(task, isDark)),
-                  ],
-                );
-              },
+  Widget _buildGroupedHistoryList(
+    List<MapEntry<String, List<PlanTask>>> groupedTasks,
+    bool isDark,
+  ) {
+    int revealIndex = 0;
+    final l10n = AppLocalizations.of(context)!;
+    final totalTasks = _filteredHistory.length;
+    final memorizedTasks = _filteredHistory
+        .where((t) => t.type == TaskType.memorize)
+        .length;
+    final revisionTasks = totalTasks - memorizedTasks;
+
+    return ListView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      children: [
+        _SlideFadeReveal(
+          index: revealIndex++,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [AppColors.surfaceDark, const Color(0xFF243B5E)]
+                    : [Colors.white, const Color(0xFFF1F7FF)],
+              ),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : AppColors.dividerLight,
+              ),
             ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildSummaryPill(
+                    label: l10n.total,
+                    value: '$totalTasks',
+                    color: AppColors.primaryNavy,
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildSummaryPill(
+                    label: l10n.memorize,
+                    value: '$memorizedTasks',
+                    color: AppColors.successGreen,
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildSummaryPill(
+                    label: l10n.revision,
+                    value: '$revisionTasks',
+                    color: AppColors.accentOrange,
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...groupedTasks.map((entry) {
+          final dateKey = entry.key;
+          final tasks = entry.value;
+
+          final sectionChildren = <Widget>[
+            _SlideFadeReveal(
+              index: revealIndex++,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 4,
+                ),
+                child: Text(
+                  dateKey,
+                  style: TextStyle(
+                    color: AppColors.accentOrange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ];
+
+          for (final task in tasks) {
+            sectionChildren.add(
+              _SlideFadeReveal(
+                index: revealIndex++,
+                child: _buildTaskItem(task, isDark),
+              ),
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: sectionChildren,
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSummaryPill({
+    required String label,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.2 : 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -684,8 +840,6 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
         );
   }
 
-
-
   Future<void> _deleteNote(int id) async {
     await PlannerDatabase().deleteTaskNote(id);
     if (mounted) {
@@ -922,6 +1076,33 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _SlideFadeReveal extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _SlideFadeReveal({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedIndex = index.clamp(0, 14);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 300 + (clampedIndex * 35)),
+      curve: Curves.easeOutCubic,
+      child: child,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 14),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

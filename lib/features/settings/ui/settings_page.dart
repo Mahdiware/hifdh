@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/services/app_version_info.dart';
+import 'package:hifdh/core/services/backup_service.dart';
+import 'package:hifdh/core/services/planner_database.dart';
+import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
-import '../logic/theme_provider.dart';
+
 import '../logic/locale_provider.dart';
 import '../logic/preferences_provider.dart';
-import 'package:hifdh/l10n/generated/app_localizations.dart';
-import 'package:hifdh/core/services/planner_database.dart';
-import 'package:hifdh/core/services/backup_service.dart';
+import '../logic/theme_provider.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -53,6 +54,27 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
+  String _getFontOptionText(String option) {
+    switch (option) {
+      case ThemeProvider.robotoFontOption:
+        return 'Roboto';
+      case ThemeProvider.serifFontOption:
+        return 'Serif';
+      case ThemeProvider.monoFontOption:
+        return 'Monospace';
+      case ThemeProvider.systemFontOption:
+      default:
+        return 'System';
+    }
+  }
+
+  String _getFontScaleText(double scale) {
+    final percent = (scale * 100).round();
+    if (percent == 100) return 'Default (100%)';
+    if (percent < 100) return 'Smaller ($percent%)';
+    return 'Larger ($percent%)';
+  }
+
   String _getLanguageName(String code) {
     switch (code) {
       case 'ar':
@@ -72,56 +94,205 @@ class SettingsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return ListView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       children: [
-        _buildLanguageSelector(localeProvider, l10n),
-        const Divider(),
-        _buildThemeSelector(themeProvider, l10n),
-        const Divider(),
-        _buildReadModeToggle(context, l10n),
-        const Divider(),
-        _buildBackupSection(context, l10n),
-        _buildRestoreSection(context, l10n),
-        const Divider(),
-        _buildResetSection(context, l10n),
-        const Divider(),
-        _buildVersionInfo(context, l10n),
+        _buildSettingsHero(context, l10n),
+        const SizedBox(height: 14),
+        _buildSectionCard(
+          context,
+          icon: Icons.tune_rounded,
+          title: l10n.settings,
+          children: [
+            _buildLanguageSelector(localeProvider, l10n),
+            const Divider(height: 20),
+            _buildThemeSelector(themeProvider, l10n),
+            const Divider(height: 20),
+            _buildFontSelector(themeProvider),
+            const Divider(height: 20),
+            _buildFontSizeSelector(context, themeProvider),
+            const Divider(height: 20),
+            _buildReadModeToggle(context, l10n),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildSectionCard(
+          context,
+          icon: Icons.auto_graph_rounded,
+          title: l10n.revisionQueueTitle,
+          children: [_buildRevisionQueueSettings(context, l10n)],
+        ),
+        const SizedBox(height: 12),
+        _buildSectionCard(
+          context,
+          icon: Icons.storage_rounded,
+          title: '${l10n.createBackup} / ${l10n.restoreBackup}',
+          children: [
+            _buildBackupSection(context, l10n),
+            const Divider(height: 20),
+            _buildRestoreSection(context, l10n),
+            const Divider(height: 20),
+            _buildResetSection(context, l10n),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildSectionCard(
+          context,
+          icon: Icons.info_outline_rounded,
+          title: l10n.appVersion,
+          children: [_buildVersionInfo(context, l10n)],
+        ),
+        const SizedBox(height: 20),
       ],
+    );
+  }
+
+  Widget _buildSettingsHero(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [
+            colorScheme.primary.withValues(alpha: 0.18),
+            colorScheme.tertiary.withValues(alpha: 0.18),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.settings_rounded, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.settings,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${l10n.language} • ${l10n.theme} • ${l10n.revisionQueueTitle}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required List<Widget> children,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      ),
     );
   }
 
   Widget _buildVersionInfo(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.6,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.appVersion,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.appVersion,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+          const SizedBox(height: 6),
+          Text(
+            '${AppVersionInfo().version} (${AppVersionInfo().buildNumber})',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 6),
-            Text(
-              "${AppVersionInfo().version} (${AppVersionInfo().buildNumber})",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -131,10 +302,12 @@ class SettingsPage extends StatelessWidget {
     AppLocalizations l10n,
   ) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       title: Text(l10n.language),
       leading: const Icon(Icons.language),
       trailing: DropdownButton<String>(
         value: provider.locale.languageCode,
+        underline: const SizedBox.shrink(),
         onChanged: (String? newValue) {
           if (newValue != null) {
             provider.setLocale(Locale(newValue));
@@ -152,6 +325,7 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildThemeSelector(ThemeProvider provider, AppLocalizations l10n) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       title: Text(l10n.theme),
       subtitle: Text(_getThemeText(provider.themeMode, l10n)),
       leading: Icon(
@@ -161,6 +335,7 @@ class SettingsPage extends StatelessWidget {
       ),
       trailing: DropdownButton<ThemeMode>(
         value: provider.themeMode,
+        underline: const SizedBox.shrink(),
         onChanged: (ThemeMode? newValue) {
           if (newValue != null) {
             provider.setThemeMode(newValue);
@@ -173,6 +348,100 @@ class SettingsPage extends StatelessWidget {
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget _buildFontSelector(ThemeProvider provider) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('App Font'),
+      subtitle: Text(_getFontOptionText(provider.fontOption)),
+      leading: const Icon(Icons.text_fields_rounded),
+      trailing: DropdownButton<String>(
+        value: provider.fontOption,
+        underline: const SizedBox.shrink(),
+        onChanged: (String? newValue) {
+          if (newValue != null) {
+            provider.setFontOption(newValue);
+          }
+        },
+        items: ThemeProvider.availableFontOptions.map((option) {
+          return DropdownMenuItem<String>(
+            value: option,
+            child: Text(_getFontOptionText(option)),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildFontSizeSelector(BuildContext context, ThemeProvider provider) {
+    final minScale = ThemeProvider.availableTextScaleOptions.first;
+    final maxScale = ThemeProvider.availableTextScaleOptions.last;
+    final currentScale = provider.textScaleFactor.clamp(minScale, maxScale);
+    final isDefault =
+        (currentScale - ThemeProvider.defaultTextScale).abs() < 0.001;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.format_size_rounded),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Font Size'),
+                  const SizedBox(height: 2),
+                  Text(
+                    _getFontScaleText(currentScale),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '${(currentScale * 100).round()}%',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: isDefault
+                  ? null
+                  : () {
+                      provider.setTextScaleFactor(
+                        ThemeProvider.defaultTextScale,
+                      );
+                    },
+              child: const Text('Center'),
+            ),
+          ],
+        ),
+        Slider(
+          min: minScale,
+          max: maxScale,
+          divisions: ThemeProvider.availableTextScaleOptions.length - 1,
+          value: currentScale,
+          label: _getFontScaleText(currentScale),
+          onChanged: (value) {
+            provider.setTextScaleFactor(value);
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              Text('A-', style: Theme.of(context).textTheme.bodySmall),
+              const Spacer(),
+              Text('A', style: Theme.of(context).textTheme.bodySmall),
+              const Spacer(),
+              Text('A+', style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -191,13 +460,7 @@ class SettingsPage extends StatelessWidget {
             : (isDark ? Colors.grey[400] : Colors.grey[600]);
 
         return SwitchListTile.adaptive(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 8,
-          ),
+          contentPadding: EdgeInsets.zero,
           title: Text(
             l10n.defaultToReadMode,
             style: TextStyle(
@@ -220,7 +483,8 @@ class SettingsPage extends StatelessWidget {
           secondary: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: (iconColor ?? Colors.blue).withValues(alpha: 0.15),
+              color: (iconColor ?? Theme.of(context).colorScheme.primary)
+                  .withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -236,8 +500,63 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  Widget _buildRevisionQueueSettings(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Consumer<PreferencesProvider>(
+      builder: (context, prefs, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.queueSettingsDescription,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.queueIncludeMastered),
+              subtitle: Text(l10n.queueIncludeMasteredDescription),
+              value: prefs.revisionQueueIncludeMastered,
+              onChanged: (value) {
+                prefs.toggleRevisionQueueIncludeMastered(value);
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(
+                l10n.queueDailyTarget(prefs.revisionQueueDailyTarget),
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Slider(
+              min: 5,
+              max: 100,
+              divisions: 19,
+              value: prefs.revisionQueueDailyTarget.toDouble(),
+              label: '${prefs.revisionQueueDailyTarget}',
+              onChanged: (value) {
+                prefs.setRevisionQueueDailyTarget(value.round());
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildBackupSection(BuildContext context, AppLocalizations l10n) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       title: Text(l10n.createBackup),
       subtitle: Text(l10n.backupToFile),
       leading: const Icon(Icons.download_rounded),
@@ -262,6 +581,7 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildRestoreSection(BuildContext context, AppLocalizations l10n) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       title: Text(l10n.restoreBackup),
       subtitle: Text(l10n.restoreFromFile),
       leading: const Icon(Icons.restore_page_rounded),
@@ -287,6 +607,7 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildResetSection(BuildContext context, AppLocalizations l10n) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       title: Text(
         l10n.resetData,
         style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),

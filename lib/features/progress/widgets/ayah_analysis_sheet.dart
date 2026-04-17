@@ -135,8 +135,14 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: isDark
+                  ? [const Color(0xFF1A2E4D), AppColors.backgroundDark]
+                  : [const Color(0xFFF2F7FF), AppColors.backgroundLight],
+            ),
           ),
           child: Column(
             children: [
@@ -144,9 +150,14 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.02)
+                      : Colors.white.withValues(alpha: 0.55),
                   border: Border(
                     bottom: BorderSide(
-                      color: isDark ? Colors.white12 : Colors.black12,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : AppColors.dividerLight,
                     ),
                   ),
                 ),
@@ -190,7 +201,9 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                         ),
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.black26 : Colors.grey[200],
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : AppColors.primaryNavy.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           padding: const EdgeInsets.all(2),
@@ -300,7 +313,7 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                         if (color == Colors.transparent) {
                                           pillColor = isDark
                                               ? Colors.white10
-                                              : Colors.grey[200]!;
+                                              : const Color(0xFFE9EFFA);
                                           textColor = isDark
                                               ? Colors.white70
                                               : Colors.black87;
@@ -365,9 +378,22 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                           ),
                                           child: Container(
                                             width: 44,
-                                            height: 26,
+                                            height: 28,
                                             decoration: BoxDecoration(
                                               color: pillColor,
+                                              border: Border.all(
+                                                color:
+                                                    color == Colors.transparent
+                                                    ? (isDark
+                                                          ? Colors.white
+                                                                .withValues(
+                                                                  alpha: 0.05,
+                                                                )
+                                                          : Colors.transparent)
+                                                    : color.withValues(
+                                                        alpha: 0.5,
+                                                      ),
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
@@ -400,6 +426,8 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
   }
 
   Widget _buildLegendItem(Color color, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       children: [
         Container(
@@ -410,7 +438,11 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+          ),
         ),
       ],
     );
@@ -430,9 +462,16 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? Colors.white24 : Colors.white)
+              ? (isDark ? Colors.white.withValues(alpha: 0.26) : Colors.white)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected
+                ? (isDark
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : AppColors.primaryNavy.withValues(alpha: 0.16))
+                : Colors.transparent,
+          ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
@@ -526,10 +565,31 @@ class _AyahHistorySheetState extends State<_AyahHistorySheet> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.7,
       ),
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark
+              ? [const Color(0xFF1D3253), AppColors.backgroundDark]
+              : [const Color(0xFFF3F8FF), AppColors.backgroundLight],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.grey[350],
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -557,7 +617,10 @@ class _AyahHistorySheetState extends State<_AyahHistorySheet> {
               IconButton(
                 onPressed: () =>
                     openQuranLink(widget.surahNumber, widget.ayahNumber),
-                icon: Icon(Icons.menu_book_rounded),
+                icon: Icon(
+                  Icons.menu_book_rounded,
+                  color: isDark ? Colors.white : AppColors.primaryNavy,
+                ),
               ),
             ],
           ),

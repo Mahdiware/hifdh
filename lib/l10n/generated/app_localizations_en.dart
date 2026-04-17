@@ -585,4 +585,86 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorWithMessage(Object error) {
     return 'Error: $error';
   }
+
+  @override
+  String get revisionQueueTitle => 'Smart Revision Queue';
+
+  @override
+  String get queueStartSession => 'Start Session';
+
+  @override
+  String get queueSession => 'Revision Session';
+
+  @override
+  String get queueSessionComplete => 'Session complete';
+
+  @override
+  String get queueDue => 'Due';
+
+  @override
+  String get queueWeak => 'Weak';
+
+  @override
+  String get queueMastered => 'Mastered';
+
+  @override
+  String get queueHighestPriority => 'Highest Priority';
+
+  @override
+  String get queueOldestFirst => 'Oldest Review';
+
+  @override
+  String get queueNoItems => 'No ayahs in this queue';
+
+  @override
+  String get queueOptionalNote => 'Optional note';
+
+  @override
+  String get queueMarkedCorrect => 'Marked as correct';
+
+  @override
+  String get queueMarkedDoubt => 'Marked as doubt';
+
+  @override
+  String get queueMarkedMistake => 'Marked as mistake';
+
+  @override
+  String get queueReasonNotMemorized => 'Not memorized yet';
+
+  @override
+  String get queueReasonMaintenance => 'Maintenance review';
+
+  @override
+  String get queueReasonLastNeedsWork => 'Last result needs work';
+
+  @override
+  String get queueSettingsDescription =>
+      'Control queue size and mastered ayahs behavior';
+
+  @override
+  String get queueIncludeMastered => 'Include mastered ayahs';
+
+  @override
+  String get queueIncludeMasteredDescription =>
+      'Show already-mastered ayahs in queue results';
+
+  @override
+  String queueDailyTarget(int target) {
+    return 'Daily target: $target ayahs';
+  }
+
+  @override
+  String queueReasonMistakes(int count) {
+    return 'Mistakes: $count';
+  }
+
+  @override
+  String queueReasonDoubts(int count) {
+    return 'Doubts: $count';
+  }
+
+  @override
+  String queueReasonDays(int days) {
+    return '${days}d since review';
+  }
 }

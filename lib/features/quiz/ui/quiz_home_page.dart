@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/services/quran_database.dart';
-import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/core/theme/app_background.dart';
 import 'package:hifdh/features/quiz/ui/result_page.dart';
 import 'package:hifdh/shared/models/ayah.dart';
 import 'package:hifdh/shared/models/result_item.dart';
@@ -46,6 +46,11 @@ class _QuizHomePageState extends State<QuizHomePage> {
           widget.settings.surahNumbers!.isNotEmpty) {
         ayah = await dbHelper.getRandomAyahBySurahList(
           widget.settings.surahNumbers!,
+        );
+      } else if (widget.settings.isJuzRange) {
+        ayah = await dbHelper.getRandomAyahByJuzRange(
+          widget.settings.startJuz!,
+          widget.settings.endJuz!,
         );
       } else if (widget.settings.juz != null) {
         ayah = await dbHelper.getRandomAyahByJuz(widget.settings.juz!);
@@ -147,14 +152,20 @@ class _QuizHomePageState extends State<QuizHomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios),
+                          icon: Icon(
+                            Icons.arrow_back_ios,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           onPressed: () => navigateAyah(1),
                         ),
                         Text(
                           "${currentDialogAyah.surahNumber}:${currentDialogAyah.ayahNumber}",
                         ),
                         IconButton(
-                          icon: const Icon(Icons.arrow_forward_ios),
+                          icon: Icon(
+                            Icons.arrow_forward_ios,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           onPressed: () => navigateAyah(-1),
                         ),
                       ],
@@ -237,192 +248,250 @@ class _QuizHomePageState extends State<QuizHomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     final textColor = isDark ? Colors.white : Colors.black;
 
     return Scaffold(
-      // backgroundColor: const Color(0xFF232635), // Use theme background
-      body: SafeArea(
-        child: Column(
-          children: [
-            // HEADER
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 8.0,
-              ),
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: DecoratedBox(
+        decoration: AppBackground.pageDecoration(theme),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.black12,
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new),
-                    onPressed: () => Navigator.pop(context),
-                    tooltip: AppLocalizations.of(context)!.back,
-                  ),
-                  const Spacer(),
-                  const ThemeToggleButton(),
-                  IconButton(
-                    icon: const Icon(Icons.flag_outlined),
-                    onPressed: _finishQuiz,
-                    tooltip: AppLocalizations.of(context)!.finishQuiz,
-                    color: Colors.red,
-                  ),
-                ],
-              ),
-            ),
-
-            // QUESTION INFO
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "${AppLocalizations.of(context)!.question} $_questionCount",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.20 : 0.06,
                       ),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  Text(
-                    AppLocalizations.of(context)!.completeVersePrompt,
-                    style: TextStyle(fontSize: 22, color: textColor),
-                  ),
-                ],
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      tooltip: AppLocalizations.of(context)!.back,
+                    ),
+                    const Spacer(),
+                    const ThemeToggleButton(),
+                    IconButton(
+                      icon: const Icon(Icons.flag_outlined),
+                      onPressed: _finishQuiz,
+                      tooltip: AppLocalizations.of(context)!.finishQuiz,
+                      color: colorScheme.error,
+                    ),
+                  ],
+                ),
               ),
-            ),
-
-            // CONTENT
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _currentAyah == null
-                  ? Center(
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF355E9E), const Color(0xFF274A86)]
+                        : [const Color(0xFFEBF4FF), const Color(0xFFDCEBFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.20)
+                            : colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Text(
-                        _debugInfo,
-                        style: TextStyle(color: textColor),
+                        "${AppLocalizations.of(context)!.question} $_questionCount",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : colorScheme.primary,
+                        ),
                       ),
-                    )
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                _currentAyah!.text,
-                                textAlign: TextAlign.center,
-                                textDirection: TextDirection.rtl,
-                                style: TextStyle(
-                                  fontFamily: 'QuranFont',
-                                  fontSize: 28,
-                                  height: 1.5,
-                                  color: textColor,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context)!.completeVersePrompt,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _currentAyah == null
+                    ? Center(
+                        child: Text(
+                          _debugInfo,
+                          style: TextStyle(color: textColor),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDark ? Colors.white10 : Colors.black12,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.18 : 0.06,
+                                ),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(
+                                      _currentAyah!.text,
+                                      textAlign: TextAlign.center,
+                                      textDirection: TextDirection.rtl,
+                                      style: TextStyle(
+                                        fontFamily: 'QuranFont',
+                                        fontSize: 30,
+                                        height: 1.6,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ),
-                        // Surah Name
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 12.0,
-                            top: 12.0,
-                            bottom: 12.0,
-                          ),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              SurahGlyphs.list[_currentAyah!.surahNumber - 1],
-                              style: const TextStyle(
-                                fontFamily: 'SurahFont',
-                                fontSize: 40,
-                                color: Color(0xFF2BA403),
+                              Divider(
+                                height: 1,
+                                color: theme.dividerColor.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
-                            ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  10,
+                                  12,
+                                  12,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    SurahGlyphs.list[_currentAyah!.surahNumber -
+                                        1],
+                                    style: const TextStyle(
+                                      fontFamily: 'SurahFont',
+                                      fontSize: 36,
+                                      color: Color(0xFF2BA403),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-            ),
-
-            const Divider(height: 1, thickness: 1, color: Colors.grey),
-
-            // CONTROLS
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _showAnswerDialog,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? AppColors.surfaceDark
-                            : AppColors.backgroundLight,
-                        foregroundColor: isDark ? Colors.white : Colors.black,
-                        padding: const EdgeInsets.all(12),
                       ),
-                      child: Text(
-                        AppLocalizations.of(context)!.showAnswer,
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _checkAnswerDialog,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? AppColors.surfaceDark
-                            : AppColors.backgroundLight,
-                        foregroundColor: isDark ? Colors.white : Colors.black,
-                        padding: const EdgeInsets.all(12),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.nextQuestion,
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _showAnswerDialog,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textColor,
+                          padding: const EdgeInsets.all(12),
+                          side: BorderSide(
+                            color: isDark ? Colors.white24 : Colors.black26,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.visibility_outlined, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              AppLocalizations.of(context)!.showAnswer,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _checkAnswerDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                          padding: const EdgeInsets.all(12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.navigate_next_rounded, size: 20),
+                            const SizedBox(width: 6),
+                            Text(
+                              AppLocalizations.of(context)!.nextQuestion,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

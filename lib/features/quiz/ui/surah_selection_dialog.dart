@@ -68,15 +68,61 @@ class _SurahSelectionDialogState extends State<SurahSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: colorScheme.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              AppLocalizations.of(context)!.selectSurahs,
-              style: Theme.of(context).textTheme.titleLarge,
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [const Color(0xFF355E9E), const Color(0xFF274A86)]
+                    : [const Color(0xFF90BCFF), const Color(0xFF5B90E6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.menu_book_rounded, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(context)!.selectSurahs,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                if (!widget.isSingleSelection)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.24),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${_selectedSurahs.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(
@@ -85,33 +131,61 @@ class _SurahSelectionDialogState extends State<SurahSelectionDialog> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: AppLocalizations.of(context)!.searchSurah,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                filled: true,
+                fillColor: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.55,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Expanded(
             child: ListView.builder(
               itemCount: _filteredSurahs.length,
               itemBuilder: (context, index) {
                 final surah = _filteredSurahs[index];
                 final isSelected = _selectedSurahs.contains(surah);
-                return CheckboxListTile(
-                  title: Text(
-                    surah.glyph,
-                    style: const TextStyle(
-                      fontFamily: 'SurahFont',
-                      fontSize: 24,
+                return Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? colorScheme.primary.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: CheckboxListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    title: Text(
+                      surah.glyph,
+                      style: const TextStyle(
+                        fontFamily: 'SurahFont',
+                        fontSize: 24,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "${surah.number}. ${Localizations.localeOf(context).languageCode == 'ar' ? surah.name : surah.englishName}",
+                    ),
+                    value: isSelected,
+                    activeColor: colorScheme.primary,
+                    checkColor: Colors.white,
+                    onChanged: (bool? value) {
+                      _toggleSurah(surah);
+                    },
                   ),
-                  subtitle: Text(
-                    "${surah.number}. ${Localizations.localeOf(context).languageCode == 'ar' ? surah.name : surah.englishName}",
-                  ),
-                  value: isSelected,
-                  onChanged: (bool? value) {
-                    _toggleSurah(surah);
-                  },
                 );
               },
             ),

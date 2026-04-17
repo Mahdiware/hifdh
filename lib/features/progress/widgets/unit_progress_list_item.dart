@@ -34,33 +34,52 @@ class UnitProgressListItem extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
-      color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark
-              ? Colors.transparent
-              : AppColors.dividerLight.withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 4, // Averaged from previous 8 and 4
-            ),
-            leading: _buildLeadingIndicator(isDark, isFull),
-            title: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: _buildSubtitle(context, isDark, l10n),
-            trailing: _buildTrailing(isDark, l10n),
-            onTap: onTap,
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [AppColors.surfaceDark, const Color(0xFF243B5E)]
+                : [Colors.white, const Color(0xFFF7FAFF)],
           ),
-        ],
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppColors.dividerLight.withValues(alpha: 0.9),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 4,
+              ),
+              leading: _buildLeadingIndicator(isDark, isFull),
+              title: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              subtitle: _buildSubtitle(context, isDark, l10n),
+              trailing: _buildTrailing(isDark, l10n),
+              onTap: onTap,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -92,7 +111,7 @@ class UnitProgressListItem extends StatelessWidget {
                 backgroundColor: isDark
                     ? Colors.white10
                     : Colors.grey.withValues(alpha: 0.1),
-                color: AppColors.accentOrange,
+                color: isDark ? const Color(0xFF8EB3FF) : AppColors.primaryNavy,
                 strokeWidth: 3,
               )
             else
@@ -114,7 +133,7 @@ class UnitProgressListItem extends StatelessWidget {
                           ? AppColors.textSecondaryDark
                           : AppColors.textSecondaryDark)
                     : (progress > 0.0
-                          ? AppColors.textPrimaryLight
+                          ? AppColors.primaryNavy
                           : AppColors.textSecondaryLight),
               ),
             ),
@@ -236,6 +255,20 @@ class UnitProgressListItem extends StatelessWidget {
         ],
       );
     }
-    return const Icon(Icons.chevron_right);
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : AppColors.primaryNavy.withValues(alpha: 0.08),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.chevron_right,
+        color: isDark ? Colors.white70 : AppColors.primaryNavy,
+      ),
+    );
   }
 }

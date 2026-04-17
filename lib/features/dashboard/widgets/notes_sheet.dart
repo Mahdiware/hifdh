@@ -4,6 +4,7 @@ import 'package:hifdh/core/services/quran_database.dart';
 import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/features/dashboard/widgets/ayah_search_dialog.dart';
+import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class NotesSheet extends StatefulWidget {
@@ -285,19 +286,54 @@ class _NotesSheetState extends State<NotesSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      height:
-          MediaQuery.of(context).size.height * 0.85, // Taller for more inputs
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Column(
         children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 42,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white24 : Colors.grey[350],
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              "${l10n.notes}: ${widget.task.title}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: Column(
+              children: [
+                Text(
+                  widget.task.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : AppColors.primaryNavy,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.notesHistory,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -325,9 +361,18 @@ class _NotesSheetState extends State<NotesSheet> {
                   ),
           ),
           Container(
+            margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : const Color(0xFFF4F8FF),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : AppColors.dividerLight,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -353,9 +398,9 @@ class _NotesSheetState extends State<NotesSheet> {
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white10
-                            : Colors.grey.shade100,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: Theme.of(
@@ -368,10 +413,9 @@ class _NotesSheetState extends State<NotesSheet> {
                           Icon(
                             Icons.search,
                             size: 18,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey[400]
-                                : Colors.grey[600],
+                            color: isDark
+                                ? Colors.white70
+                                : AppColors.primaryNavy,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -381,16 +425,20 @@ class _NotesSheetState extends State<NotesSheet> {
                                 fontSize: 16,
                                 fontFamily: 'QuranFont',
                                 color: _selectedAyahId == null
-                                    ? Colors.grey
-                                    : (Theme.of(context).brightness ==
-                                              Brightness.dark
+                                    ? (isDark
+                                          ? Colors.white60
+                                          : AppColors.textSecondaryLight)
+                                    : (isDark
                                           ? Colors.white
-                                          : Colors.black87),
+                                          : AppColors.textPrimaryLight),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: isDark ? Colors.white70 : Colors.grey,
+                          ),
                         ],
                       ),
                     ),
@@ -411,25 +459,54 @@ class _NotesSheetState extends State<NotesSheet> {
                 const SizedBox(height: 12),
 
                 // Input & Send
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _noteController,
-                        decoration: InputDecoration(
-                          hintText: l10n.descriptionOptional,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 0,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : AppColors.dividerLight,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _noteController,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: l10n.descriptionOptional,
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? Colors.white54
+                                  : AppColors.textSecondaryLight,
+                            ),
+                            border: InputBorder.none,
                           ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.send, color: Colors.blue),
-                      onPressed: _addNote,
-                    ),
-                  ],
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryNavy,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: _addNote,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -441,13 +518,22 @@ class _NotesSheetState extends State<NotesSheet> {
 
   Widget _buildTypeChip(String label, NoteType type, Color color) {
     final isSelected = _selectedType == type;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       onTap: () => setState(() => _selectedType = type),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withValues(alpha: 0.1),
+          color: isSelected
+              ? color
+              : color.withValues(alpha: isDark ? 0.2 : 0.12),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : color.withValues(alpha: isDark ? 0.35 : 0.25),
+          ),
         ),
         child: Text(
           label,

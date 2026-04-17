@@ -4,6 +4,7 @@ import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/shared/models/surah.dart';
 import 'package:hifdh/core/services/quran_database.dart';
+import 'package:hifdh/core/theme/app_background.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/progress_chart_helper.dart';
 import 'package:hifdh/features/progress/widgets/activity_chart.dart';
@@ -316,7 +317,15 @@ class _ProgressPageState extends State<ProgressPage>
     final isDark = theme.brightness == Brightness.dark;
 
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: isDark
+            ? AppColors.backgroundDark
+            : AppColors.backgroundLight,
+        body: DecoratedBox(
+          decoration: AppBackground.pageDecoration(theme),
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
 
     return Scaffold(
@@ -324,97 +333,150 @@ class _ProgressPageState extends State<ProgressPage>
           ? AppColors.backgroundDark
           : AppColors.backgroundLight,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleSpacing: 20,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: isDark
+                  ? [const Color(0xFF152C4E), AppColors.backgroundDark]
+                  : [const Color(0xFFEAF1FF), AppColors.backgroundLight],
+            ),
+          ),
+        ),
         title: Text(
           AppLocalizations.of(context)!.progress,
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black,
-            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: isDark ? Colors.white : AppColors.primaryNavy,
+            fontSize: 22,
+            letterSpacing: -0.3,
           ),
         ),
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
-        backgroundColor: isDark
-            ? AppColors.backgroundDark
-            : AppColors.backgroundLight,
+        iconTheme: IconThemeData(
+          color: isDark ? Colors.white : AppColors.primaryNavy,
+        ),
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
+          _buildAppBarActionButton(
+            icon: Icons.refresh_rounded,
+            isDark: isDark,
             onPressed: () => _loadData(showFullLoading: false),
           ),
-
-          ThemeToggleButton(),
+          const ThemeToggleButton(),
+          const SizedBox(width: 12),
         ],
       ),
-      body: RefreshIndicator(
-        color: AppColors.accentOrange,
-        backgroundColor: isDark
-            ? AppColors.surfaceDark
-            : AppColors.surfaceLight,
-        onRefresh: () async {
-          await _loadData(showFullLoading: false);
-        },
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxScrolled) {
-            return [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ProgressHeaderCard(
-                        memPercentage: _memPercentage,
-                        overallStats: _overallStats,
-                        selectedMetric: _selectedHeaderMetric,
-                        onMetricChanged: (val) => _updateHeaderMetric(val),
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 16),
-                      ActivityChart(
-                        chartData: _chartData,
-                        selectedStatRange: _selectedStatRange,
-                        onRangeChanged: (val) => _updateChartRange(val),
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverAppBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    labelColor: isDark
-                        ? AppColors.accentOrange
-                        : AppColors.primaryNavy,
-                    unselectedLabelColor: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-                    indicatorColor: isDark
-                        ? AppColors.accentOrange
-                        : AppColors.primaryNavy,
-                    indicatorWeight: 3,
-                    tabs: [
-                      Tab(text: AppLocalizations.of(context)!.surah),
-                      Tab(text: AppLocalizations.of(context)!.juz),
-                      Tab(text: AppLocalizations.of(context)!.hizb),
-                    ],
-                  ),
-                  isDark,
-                ),
-              ),
-            ];
+      body: DecoratedBox(
+        decoration: AppBackground.pageDecoration(theme),
+        child: RefreshIndicator(
+          color: AppColors.accentOrange,
+          backgroundColor: isDark
+              ? AppColors.surfaceDark
+              : AppColors.surfaceLight,
+          onRefresh: () async {
+            await _loadData(showFullLoading: false);
           },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildSurahList(isDark),
-              _buildJuzList(isDark),
-              _buildHizbList(isDark),
-            ],
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxScrolled) {
+              return [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SlideFadeReveal(
+                          index: 0,
+                          child: ProgressHeaderCard(
+                            memPercentage: _memPercentage,
+                            overallStats: _overallStats,
+                            selectedMetric: _selectedHeaderMetric,
+                            onMetricChanged: (val) => _updateHeaderMetric(val),
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _SlideFadeReveal(
+                          index: 1,
+                          child: ActivityChart(
+                            chartData: _chartData,
+                            selectedStatRange: _selectedStatRange,
+                            onRangeChanged: (val) => _updateChartRange(val),
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: isDark ? Colors.white : AppColors.primaryNavy,
+                      unselectedLabelColor: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
+                      indicatorColor: isDark
+                          ? Colors.white
+                          : AppColors.primaryNavy,
+                      indicatorWeight: 3,
+                      tabs: [
+                        Tab(text: AppLocalizations.of(context)!.surah),
+                        Tab(text: AppLocalizations.of(context)!.juz),
+                        Tab(text: AppLocalizations.of(context)!.hizb),
+                      ],
+                    ),
+                    isDark,
+                  ),
+                ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSurahList(isDark),
+                _buildJuzList(isDark),
+                _buildHizbList(isDark),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBarActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required bool isDark,
+  }) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 6),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : AppColors.primaryNavy.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.22)
+                  : AppColors.primaryNavy.withValues(alpha: 0.16),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 20),
         ),
       ),
     );
@@ -453,6 +515,9 @@ class _ProgressPageState extends State<ProgressPage>
     return ListView.builder(
       itemCount: _surahs.length,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
       itemBuilder: (context, index) {
         final surah = _surahs[index];
         final progress = _surahProgress.firstWhere(
@@ -477,25 +542,28 @@ class _ProgressPageState extends State<ProgressPage>
         }).toList();
         final hasActive = surahActiveTasks.isNotEmpty;
 
-        return UnitProgressListItem(
-          number: surah.number,
-          title: surah.englishName,
-          subtitle: hasActive ? null : surah.name,
-          progress: _calculateSurahProgress(surah.number),
-          isCompleted:
-              progress.isMemorized ||
-              _calculateSurahProgress(surah.number) >= 0.999,
-          activeTaskCount: surahActiveTasks.length,
-          revisionCount: progress.revisionCount,
-          onTap: () {
-            _showUnitDetails(
-              context,
-              PlanUnitType.surah,
-              surah.number,
-              "${AppLocalizations.of(context)!.surah} ${surah.englishName}",
-              preloadedNotes: _surahNotes[surah.number],
-            );
-          },
+        return _SlideFadeReveal(
+          index: index,
+          child: UnitProgressListItem(
+            number: surah.number,
+            title: surah.englishName,
+            subtitle: hasActive ? null : surah.name,
+            progress: _calculateSurahProgress(surah.number),
+            isCompleted:
+                progress.isMemorized ||
+                _calculateSurahProgress(surah.number) >= 0.999,
+            activeTaskCount: surahActiveTasks.length,
+            revisionCount: progress.revisionCount,
+            onTap: () {
+              _showUnitDetails(
+                context,
+                PlanUnitType.surah,
+                surah.number,
+                "${AppLocalizations.of(context)!.surah} ${surah.englishName}",
+                preloadedNotes: _surahNotes[surah.number],
+              );
+            },
+          ),
         );
       },
     );
@@ -505,6 +573,9 @@ class _ProgressPageState extends State<ProgressPage>
     return ListView.builder(
       itemCount: 30,
       padding: const EdgeInsets.all(16),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
       itemBuilder: (context, index) {
         final juzNum = index + 1;
 
@@ -558,22 +629,25 @@ class _ProgressPageState extends State<ProgressPage>
           juzRevisions = minRev ?? 0;
         }
 
-        return UnitProgressListItem(
-          number: juzNum,
-          title: "${AppLocalizations.of(context)!.juz} $juzNum",
-          progress: estimatedProg,
-          isCompleted: isFullyMemorized,
-          activeTaskCount: displayTasks.length,
-          revisionCount: juzRevisions,
-          onTap: () {
-            _showUnitDetails(
-              context,
-              PlanUnitType.juz,
-              juzNum,
-              "${AppLocalizations.of(context)!.juz} $juzNum",
-              preloadedNotes: _juzNotes[juzNum],
-            );
-          },
+        return _SlideFadeReveal(
+          index: index,
+          child: UnitProgressListItem(
+            number: juzNum,
+            title: "${AppLocalizations.of(context)!.juz} $juzNum",
+            progress: estimatedProg,
+            isCompleted: isFullyMemorized,
+            activeTaskCount: displayTasks.length,
+            revisionCount: juzRevisions,
+            onTap: () {
+              _showUnitDetails(
+                context,
+                PlanUnitType.juz,
+                juzNum,
+                "${AppLocalizations.of(context)!.juz} $juzNum",
+                preloadedNotes: _juzNotes[juzNum],
+              );
+            },
+          ),
         );
       },
     );
@@ -583,6 +657,9 @@ class _ProgressPageState extends State<ProgressPage>
     return ListView.builder(
       itemCount: 60,
       padding: const EdgeInsets.all(16),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
       itemBuilder: (context, index) {
         final hizbNum = index + 1;
 
@@ -655,26 +732,29 @@ class _ProgressPageState extends State<ProgressPage>
 
         // final surahsInHizb = _hizbSurahMap[hizbNum] ?? []; // Unused
 
-        return UnitProgressListItem(
-          number: hizbNum,
-          title:
-              "${AppLocalizations.of(context)!.hizb} $hizbNum (${AppLocalizations.of(context)!.juz} $parentJuz)",
-          subtitle: hasActive
-              ? "${AppLocalizations.of(context)!.coveredByJuz} $parentJuz"
-              : null,
-          progress: hizbProg,
-          isCompleted: isFullyMemorized,
-          activeTaskCount: relevant.length,
-          revisionCount: hizbRevisions,
-          onTap: () {
-            _showUnitDetails(
-              context,
-              PlanUnitType.hizb,
-              hizbNum,
-              "${AppLocalizations.of(context)!.hizb} $hizbNum",
-              preloadedNotes: _hizbNotes[hizbNum],
-            );
-          },
+        return _SlideFadeReveal(
+          index: index,
+          child: UnitProgressListItem(
+            number: hizbNum,
+            title:
+                "${AppLocalizations.of(context)!.hizb} $hizbNum (${AppLocalizations.of(context)!.juz} $parentJuz)",
+            subtitle: hasActive
+                ? "${AppLocalizations.of(context)!.coveredByJuz} $parentJuz"
+                : null,
+            progress: hizbProg,
+            isCompleted: isFullyMemorized,
+            activeTaskCount: relevant.length,
+            revisionCount: hizbRevisions,
+            onTap: () {
+              _showUnitDetails(
+                context,
+                PlanUnitType.hizb,
+                hizbNum,
+                "${AppLocalizations.of(context)!.hizb} $hizbNum",
+                preloadedNotes: _hizbNotes[hizbNum],
+              );
+            },
+          ),
         );
       },
     );
@@ -687,13 +767,10 @@ class _ProgressPageState extends State<ProgressPage>
     String title, {
     List<TaskNote>? preloadedNotes,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -727,9 +804,23 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Container(
-      color: isDark
-          ? AppColors.backgroundDark
-          : AppColors.backgroundLight, // Match scaffold
+      margin: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [AppColors.surfaceDark, const Color(0xFF22395C)]
+              : [Colors.white, const Color(0xFFF1F6FF)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : AppColors.dividerLight,
+        ),
+      ),
       child: _tabBar,
     );
   }
@@ -744,4 +835,31 @@ class AyahRange {
   final int min;
   final int max;
   const AyahRange(this.min, this.max);
+}
+
+class _SlideFadeReveal extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _SlideFadeReveal({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedIndex = index.clamp(0, 10);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 320 + (clampedIndex * 35)),
+      curve: Curves.easeOutCubic,
+      child: child,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 14),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
 }

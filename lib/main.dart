@@ -67,9 +67,22 @@ class MyApp extends StatelessWidget {
         FallbackCupertinoLocalizationDelegate(),
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: themeProvider.applyFont(AppTheme.lightTheme),
+      darkTheme: themeProvider.applyFont(AppTheme.darkTheme),
       themeMode: themeProvider.themeMode, // Safe now
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.maybeOf(context);
+        if (mediaQuery == null) {
+          return child ?? const SizedBox.shrink();
+        }
+
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(themeProvider.textScaleFactor),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const MainScreen(),
       debugShowCheckedModeBanner: false,
     );
