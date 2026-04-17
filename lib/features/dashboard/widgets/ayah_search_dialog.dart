@@ -105,32 +105,103 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    // Theme aware
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Dialog(
-      backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: isDark ? const Color(0xFF1A2B47) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(18, 14, 10, 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF264B84), const Color(0xFF1F3965)]
+                    : [const Color(0xFFEAF1FF), const Color(0xFFDCE8FF)],
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.travel_explore_rounded,
+                  color: isDark ? Colors.white : AppColors.primaryNavy,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.selectSearchAyah,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.primaryNavy,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: isDark ? Colors.white : AppColors.primaryNavy,
+                  ),
+                ),
+              ],
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: TextField(
               controller: _searchController,
               autofocus: true,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              style: TextStyle(
+                color: isDark ? Colors.white : AppColors.textPrimaryLight,
+              ),
               decoration: InputDecoration(
                 hintText: l10n.searchAyahExamplesHint,
                 hintStyle: TextStyle(
-                  color: isDark ? Colors.grey : Colors.grey[600],
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.55)
+                      : AppColors.textSecondaryLight,
                 ),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.75)
+                      : AppColors.primaryNavy,
+                ),
+                filled: true,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : const Color(0xFFF5F8FF),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(
-                    color: isDark ? Colors.white12 : Colors.grey[300]!,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : AppColors.dividerLight,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : AppColors.dividerLight,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.35)
+                        : AppColors.primaryNavy,
+                    width: 1.4,
                   ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -138,36 +209,42 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
             ),
           ),
           SizedBox(
-            height: 400, // Increased height for better view
+            height: 420,
             child: _listItems.isEmpty
                 ? Center(
                     child: Text(
                       l10n.noMatches,
                       style: TextStyle(
-                        color: isDark ? Colors.grey : Colors.black54,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.72)
+                            : AppColors.textSecondaryLight,
                       ),
                     ),
                   )
                 : ListView.builder(
                     itemCount: _listItems.length,
+                    padding: const EdgeInsets.only(bottom: 10),
                     itemBuilder: (context, index) {
                       final item = _listItems[index];
                       if (item['type'] == 'header') {
                         return Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 8,
+                            vertical: 9,
                           ),
                           color: isDark
-                              ? Colors.grey.withValues(alpha: 0.1)
-                              : Colors.grey[100],
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : AppColors.primaryNavy.withValues(alpha: 0.06),
                           child: Row(
                             children: [
                               Text(
                                 isArabic ? item['titleAr'] : item['titleEn'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 16,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.primaryNavy,
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -175,9 +252,9 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
                                 '(${l10n.ayahs} ${item['subtitle']})',
                                 style: TextStyle(
                                   color: isDark
-                                      ? Colors.grey
-                                      : Colors.grey[700],
-                                  fontSize: 14,
+                                      ? Colors.white70
+                                      : AppColors.textSecondaryLight,
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
@@ -185,14 +262,44 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
                         );
                       } else {
                         final row = item['data'] as Map<String, dynamic>;
+                        final surahTitle =
+                            ((isArabic
+                                    ? row['surahArabicName']
+                                    : row['surahEnglishName'])
+                                as String?) ??
+                            'Surah ${row['surahNumber']}';
+
                         return Column(
                           children: [
                             ListTile(
                               dense: true,
+                              leading: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : AppColors.primaryNavy.withValues(
+                                          alpha: 0.08,
+                                        ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  "${row['surahNumber']}:${row['ayahNumber']}",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.primaryNavy,
+                                  ),
+                                ),
+                              ),
                               title: Text(
-                                "${row['surahNumber']}:${row['ayahNumber']}",
+                                surahTitle,
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                   color: isDark ? Colors.white : Colors.black87,
                                 ),
                               ),
@@ -203,9 +310,15 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
                                 style: TextStyle(
                                   fontFamily: 'QuranFont',
                                   color: isDark
-                                      ? Colors.white70
+                                      ? Colors.white.withValues(alpha: 0.78)
                                       : Colors.black54,
                                 ),
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right_rounded,
+                                color: isDark
+                                    ? Colors.white70
+                                    : AppColors.primaryNavy,
                               ),
                               onTap: () {
                                 widget.onSelected(row['id'] as int);
@@ -216,7 +329,9 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
                               height: 1,
                               indent: 16,
                               endIndent: 16,
-                              color: isDark ? Colors.white10 : Colors.grey[200],
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : AppColors.dividerLight,
                             ),
                           ],
                         );

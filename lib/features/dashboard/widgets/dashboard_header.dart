@@ -24,33 +24,70 @@ class DashboardHeader extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF2A4266), const Color(0xFF1F3454)]
+              : [const Color(0xFFF4F8FF), const Color(0xFFE9F1FF)],
+        ),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : AppColors.primaryNavy.withValues(alpha: 0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.activeTasks,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                  color: isDark ? Colors.white : AppColors.primaryNavy,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.activeTasks,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: isDark ? Colors.white : AppColors.primaryNavy,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "$activeCount ${l10n.pending}",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white54 : Colors.grey[600],
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : AppColors.primaryNavy.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    "$activeCount ${l10n.pending}",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : AppColors.primaryNavy,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Row(
             children: [
@@ -69,11 +106,11 @@ class DashboardHeader extends StatelessWidget {
     AppLocalizations l10n,
   ) {
     return PopupMenuButton<SortUnitType>(
-      offset: const Offset(0, 40),
+      offset: const Offset(0, 44),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       tooltip: l10n.filter,
       icon: _buildIconContainer(Icons.filter_list_rounded, isDark),
-      color: isDark ? const Color(0xFF2C2E42) : Colors.white,
+      color: isDark ? AppColors.surfaceDark : Colors.white,
       elevation: 4,
       onSelected: onFilterSelected,
       itemBuilder: (BuildContext context) {
@@ -93,11 +130,11 @@ class DashboardHeader extends StatelessWidget {
     AppLocalizations l10n,
   ) {
     return PopupMenuButton<DashboardSort>(
-      offset: const Offset(0, 40),
+      offset: const Offset(0, 44),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       tooltip: l10n.sort,
       icon: _buildIconContainer(Icons.sort_rounded, isDark),
-      color: isDark ? const Color(0xFF2C2E42) : Colors.white,
+      color: isDark ? AppColors.surfaceDark : Colors.white,
       elevation: 4,
       onSelected: onSortSelected,
       itemBuilder: (BuildContext context) => <PopupMenuEntry<DashboardSort>>[
@@ -124,18 +161,23 @@ class DashboardHeader extends StatelessWidget {
 
   Widget _buildIconContainer(IconData icon, bool isDark) {
     return Container(
+      margin: const EdgeInsetsDirectional.only(start: 6),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.12)
+            : AppColors.primaryNavy.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.2),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.2)
+              : AppColors.primaryNavy.withValues(alpha: 0.16),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),

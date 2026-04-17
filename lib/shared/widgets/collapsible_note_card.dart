@@ -95,19 +95,34 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _getStyle();
+    final surfaceColor = _isDark
+        ? AppColors.surfaceDark.withValues(alpha: 0.75)
+        : Colors.white;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: _isDark
-            ? color.withValues(alpha: 0.1)
-            : color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            surfaceColor,
+            color.withValues(alpha: _isDark ? 0.16 : 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _isDark
               ? color.withValues(alpha: 0.3)
               : color.withValues(alpha: 0.2),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: _isDark ? 0.16 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -115,12 +130,21 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
             onTap: _hasContent
                 ? () => setState(() => _isExpanded = !_isExpanded)
                 : null,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  Icon(icon, color: color, size: 20),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(icon, color: color, size: 18),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(child: _buildHeaderInfo(color)),
                   _buildActionMenu(color),
@@ -150,9 +174,9 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
         Text(
           _getLabel(),
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: color,
-            fontSize: 16,
+            fontSize: 15,
           ),
         ),
         Text(
@@ -172,13 +196,21 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert, color: color),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: _isDark ? AppColors.surfaceDark : Colors.white,
       onSelected: (value) {
-        if (value == 'edit') widget.onEdit?.call();
-        if (value == 'delete') widget.onDelete?.call();
-
-        final surah = _ayahInfo!['surahNumber'] as int;
-        final ayah = _ayahInfo!['ayahNumber'] as int;
-        if (value == 'open_quran') openQuranLink(surah, ayah);
+        if (value == 'edit') {
+          widget.onEdit?.call();
+          return;
+        }
+        if (value == 'delete') {
+          widget.onDelete?.call();
+          return;
+        }
+        if (value == 'open_quran' && _ayahInfo != null) {
+          final surah = _ayahInfo!['surahNumber'] as int;
+          final ayah = _ayahInfo!['ayahNumber'] as int;
+          openQuranLink(surah, ayah);
+        }
       },
       itemBuilder: (context) => [
         if (widget.onEdit != null)
@@ -232,7 +264,9 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
-              color: _isDark ? Colors.grey[300] : Colors.grey[800],
+              color: _isDark
+                  ? AppColors.textPrimaryDark.withValues(alpha: 0.9)
+                  : AppColors.textPrimaryLight,
             ),
           ),
         ],

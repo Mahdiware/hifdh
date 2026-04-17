@@ -59,7 +59,7 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
         btnIcon = Icons.play_arrow;
         break;
       case TaskStatus.inProgress:
-        statusColor = Colors.blue;
+        statusColor = AppColors.primaryNavy;
         statusText = l10n.inProgress;
         btnText = l10n.complete;
         btnIcon = Icons.check;
@@ -74,13 +74,24 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? theme.cardColor : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [AppColors.surfaceDark, const Color(0xFF243C61)]
+              : [Colors.white, const Color(0xFFF8FBFF)],
+        ),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : AppColors.dividerLight,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -94,8 +105,15 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        statusColor.withValues(alpha: 0.2),
+                        statusColor.withValues(alpha: 0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     task.unitType == PlanUnitType.surah
@@ -116,10 +134,9 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color:
-                              isDark
-                                  ? Colors.white
-                                  : AppColors.textPrimaryLight,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.textPrimaryLight,
                         ),
                       ),
                       if (task.subtitle != null &&
@@ -130,7 +147,9 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                               task.subtitle!,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                           ),
                         ),
                       ],
@@ -143,8 +162,11 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: statusColor.withValues(alpha: 0.35),
+                    ),
                   ),
                   child: Text(
                     statusText,
@@ -160,8 +182,11 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                   PopupMenuButton<String>(
                     icon: Icon(
                       Icons.more_vert,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
                     ),
+                    color: isDark ? AppColors.surfaceDark : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -169,38 +194,37 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                       if (value == 'edit') widget.onEdit?.call();
                       if (value == 'delete') widget.onDelete?.call();
                     },
-                    itemBuilder:
-                        (context) => [
-                          if (widget.onEdit != null)
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.edit, size: 20),
-                                  const SizedBox(width: 12),
-                                  Text(l10n.edit),
-                                ],
+                    itemBuilder: (context) => [
+                      if (widget.onEdit != null)
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.edit, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.edit),
+                            ],
+                          ),
+                        ),
+                      if (widget.onDelete != null)
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                color: AppColors.errorRed,
+                                size: 20,
                               ),
-                            ),
-                          if (widget.onDelete != null)
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.delete_outline,
-                                    color: AppColors.errorRed,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    l10n.delete,
-                                    style: TextStyle(color: AppColors.errorRed),
-                                  ),
-                                ],
+                              const SizedBox(width: 12),
+                              Text(
+                                l10n.delete,
+                                style: TextStyle(color: AppColors.errorRed),
                               ),
-                            ),
-                        ],
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ],
@@ -211,8 +235,13 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
               children: [
                 _buildInfoPill(
                   Icons.flag,
-                  task.type == TaskType.memorize ? l10n.memorize : l10n.revision,
-                  isDark ? Colors.grey[400] : Colors.grey[700],
+                  task.type == TaskType.memorize
+                      ? l10n.memorize
+                      : l10n.revision,
+                  task.type == TaskType.memorize
+                      ? AppColors.primaryNavy
+                      : AppColors.accentOrange,
+                  isDark,
                 ),
                 _buildInfoPill(
                   Icons.event,
@@ -220,28 +249,54 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                     task.deadline,
                     Localizations.localeOf(context).toString(),
                   ),
-                  isDark ? const Color(0xFFF0C33D) : const Color(0xFFFF0000),
+                  isDark ? const Color(0xFFFFC857) : const Color(0xFFB42318),
+                  isDark,
                 ),
               ],
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Divider(
+                height: 1,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : AppColors.dividerLight,
+              ),
             ),
             Row(
               children: [
                 InkWell(
                   onTap: widget.onNote,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : AppColors.primaryNavy.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.edit_note, color: Colors.grey[600]),
+                        Icon(
+                          Icons.edit_note_rounded,
+                          size: 18,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.primaryNavy,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           l10n.notes,
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.primaryNavy,
+                          ),
                         ),
                       ],
                     ),
@@ -252,35 +307,39 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                   onPressed: _isLoading ? null : _handleAction,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: statusColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
                     ),
                   ),
-                  child:
-                      _isLoading
-                          ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                          : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(btnIcon, size: 18, color: Colors.white),
-                              const SizedBox(width: 8),
-                              Text(
-                                btnText,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
                           ),
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(btnIcon, size: 18, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text(
+                              btnText,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ],
             ),
@@ -290,13 +349,27 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
     );
   }
 
-  Widget _buildInfoPill(IconData icon, String text, Color? color) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(text, style: TextStyle(fontSize: 12, color: color)),
-      ],
+  Widget _buildInfoPill(IconData icon, String text, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

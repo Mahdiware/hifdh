@@ -281,6 +281,26 @@ class QuranDatabase {
     return null;
   }
 
+  Future<Ayah?> getRandomAyahByJuzRange(int startJuz, int endJuz) async {
+    final db = await database;
+    final normalizedStart = startJuz <= endJuz ? startJuz : endJuz;
+    final normalizedEnd = startJuz <= endJuz ? endJuz : startJuz;
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      "SELECT qt.text, qm.surahNumber, qm.ayahNumber, si.surahArabicName "
+      "FROM quran_text qt "
+      "JOIN quran_meta qm ON qt.id = qm.id "
+      "JOIN surah_info si ON qm.surahNumber = si.surahNumber "
+      "WHERE qm.juzNumber BETWEEN ? AND ? ORDER BY RANDOM() LIMIT 1",
+      [normalizedStart, normalizedEnd],
+    );
+
+    if (maps.isNotEmpty) {
+      return Ayah.fromMap(maps.first);
+    }
+    return null;
+  }
+
   Future<Ayah?> getRandomAyahByPageRange(int startPage, int endPage) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.rawQuery(
@@ -356,6 +376,56 @@ class QuranDatabase {
     );
 
     return maps.map((e) => e['text'] as String).toList();
+  }
+
+  Future<Map<int, Map<String, dynamic>>> getAyahSummariesByIds(
+    List<int> ayahIds, {
+    int textPreviewLength = 90,
+  }) async {
+    if (ayahIds.isEmpty) return {};
+
+    final db = await database;
+    final uniqueIds = ayahIds.toSet().toList();
+    const rowsPerChunk = 700;
+    final summaries = <int, Map<String, dynamic>>{};
+
+    String buildPreview(String text) {
+      if (text.isEmpty) return '';
+      final chars = text.runes.toList();
+      if (chars.length <= textPreviewLength) return text;
+      return '${String.fromCharCodes(chars.take(textPreviewLength))}...';
+    }
+
+    for (var i = 0; i < uniqueIds.length; i += rowsPerChunk) {
+      final end = (i + rowsPerChunk < uniqueIds.length)
+          ? i + rowsPerChunk
+          : uniqueIds.length;
+      final chunk = uniqueIds.sublist(i, end);
+      final placeholders = List.filled(chunk.length, '?').join(',');
+
+      final rows = await db.rawQuery('''
+        SELECT qm.id, qm.surahNumber, qm.ayahNumber, qt.text, si.surahName, si.surahArabicName
+        FROM quran_meta qm
+        JOIN quran_text qt ON qm.id = qt.id
+        JOIN surah_info si ON qm.surahNumber = si.surahNumber
+        WHERE qm.id IN ($placeholders)
+        ''', chunk);
+
+      for (final row in rows) {
+        final id = row['id'] as int?;
+        if (id == null) continue;
+        final text = (row['text'] as String?) ?? '';
+        summaries[id] = {
+          'surahNumber': row['surahNumber'],
+          'ayahNumber': row['ayahNumber'],
+          'surahEnglishName': row['surahName'],
+          'surahArabicName': row['surahArabicName'],
+          'textPreview': buildPreview(text),
+        };
+      }
+    }
+
+    return summaries;
   }
 
   Future<int> getAyahCount() async {

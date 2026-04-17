@@ -160,6 +160,13 @@ class PlannerDatabase {
     return 'doubt';
   }
 
+  int _asDbInt(dynamic raw, {int fallback = 0}) {
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? fallback;
+    return fallback;
+  }
+
   int _computeMaxRowsPerBatch(int columnsPerRow) {
     if (columnsPerRow <= 0) return 1;
     final rows = _sqliteSafeVarLimit ~/ columnsPerRow;
@@ -1597,6 +1604,8 @@ class PlannerDatabase {
     required bool isMemorized,
     required String lastResult, // 'correct','mistake','doubt'
     bool incrementRevision = true,
+    int? taskId,
+    String? note,
   }) async {
     final db = await database;
 
@@ -1644,11 +1653,278 @@ class PlannerDatabase {
 
     await db.insert('ayah_revision_events', {
       'ayah_id': ayahId,
+      'task_id': taskId,
       'result': lastResultCode,
       'created_at': nowMs,
+      'note': note,
     });
 
     _notifyDataChanged();
+  }
+
+  Map<String, dynamic> _buildRevisionQueueCandidate(
+    Map<String, dynamic> row,
+    int nowMs,
+  ) {
+    final ayahId = _asDbInt(row['ayah_id']);
+    final lastRevisionAt = row['last_revision_at'] == null
+        ? null
+        : _asDbInt(row['last_revision_at']);
+    final lastResult = _resultFromDb(row['last_result']);
+    final correctCount = _asDbInt(row['correct_count']);
+    final mistakeCount = _asDbInt(row['mistake_count']);
+    final doubtCount = _asDbInt(row['doubt_count']);
+    final revisions = _asDbInt(row['revisions']);
+    final isMemorized = _asDbInt(row['is_memorized']) == 1;
+
+    final daysSinceReview = lastRevisionAt == null
+        ? 999
+        : ((nowMs - lastRevisionAt) ~/ Duration.millisecondsPerDay).clamp(
+            0,
+            999,
+          );
+
+    final isMastered =
+        isMemorized &&
+        revisions >= 5 &&
+        (mistakeCount + doubtCount) == 0 &&
+        lastResult == 'correct';
+
+    final isWeak =
+        (mistakeCount + doubtCount) >= 2 ||
+        (revisions >= 1 && lastResult != 'correct');
+
+    final isDue = daysSinceReview >= 1 || !isMemorized;
+
+    final attempts = revisions > 0 ? revisions : 1;
+    final mistakesSignal = (mistakeCount * 1.9) + (doubtCount * 1.4);
+    final weaknessSignal = ((mistakeCount + doubtCount) / attempts) * 2.0;
+    final recencySignal = (daysSinceReview.clamp(0, 45)) * 0.28;
+    final streakSignal = lastResult == 'correct' ? -0.4 : 1.2;
+    final memorizationSignal = isMemorized ? 0.2 : 0.9;
+    final masteredPenalty = isMastered ? -2.2 : 0.0;
+    final priorityScore =
+        mistakesSignal +
+        weaknessSignal +
+        recencySignal +
+        streakSignal +
+        memorizationSignal +
+        masteredPenalty;
+
+    final reasons = <String>[];
+    if (!isMemorized) reasons.add('not_memorized');
+    if (mistakeCount > 0) reasons.add('mistakes:$mistakeCount');
+    if (doubtCount > 0) reasons.add('doubts:$doubtCount');
+    if (lastResult != 'correct') reasons.add('last_result:$lastResult');
+    if (daysSinceReview >= 7) reasons.add('days_since:$daysSinceReview');
+    if (reasons.isEmpty) reasons.add('maintenance');
+
+    return {
+      'ayahId': ayahId,
+      'lastRevisionAt': lastRevisionAt,
+      'daysSinceReview': daysSinceReview,
+      'lastResult': lastResult,
+      'correctCount': correctCount,
+      'mistakeCount': mistakeCount,
+      'doubtCount': doubtCount,
+      'revisions': revisions,
+      'isMemorized': isMemorized,
+      'isMastered': isMastered,
+      'isWeak': isWeak,
+      'isDue': isDue,
+      'priorityScore': priorityScore,
+      'reasons': reasons,
+    };
+  }
+
+  List<Map<String, dynamic>> _filterAndSortRevisionQueueCandidates(
+    List<Map<String, dynamic>> candidates, {
+    required bool includeMastered,
+    required String filter,
+    required String sort,
+  }) {
+    final normalizedFilter = filter.trim().toLowerCase();
+    final normalizedSort = sort.trim().toLowerCase();
+
+    final filtered = candidates.where((candidate) {
+      final isMastered = candidate['isMastered'] as bool? ?? false;
+      final isWeak = candidate['isWeak'] as bool? ?? false;
+      final isDue = candidate['isDue'] as bool? ?? false;
+
+      if (!includeMastered && isMastered) return false;
+
+      if (normalizedFilter == 'all') return true;
+      if (normalizedFilter == 'weak') return isWeak;
+      if (normalizedFilter == 'mastered') return isMastered;
+      // Default to due queue.
+      return isDue;
+    }).toList();
+
+    filtered.sort((a, b) {
+      final aScore = (a['priorityScore'] as num?)?.toDouble() ?? 0;
+      final bScore = (b['priorityScore'] as num?)?.toDouble() ?? 0;
+      final aDays = _asDbInt(a['daysSinceReview']);
+      final bDays = _asDbInt(b['daysSinceReview']);
+
+      if (normalizedSort == 'oldest') {
+        final byDays = bDays.compareTo(aDays);
+        if (byDays != 0) return byDays;
+        return bScore.compareTo(aScore);
+      }
+
+      final byScore = bScore.compareTo(aScore);
+      if (byScore != 0) return byScore;
+      return bDays.compareTo(aDays);
+    });
+
+    return filtered;
+  }
+
+  Future<List<Map<String, dynamic>>> getRevisionQueue({
+    int limit = 25,
+    bool includeMastered = false,
+    String filter = 'due',
+    String sort = 'highest',
+  }) async {
+    await _ensureStaticDataLoaded();
+    final db = await database;
+    final safeLimit = limit.clamp(1, 200);
+
+    final rows = await db.query(
+      'ayah_progress',
+      columns: [
+        'ayah_id',
+        'last_revision_at',
+        'last_result',
+        'correct_count',
+        'mistake_count',
+        'doubt_count',
+        'is_memorized',
+        'revisions',
+      ],
+      where:
+          'last_revision_at IS NOT NULL OR revisions > 0 OR mistake_count > 0 OR doubt_count > 0',
+    );
+
+    if (rows.isEmpty) return [];
+
+    final nowMs = _nowMs();
+    final candidates = rows
+        .map((row) => _buildRevisionQueueCandidate(row, nowMs))
+        .where((candidate) => _asDbInt(candidate['ayahId']) > 0)
+        .toList();
+
+    final ranked = _filterAndSortRevisionQueueCandidates(
+      candidates,
+      includeMastered: includeMastered,
+      filter: filter,
+      sort: sort,
+    );
+
+    if (ranked.isEmpty) return [];
+
+    final limited = ranked.take(safeLimit).toList();
+    final ayahIds = limited
+        .map((candidate) => _asDbInt(candidate['ayahId']))
+        .where((id) => id > 0)
+        .toList();
+
+    final ayahSummaries = await QuranDatabase().getAyahSummariesByIds(ayahIds);
+
+    for (final item in limited) {
+      final ayahId = _asDbInt(item['ayahId']);
+      final summary = ayahSummaries[ayahId];
+
+      if (summary != null) {
+        item['surahNumber'] = _asDbInt(summary['surahNumber']);
+        item['ayahNumber'] = _asDbInt(summary['ayahNumber']);
+        item['surahArabicName'] = (summary['surahArabicName'] as String?) ?? '';
+        item['surahEnglishName'] =
+            (summary['surahEnglishName'] as String?) ?? '';
+        item['ayahText'] = (summary['textPreview'] as String?) ?? '';
+      } else {
+        final meta = await getCachedAyahMeta(ayahId);
+        item['surahNumber'] = _asDbInt(meta['surahNumber']);
+        item['ayahNumber'] = _asDbInt(meta['ayahNumber']);
+        item['surahArabicName'] = '';
+        item['surahEnglishName'] = '';
+        item['ayahText'] = '';
+      }
+    }
+
+    return limited;
+  }
+
+  Future<Map<String, int>> getRevisionQueueSummary({
+    bool includeMastered = true,
+  }) async {
+    final db = await database;
+    final rows = await db.query(
+      'ayah_progress',
+      columns: [
+        'ayah_id',
+        'last_revision_at',
+        'last_result',
+        'correct_count',
+        'mistake_count',
+        'doubt_count',
+        'is_memorized',
+        'revisions',
+      ],
+      where:
+          'last_revision_at IS NOT NULL OR revisions > 0 OR mistake_count > 0 OR doubt_count > 0',
+    );
+
+    if (rows.isEmpty) {
+      return {'due': 0, 'weak': 0, 'mastered': 0, 'total': 0};
+    }
+
+    final nowMs = _nowMs();
+    var due = 0;
+    var weak = 0;
+    var mastered = 0;
+    var total = 0;
+
+    for (final row in rows) {
+      final item = _buildRevisionQueueCandidate(row, nowMs);
+      final isMastered = item['isMastered'] as bool? ?? false;
+      final isWeak = item['isWeak'] as bool? ?? false;
+      final isDue = item['isDue'] as bool? ?? false;
+
+      if (!includeMastered && isMastered) {
+        continue;
+      }
+
+      total++;
+      if (isDue) due++;
+      if (isWeak) weak++;
+      if (isMastered) mastered++;
+    }
+
+    return {'due': due, 'weak': weak, 'mastered': mastered, 'total': total};
+  }
+
+  Future<void> recordRevisionQueueOutcome({
+    required int ayahId,
+    required NoteType outcome,
+    String note = '',
+  }) async {
+    final existing = await getAyahProgress(ayahId);
+    final currentlyMemorized = (existing?['isMemorized'] as bool?) ?? false;
+
+    final result = switch (outcome) {
+      NoteType.correct => 'correct',
+      NoteType.mistake => 'mistake',
+      NoteType.doubt => 'doubt',
+    };
+
+    await updateAyahProgress(
+      ayahId: ayahId,
+      isMemorized: outcome == NoteType.correct ? true : currentlyMemorized,
+      lastResult: result,
+      incrementRevision: true,
+      note: note.trim().isEmpty ? null : note.trim(),
+    );
   }
 
   Future<Map<String, dynamic>> buildDynamicJuzRows() async {

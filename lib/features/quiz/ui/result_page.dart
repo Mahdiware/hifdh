@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/core/theme/app_background.dart';
 import 'package:hifdh/shared/models/result_item.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 import 'package:hifdh/core/utils/surah_glyphs.dart';
@@ -26,85 +26,92 @@ class ResultPage extends StatelessWidget {
         : Colors.red;
 
     return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: DecoratedBox(
+        decoration: AppBackground.pageDecoration(theme),
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                pinned: true,
+                automaticallyImplyLeading: false,
+                backgroundColor: theme.scaffoldBackgroundColor,
+                scrolledUnderElevation: 0,
+                foregroundColor: isDark ? Colors.white : Colors.black,
+                title: Text(
+                  AppLocalizations.of(context)!.quizResults,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                centerTitle: false,
+                iconTheme: IconThemeData(
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                actions: const [ThemeToggleButton(), SizedBox(width: 8)],
               ),
-              pinned: true,
-              automaticallyImplyLeading: false,
-
-              backgroundColor: isDark
-                  ? AppColors.backgroundDark
-                  : AppColors.backgroundLight,
-              foregroundColor: isDark ? Colors.white : Colors.black,
-              title: Text(
-                AppLocalizations.of(context)!.quizResults,
-
-                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-              ),
-              centerTitle: true,
-              iconTheme: IconThemeData(
-                color: isDark ? Colors.white : Colors.black,
-              ),
-              actions: const [ThemeToggleButton(), SizedBox(width: 8)],
-            ),
-            SliverToBoxAdapter(
-              child: _buildScoreSection(
-                context,
-                percent,
-                scoreColor,
-                correctCount,
-                totalCount,
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.detailedReview,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.questionsCount(totalCount),
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                    ),
-                  ],
+              SliverToBoxAdapter(
+                child: _buildScoreSection(
+                  context,
+                  percent,
+                  scoreColor,
+                  correctCount,
+                  totalCount,
                 ),
               ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final item = results[index];
-                return _ResultItemCard(item: item);
-              }, childCount: results.length),
-            ),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-          ],
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Row(
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.detailedReview,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.questionsCount(totalCount),
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final item = results[index];
+                  return _ResultItemCard(item: item);
+                }, childCount: results.length),
+              ),
+              const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+            ],
+          ),
         ),
       ),
     );
@@ -117,12 +124,24 @@ class ResultPage extends StatelessWidget {
     int correctCount,
     int totalCount,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        gradient: LinearGradient(
+          colors: [
+            scoreColor.withValues(alpha: isDark ? 0.24 : 0.16),
+            Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.10),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -213,16 +232,26 @@ class ResultPage extends StatelessWidget {
     Color color,
     IconData icon,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: color.withValues(alpha: isDark ? 0.18 : 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 28),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
           const SizedBox(height: 8),
           Text(
             value,
@@ -263,6 +292,7 @@ class _ResultItemCardState extends State<_ResultItemCard> {
     final item = widget.item;
     final isCorrect = item.isCorrect;
     final color = isCorrect ? Colors.green : Colors.red;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -281,8 +311,15 @@ class _ResultItemCardState extends State<_ResultItemCard> {
           });
         },
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: _isExpanded
+                ? color.withValues(alpha: isDark ? 0.15 : 0.07)
+                : Colors.transparent,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -357,17 +394,22 @@ class _ResultItemCardState extends State<_ResultItemCard> {
                   ),
                 ],
               ),
-              if (!_isExpanded)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Center(
+              Padding(
+                padding: const EdgeInsets.only(top: 10.0),
+                child: Center(
+                  child: AnimatedRotation(
+                    duration: const Duration(milliseconds: 180),
+                    turns: _isExpanded ? 0.5 : 0,
                     child: Icon(
                       Icons.keyboard_arrow_down,
-                      size: 16,
-                      color: Colors.grey[400],
+                      size: 18,
+                      color: Theme.of(
+                        context,
+                      ).iconTheme.color?.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),

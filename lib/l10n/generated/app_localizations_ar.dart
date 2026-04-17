@@ -585,4 +585,86 @@ class AppLocalizationsAr extends AppLocalizations {
   String errorWithMessage(Object error) {
     return 'خطأ: $error';
   }
+
+  @override
+  String get revisionQueueTitle => 'طابور المراجعة الذكي';
+
+  @override
+  String get queueStartSession => 'بدء جلسة';
+
+  @override
+  String get queueSession => 'جلسة مراجعة';
+
+  @override
+  String get queueSessionComplete => 'اكتملت الجلسة';
+
+  @override
+  String get queueDue => 'مستحق';
+
+  @override
+  String get queueWeak => 'ضعيف';
+
+  @override
+  String get queueMastered => 'متقن';
+
+  @override
+  String get queueHighestPriority => 'أعلى أولوية';
+
+  @override
+  String get queueOldestFirst => 'الأقدم مراجعة';
+
+  @override
+  String get queueNoItems => 'لا توجد آيات في هذا الطابور';
+
+  @override
+  String get queueOptionalNote => 'ملاحظة اختيارية';
+
+  @override
+  String get queueMarkedCorrect => 'تم وضعها كصحيح';
+
+  @override
+  String get queueMarkedDoubt => 'تم وضعها كشك';
+
+  @override
+  String get queueMarkedMistake => 'تم وضعها كخطأ';
+
+  @override
+  String get queueReasonNotMemorized => 'لم يتم حفظها بعد';
+
+  @override
+  String get queueReasonMaintenance => 'مراجعة صيانة';
+
+  @override
+  String get queueReasonLastNeedsWork => 'آخر نتيجة تحتاج مراجعة';
+
+  @override
+  String get queueSettingsDescription =>
+      'تحكم في حجم الطابور وسلوك إظهار الآيات المتقنة';
+
+  @override
+  String get queueIncludeMastered => 'تضمين الآيات المتقنة';
+
+  @override
+  String get queueIncludeMasteredDescription =>
+      'إظهار الآيات المتقنة ضمن نتائج الطابور';
+
+  @override
+  String queueDailyTarget(int target) {
+    return 'الهدف اليومي: $target آيات';
+  }
+
+  @override
+  String queueReasonMistakes(int count) {
+    return 'الأخطاء: $count';
+  }
+
+  @override
+  String queueReasonDoubts(int count) {
+    return 'الشكوك: $count';
+  }
+
+  @override
+  String queueReasonDays(int days) {
+    return '$days يوم منذ آخر مراجعة';
+  }
 }
