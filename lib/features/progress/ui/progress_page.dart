@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
@@ -29,12 +30,10 @@ class _ProgressPageState extends State<ProgressPage>
   bool _isLoading = true;
   Map<String, int> _memPercentage = {'memorized': 0, 'total': 0};
   List<QuranProgress> _surahProgress = [];
+  Map<int, QuranProgress> _surahProgressById = {};
   List<Surah> _surahs = [];
   List<Map<String, dynamic>> _chartData = [];
   Map<String, int> _overallStats = {'total': 0, 'completed': 0, 'pending': 0};
-
-  // Active tasks to map to Juz/Hizb
-  List<PlanTask> _activeTasks = [];
 
   // Chart Range
   int _selectedStatRange = 7;
@@ -64,14 +63,21 @@ class _ProgressPageState extends State<ProgressPage>
   Map<int, Map<String, dynamic>> _globalAyahStats = {};
 
   // Ayah Mapping Cache
-  Map<int, List<int>> _juzToAyahIds = {};
-  Map<int, List<int>> _hizbToAyahIds = {};
+  final Map<int, List<int>> _surahToAyahIds = {};
+  final Map<int, List<int>> _juzToAyahIds = {};
+  final Map<int, List<int>> _hizbToAyahIds = {};
 
   // Overlap Ranges
   Map<int, AyahRange> _taskRanges = {};
-  Map<int, AyahRange> _surahRanges = {};
-  Map<int, AyahRange> _juzRanges = {};
-  Map<int, AyahRange> _hizbRanges = {};
+  final Map<int, AyahRange> _surahRanges = {};
+  final Map<int, AyahRange> _juzRanges = {};
+  final Map<int, AyahRange> _hizbRanges = {};
+  Map<int, int> _surahActiveCounts = {};
+  Map<int, int> _juzActiveCounts = {};
+  Map<int, int> _hizbActiveCounts = {};
+
+  bool _isDataRefreshRunning = false;
+  bool _refreshQueued = false;
 
   @override
   void initState() {
@@ -95,73 +101,160 @@ class _ProgressPageState extends State<ProgressPage>
     _loadData(showFullLoading: false);
   }
 
+  Future<void> _ensureStaticProgressCaches() async {
+    if (_juzSurahMap.isEmpty) {
+      final juzFutures = await Future.wait(
+        List.generate(30, (i) => QuranDatabase().getSurahsInJuz(i + 1)),
+      );
+      for (int i = 0; i < 30; i++) {
+        _juzSurahMap[i + 1] = juzFutures[i];
+      }
+    }
+
+    if (_juzPageRanges.isEmpty) {
+      final ranges = await Future.wait(
+        List.generate(
+          30,
+          (i) => PlannerDatabase().getCachedJuzPageRange(i + 1),
+        ),
+      );
+      for (int i = 0; i < 30; i++) {
+        _juzPageRanges[i + 1] = ranges[i];
+      }
+    }
+
+    if (_surahPageRanges.isEmpty) {
+      final ranges = await Future.wait(
+        List.generate(
+          114,
+          (i) => PlannerDatabase().getCachedSurahPageRange(i + 1),
+        ),
+      );
+      for (int i = 0; i < 114; i++) {
+        _surahPageRanges[i + 1] = ranges[i];
+      }
+    }
+
+    if (_surahToAyahIds.isEmpty) {
+      final surahAyahLists = await Future.wait(
+        List.generate(
+          114,
+          (i) => PlannerDatabase().getCachedAyahIdsForSurah(i + 1),
+        ),
+      );
+      for (int i = 0; i < 114; i++) {
+        final surah = i + 1;
+        final ids = surahAyahLists[i];
+        if (ids.isEmpty) continue;
+        _surahToAyahIds[surah] = ids;
+        _surahRanges[surah] = AyahRange(ids.first, ids.last);
+      }
+    }
+
+    if (_juzToAyahIds.isEmpty) {
+      final juzAyahLists = await Future.wait(
+        List.generate(
+          30,
+          (i) => PlannerDatabase().getCachedAyahIdsForJuz(i + 1),
+        ),
+      );
+      for (int i = 0; i < 30; i++) {
+        final juz = i + 1;
+        final ids = juzAyahLists[i];
+        if (ids.isEmpty) continue;
+        _juzToAyahIds[juz] = ids;
+        _juzRanges[juz] = AyahRange(ids.first, ids.last);
+      }
+    }
+
+    if (_hizbToAyahIds.isEmpty) {
+      final hizbAyahLists = await Future.wait(
+        List.generate(
+          60,
+          (i) => PlannerDatabase().getCachedAyahIdsForHizb(i + 1),
+        ),
+      );
+      for (int i = 0; i < 60; i++) {
+        final hizb = i + 1;
+        final ids = hizbAyahLists[i];
+        if (ids.isEmpty) continue;
+        _hizbToAyahIds[hizb] = ids;
+        _hizbRanges[hizb] = AyahRange(ids.first, ids.last);
+      }
+    }
+
+    if (_hizbSurahMap.isEmpty) {
+      final hizbSurahLists = await Future.wait(
+        List.generate(
+          60,
+          (i) => PlannerDatabase().getCachedSurahsInHizb(i + 1),
+        ),
+      );
+      for (int i = 0; i < 60; i++) {
+        _hizbSurahMap[i + 1] = hizbSurahLists[i];
+      }
+    }
+  }
+
   Future<void> _loadData({bool showFullLoading = true}) async {
-    if (showFullLoading) setState(() => _isLoading = true);
+    if (_isDataRefreshRunning) {
+      _refreshQueued = true;
+      return;
+    }
+
+    _isDataRefreshRunning = true;
+    if (showFullLoading && mounted) {
+      setState(() => _isLoading = true);
+    }
 
     try {
-      // Parallel fetch Basic Data
+      await _ensureStaticProgressCaches();
+
       final basicFutures = await Future.wait([
         PlannerDatabase().getMemorizedPercentage(type: _selectedHeaderMetric),
         PlannerDatabase().getAllSurahProgress(),
         QuranDatabase().getAllSurahs(),
-        PlannerDatabase().getCompletionStats(
-          days: _selectedStatRange,
-        ), // Use selected range
+        PlannerDatabase().getCompletionStats(days: _selectedStatRange),
         PlannerDatabase().getStats(),
         PlannerDatabase().getActiveTasks(),
       ]);
 
-      // Fetch Juz Mappings (Parallel 30 queries)
-      // Only if not loaded? Nah, load always for now to be safe or check cache.
-      if (_juzSurahMap.isEmpty) {
-        final juzFutures = await Future.wait(
-          List.generate(30, (i) => QuranDatabase().getSurahsInJuz(i + 1)),
-        );
-        for (int i = 0; i < 30; i++) {
-          _juzSurahMap[i + 1] = juzFutures[i];
-        }
-      }
-
-      // Fetch Page Coverage and Juz/Surah Ranges
       final coverageFuture = PlannerDatabase().getGlobalPageCoverage();
       final ayahsFuture = PlannerDatabase().getGlobalCoveredAyahs();
       final statsFuture = PlannerDatabase().getAyahProgressMap();
-
-      if (_juzPageRanges.isEmpty) {
-        // Optimized: Use PlannerDatabase cache
-        for (int i = 1; i <= 30; i++) {
-          _juzPageRanges[i] = await PlannerDatabase().getCachedJuzPageRange(i);
-        }
-      }
-
-      if (_surahPageRanges.isEmpty) {
-        // Optimized: Use PlannerDatabase cache
-        for (int i = 1; i <= 114; i++) {
-          _surahPageRanges[i] = await PlannerDatabase().getCachedSurahPageRange(
-            i,
-          );
-        }
-      }
+      final notesFuture = PlannerDatabase().getAllNotesWithTasks();
 
       final coverage = await coverageFuture;
       final coveredAyahs = await ayahsFuture;
       final ayahStats = await statsFuture;
-
-      // Fetch and Map Notes
-      final allNotes = await PlannerDatabase().getAllNotesWithTasks();
+      final allNotes = await notesFuture;
 
       final sNotes = <int, List<TaskNote>>{};
       final jNotes = <int, List<TaskNote>>{};
       final hNotes = <int, List<TaskNote>>{};
 
-      for (var row in allNotes) {
-        final note = TaskNote.fromMap(row);
+      final noteAyahIds = allNotes
+          .map((row) => row['ayahId'])
+          .whereType<int>()
+          .toSet()
+          .toList();
+      final noteMetaByAyahId = <int, Map<String, int>>{};
 
+      if (noteAyahIds.isNotEmpty) {
+        final metas = await Future.wait(
+          noteAyahIds.map((id) => PlannerDatabase().getCachedAyahMeta(id)),
+        );
+        for (int i = 0; i < noteAyahIds.length; i++) {
+          noteMetaByAyahId[noteAyahIds[i]] = metas[i];
+        }
+      }
+
+      for (final row in allNotes) {
+        final note = TaskNote.fromMap(row);
         if (note.type == NoteType.correct) continue;
 
         if (note.ayahId != null) {
-          final m = await PlannerDatabase().getCachedAyahMeta(note.ayahId!);
-
+          final m = noteMetaByAyahId[note.ayahId!] ?? const <String, int>{};
           if (m.isNotEmpty) {
             final surah = m['surahNumber'];
             final juz = m['juzNumber'];
@@ -184,123 +277,147 @@ class _ProgressPageState extends State<ProgressPage>
         }
       }
 
-      // Compute Granular Progress per Surah
-      final Map<int, double> granularProgress = {};
-      final Map<int, List<int>> surahAyahIds = {};
-      final Map<int, List<int>> juzAyahIds = {};
-      final Map<int, List<int>> hizbAyahIds = {};
-
-      // Optimized: Use PlannerDatabase cached ID lists
-      for (int s = 1; s <= 114; s++) {
-        final ids = await PlannerDatabase().getCachedAyahIdsForSurah(s);
-        if (ids.isNotEmpty) surahAyahIds[s] = ids;
-      }
-      for (int j = 1; j <= 30; j++) {
-        final ids = await PlannerDatabase().getCachedAyahIdsForJuz(j);
-        if (ids.isNotEmpty) juzAyahIds[j] = ids;
-      }
-      for (int h = 1; h <= 60; h++) {
-        final ids = await PlannerDatabase().getCachedAyahIdsForHizb(h);
-        if (ids.isNotEmpty) hizbAyahIds[h] = ids;
-      }
-
-      // Map ranges for overlap detection
-      final tRanges = <int, AyahRange>{};
-      for (final t in (basicFutures[5] as List<PlanTask>)) {
-        if (t.id == null) continue;
-        final range = await QuranDatabase().getAyahRangeForPlanUnit(
-          unitType: t.unitType,
-          unitId: t.unitId,
-          endUnitId: t.endUnitId,
-          startAyah: t.startAyah,
-          endAyah: t.endAyah,
-        );
-        if (range['min']! > 0) {
-          tRanges[t.id!] = AyahRange(range['min']!, range['max']!);
-        }
-      }
-
-      final sRanges = <int, AyahRange>{};
-      final jRanges = <int, AyahRange>{};
-      final hRanges = <int, AyahRange>{};
-
-      for (final s in surahAyahIds.keys) {
-        final ids = surahAyahIds[s]!;
-        if (ids.isNotEmpty) {
-          // IDs are already sorted in PlannerDatabase cache usually, but safe to assume range
-          sRanges[s] = AyahRange(ids.first, ids.last);
-        }
-      }
-      for (final j in juzAyahIds.keys) {
-        final ids = juzAyahIds[j]!;
-        if (ids.isNotEmpty) {
-          jRanges[j] = AyahRange(ids.first, ids.last);
-        }
-      }
-      for (final h in hizbAyahIds.keys) {
-        final ids = hizbAyahIds[h]!;
-        if (ids.isNotEmpty) {
-          hRanges[h] = AyahRange(ids.first, ids.last);
-        }
-      }
-
-      for (final s in surahAyahIds.keys) {
-        final ids = surahAyahIds[s];
-        if (ids == null) continue;
+      final granularProgress = <int, double>{};
+      for (final entry in _surahToAyahIds.entries) {
+        final ids = entry.value;
         final total = ids.length;
         final soFar = ids.where((id) => coveredAyahs.contains(id)).length;
-        granularProgress[s] = total == 0 ? 0.0 : soFar / total;
+        granularProgress[entry.key] = total == 0 ? 0.0 : soFar / total;
       }
 
-      // Load Hizb->Surah map efficiently
-      final newHizbSurahMap = <int, List<int>>{};
+      final activeTasks = basicFutures[5] as List<PlanTask>;
+      final activeTaskIds = activeTasks
+          .where((t) => t.id != null)
+          .map((t) => t.id!)
+          .toSet();
+      final updatedTaskRanges = Map<int, AyahRange>.from(_taskRanges)
+        ..removeWhere((id, _) => !activeTaskIds.contains(id));
+
+      final tasksNeedingRange = activeTasks.where((task) {
+        final id = task.id;
+        return id != null && !updatedTaskRanges.containsKey(id);
+      }).toList();
+
+      if (tasksNeedingRange.isNotEmpty) {
+        final resolvedRanges = await Future.wait(
+          tasksNeedingRange.map((task) async {
+            final range = await QuranDatabase().getAyahRangeForPlanUnit(
+              unitType: task.unitType,
+              unitId: task.unitId,
+              endUnitId: task.endUnitId,
+              startAyah: task.startAyah,
+              endAyah: task.endAyah,
+            );
+            return (taskId: task.id!, range: range);
+          }),
+        );
+
+        for (final resolved in resolvedRanges) {
+          final range = resolved.range;
+          if ((range['min'] ?? 0) > 0) {
+            updatedTaskRanges[resolved.taskId] = AyahRange(
+              range['min']!,
+              range['max']!,
+            );
+          }
+        }
+      }
+
+      final surahActiveCounts = <int, int>{};
+      for (int s = 1; s <= 114; s++) {
+        final sRange = _surahRanges[s];
+        var count = 0;
+        for (final task in activeTasks) {
+          if (task.id == null) continue;
+          final tRange = updatedTaskRanges[task.id!];
+          if (sRange != null && tRange != null) {
+            if (_doesOverlap(tRange, sRange)) count++;
+          } else if (task.unitType == PlanUnitType.surah && task.unitId == s) {
+            count++;
+          }
+        }
+        if (count > 0) {
+          surahActiveCounts[s] = count;
+        }
+      }
+
+      final juzActiveCounts = <int, int>{};
+      for (int j = 1; j <= 30; j++) {
+        final jRange = _juzRanges[j];
+        var count = 0;
+        for (final task in activeTasks) {
+          if (task.id == null) continue;
+          final tRange = updatedTaskRanges[task.id!];
+          if (jRange != null && tRange != null) {
+            if (_doesOverlap(tRange, jRange)) count++;
+          } else if ((task.unitType == PlanUnitType.juz && task.unitId == j) ||
+              (task.unitType == PlanUnitType.surah &&
+                  _juzSurahMap[j]?.contains(task.unitId) == true)) {
+            count++;
+          }
+        }
+        if (count > 0) {
+          juzActiveCounts[j] = count;
+        }
+      }
+
+      final hizbActiveCounts = <int, int>{};
       for (int h = 1; h <= 60; h++) {
-        newHizbSurahMap[h] = await PlannerDatabase().getCachedSurahsInHizb(h);
+        final hRange = _hizbRanges[h];
+        var count = 0;
+        final hizbText = 'hizb $h';
+        for (final task in activeTasks) {
+          if (task.id == null) continue;
+          final tRange = updatedTaskRanges[task.id!];
+          if (hRange != null && tRange != null) {
+            if (_doesOverlap(tRange, hRange)) count++;
+          } else {
+            final sub = task.subtitle?.toLowerCase() ?? '';
+            if (sub.contains(hizbText)) count++;
+          }
+        }
+        if (count > 0) {
+          hizbActiveCounts[h] = count;
+        }
       }
 
       if (mounted) {
-        debugPrint(
-          "ProgressPage: Loaded ${(basicFutures[5] as List<PlanTask>).length} active tasks",
-        );
         setState(() {
-          // Explicit clear for safety
-          _surahProgress = [];
-          _activeTasks = [];
-          _chartData = [];
-
           _memPercentage = basicFutures[0] as Map<String, int>;
           _surahProgress = (basicFutures[1] as List<Map<String, dynamic>>)
               .map((m) => QuranProgress.fromMap(m))
               .toList();
+          _surahProgressById = {
+            for (final progress in _surahProgress) progress.unitId: progress,
+          };
           _surahs = basicFutures[2] as List<Surah>;
           _chartData = ProgressChartHelper.normalizeChartData(
             basicFutures[3] as List<Map<String, dynamic>>,
             _selectedStatRange,
           );
           _overallStats = basicFutures[4] as Map<String, int>;
-          _activeTasks = basicFutures[5] as List<PlanTask>;
           _pageCoverage = coverage;
           _surahExactProgress = granularProgress;
           _surahNotes = sNotes;
           _juzNotes = jNotes;
           _hizbNotes = hNotes;
           _globalAyahStats = ayahStats;
-          _juzToAyahIds = juzAyahIds;
-          _hizbToAyahIds = hizbAyahIds;
-          _hizbSurahMap.clear();
-          _hizbSurahMap.addAll(newHizbSurahMap);
-
-          _taskRanges = tRanges;
-          _surahRanges = sRanges;
-          _juzRanges = jRanges;
-          _hizbRanges = hRanges;
-
+          _taskRanges = updatedTaskRanges;
+          _surahActiveCounts = surahActiveCounts;
+          _juzActiveCounts = juzActiveCounts;
+          _hizbActiveCounts = hizbActiveCounts;
           _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint("Error loading progress: $e");
       if (mounted) setState(() => _isLoading = false);
+    } finally {
+      _isDataRefreshRunning = false;
+      if (_refreshQueued && mounted) {
+        _refreshQueued = false;
+        Future.microtask(() => _loadData(showFullLoading: false));
+      }
     }
   }
 
@@ -522,27 +639,16 @@ class _ProgressPageState extends State<ProgressPage>
       ),
       itemBuilder: (context, index) {
         final surah = _surahs[index];
-        final progress = _surahProgress.firstWhere(
-          (p) => p.unitId == surah.number,
-          orElse: () => QuranProgress(
-            unitId: surah.number,
-            isMemorized: false,
-            revisionCount: 0,
-          ),
-        );
-
-        // Find overlapping active tasks
-        final sRange = _surahRanges[surah.number];
-        final surahActiveTasks = _activeTasks.where((t) {
-          if (t.id == null) return false;
-          final tRange = _taskRanges[t.id!];
-          if (sRange != null && tRange != null) {
-            return _doesOverlap(tRange, sRange);
-          }
-          // Fallback to strict matching if ranges not ready (shouldn't happen usually)
-          return t.unitType == PlanUnitType.surah && t.unitId == surah.number;
-        }).toList();
-        final hasActive = surahActiveTasks.isNotEmpty;
+        final surahProgressFraction = _calculateSurahProgress(surah.number);
+        final progress =
+            _surahProgressById[surah.number] ??
+            QuranProgress(
+              unitId: surah.number,
+              isMemorized: false,
+              revisionCount: 0,
+            );
+        final activeCount = _surahActiveCounts[surah.number] ?? 0;
+        final hasActive = activeCount > 0;
 
         return _SlideFadeReveal(
           index: index,
@@ -550,11 +656,9 @@ class _ProgressPageState extends State<ProgressPage>
             number: surah.number,
             title: surah.englishName,
             subtitle: hasActive ? null : surah.name,
-            progress: _calculateSurahProgress(surah.number),
-            isCompleted:
-                progress.isMemorized ||
-                _calculateSurahProgress(surah.number) >= 0.999,
-            activeTaskCount: surahActiveTasks.length,
+            progress: surahProgressFraction,
+            isCompleted: progress.isMemorized || surahProgressFraction >= 0.999,
+            activeTaskCount: activeCount,
             revisionCount: progress.revisionCount,
             onTap: () {
               _showUnitDetails(
@@ -580,20 +684,7 @@ class _ProgressPageState extends State<ProgressPage>
       ),
       itemBuilder: (context, index) {
         final juzNum = index + 1;
-
-        final jRange = _juzRanges[juzNum];
-        final displayTasks = _activeTasks.where((t) {
-          if (t.id == null) return false;
-          final tRange = _taskRanges[t.id!];
-          if (jRange != null && tRange != null) {
-            return _doesOverlap(tRange, jRange);
-          }
-          // Fallback
-          // We can keep the old comprehensive logic as fallback or just unit exact match
-          return (t.unitType == PlanUnitType.juz && t.unitId == juzNum) ||
-              (t.unitType == PlanUnitType.surah &&
-                  _juzSurahMap[juzNum]?.contains(t.unitId) == true);
-        }).toList();
+        final activeCount = _juzActiveCounts[juzNum] ?? 0;
 
         // Determine Juz Progress from Page Coverage
         final range = _juzPageRanges[juzNum];
@@ -638,7 +729,7 @@ class _ProgressPageState extends State<ProgressPage>
             title: "${AppLocalizations.of(context)!.juz} $juzNum",
             progress: estimatedProg,
             isCompleted: isFullyMemorized,
-            activeTaskCount: displayTasks.length,
+            activeTaskCount: activeCount,
             revisionCount: juzRevisions,
             onTap: () {
               _showUnitDetails(
@@ -664,26 +755,13 @@ class _ProgressPageState extends State<ProgressPage>
       ),
       itemBuilder: (context, index) {
         final hizbNum = index + 1;
-
-        // Match active tasks for this Hizb
-        final hRange = _hizbRanges[hizbNum];
-        final relevant = _activeTasks.where((t) {
-          if (t.id == null) return false;
-          final tRange = _taskRanges[t.id!];
-          if (hRange != null && tRange != null) {
-            return _doesOverlap(tRange, hRange);
-          }
-          // Fallback
-          // Try text based if range fails (unlikely)
-          final sub = t.subtitle?.toLowerCase() ?? "";
-          return sub.contains("hizb $hizbNum");
-        }).toList();
+        final activeCount = _hizbActiveCounts[hizbNum] ?? 0;
 
         final parentJuz = ((hizbNum - 1) ~/ 2) + 1;
         // With overlap logic, we don't need separate parentJuzTasks logic
         // because a Full Juz task will overlap the Hizb range automatically.
 
-        final hasActive = relevant.isNotEmpty;
+        final hasActive = activeCount > 0;
 
         // Calculate Hizb Progress
         final juzRange = _juzPageRanges[parentJuz];
@@ -745,7 +823,7 @@ class _ProgressPageState extends State<ProgressPage>
                 : null,
             progress: hizbProg,
             isCompleted: isFullyMemorized,
-            activeTaskCount: relevant.length,
+            activeTaskCount: activeCount,
             revisionCount: hizbRevisions,
             onTap: () {
               _showUnitDetails(
@@ -830,7 +908,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return true;
+    return oldDelegate.isDark != isDark || oldDelegate._tabBar != _tabBar;
   }
 }
 
@@ -848,6 +926,17 @@ class _SlideFadeReveal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final reduceMotion = mediaQuery?.disableAnimations ?? false;
+    final androidPhone =
+        defaultTargetPlatform == TargetPlatform.android &&
+        !kIsWeb &&
+        (mediaQuery?.size.shortestSide ?? 1000) < 600;
+
+    if (reduceMotion || androidPhone) {
+      return child;
+    }
+
     final clampedIndex = index.clamp(0, 10);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),

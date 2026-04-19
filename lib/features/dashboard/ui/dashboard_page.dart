@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hifdh/core/theme/app_background.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/features/planner/ui/assign_page.dart';
@@ -24,32 +25,53 @@ class _DashboardPageState extends State<DashboardPage> {
   DashboardSort _sortOption = DashboardSort.newest;
   List<PlanTask> _tasks = [];
   bool _isLoading = true;
+  bool _isFetchingTasks = false;
+  bool _pendingTaskRefresh = false;
 
   @override
   void initState() {
     super.initState();
-    PlannerDatabase().dataUpdateNotifier.addListener(_fetchTasks);
+    PlannerDatabase().dataUpdateNotifier.addListener(_handleDataUpdate);
     _fetchTasks();
   }
 
   @override
   void dispose() {
-    PlannerDatabase().dataUpdateNotifier.removeListener(_fetchTasks);
+    PlannerDatabase().dataUpdateNotifier.removeListener(_handleDataUpdate);
     super.dispose();
   }
 
+  void _handleDataUpdate() {
+    _fetchTasks(showLoading: false);
+  }
+
   Future<void> _fetchTasks({bool showLoading = true}) async {
-    if (showLoading) setState(() => _isLoading = true);
+    if (_isFetchingTasks) {
+      _pendingTaskRefresh = true;
+      return;
+    }
+
+    _isFetchingTasks = true;
+    if (showLoading && mounted) setState(() => _isLoading = true);
+
     try {
       final tasks = await PlannerDatabase().getActiveTasks();
-      setState(() {
-        _tasks = tasks;
-        _sortTasks(); // Sort immediately after fetching
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+          _sortTasks(); // Sort immediately after fetching
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint("Error fetching tasks: $e");
       if (mounted) setState(() => _isLoading = false);
+    } finally {
+      _isFetchingTasks = false;
+      if (_pendingTaskRefresh && mounted) {
+        _pendingTaskRefresh = false;
+        Future.microtask(() => _fetchTasks(showLoading: false));
+      }
     }
   }
 
@@ -340,6 +362,17 @@ class _StaggeredListReveal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final reduceMotion = mediaQuery?.disableAnimations ?? false;
+    final androidPhone =
+        defaultTargetPlatform == TargetPlatform.android &&
+        !kIsWeb &&
+        (mediaQuery?.size.shortestSide ?? 1000) < 600;
+
+    if (reduceMotion || androidPhone) {
+      return child;
+    }
+
     final clampedIndex = index.clamp(0, 8);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),

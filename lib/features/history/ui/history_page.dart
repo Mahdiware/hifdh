@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/planner_database.dart';
@@ -22,6 +23,8 @@ class _HistoryPageState extends State<HistoryPage> {
   List<PlanTask> _history = [];
   List<PlanTask> _filteredHistory = []; // Display list
   bool _isLoading = true;
+  bool _isRefreshingHistory = false;
+  bool _pendingHistoryRefresh = false;
   int? _processingTaskId;
   HistorySort _sortOption = HistorySort.newest;
   final TextEditingController _searchController = TextEditingController();
@@ -30,81 +33,113 @@ class _HistoryPageState extends State<HistoryPage> {
   void initState() {
     super.initState();
     _loadHistory();
-    PlannerDatabase().dataUpdateNotifier.addListener(_loadHistory);
+    PlannerDatabase().dataUpdateNotifier.addListener(_handleHistoryUpdate);
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    PlannerDatabase().dataUpdateNotifier.removeListener(_loadHistory);
+    PlannerDatabase().dataUpdateNotifier.removeListener(_handleHistoryUpdate);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _handleHistoryUpdate() {
+    _loadHistory(showLoading: false);
   }
 
   void _onSearchChanged() {
     _filterHistory();
   }
 
-  Future<void> _loadHistory() async {
-    setState(() => _isLoading = true);
-    final history = await PlannerDatabase().getCompletedTasks();
+  Future<void> _loadHistory({bool showLoading = true}) async {
+    if (_isRefreshingHistory) {
+      _pendingHistoryRefresh = true;
+      return;
+    }
 
-    // Sort logic
-    _sortData(history); // Sort the raw list
+    _isRefreshingHistory = true;
+    if (showLoading && mounted) {
+      setState(() => _isLoading = true);
+    }
 
-    if (mounted) {
-      setState(() {
-        _history = history;
-        _isLoading = false;
-        _filterHistory(); // Applies filter to raw list
-      });
+    try {
+      final history = await PlannerDatabase().getCompletedTasks();
+
+      // Sort logic
+      _sortData(history); // Sort the raw list
+
+      final query = _searchController.text.trim();
+      final search = query.isEmpty ? null : AyahSearchQuery.parse(query);
+      final filtered = _computeFilteredHistory(history, query, search);
+
+      if (mounted) {
+        setState(() {
+          _history = history;
+          _filteredHistory = filtered;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading history: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    } finally {
+      _isRefreshingHistory = false;
+      if (_pendingHistoryRefresh && mounted) {
+        _pendingHistoryRefresh = false;
+        Future.microtask(() => _loadHistory(showLoading: false));
+      }
     }
   }
 
   void _filterHistory() {
     final query = _searchController.text.trim();
+    final search = query.isEmpty ? null : AyahSearchQuery.parse(query);
+    final filtered = _computeFilteredHistory(_history, query, search);
+    if (!mounted) return;
+    setState(() => _filteredHistory = filtered);
+  }
+
+  List<PlanTask> _computeFilteredHistory(
+    List<PlanTask> source,
+    String query,
+    AyahSearchQuery? search,
+  ) {
     if (query.isEmpty) {
-      setState(() => _filteredHistory = List.from(_history));
-      return;
+      return List<PlanTask>.from(source);
     }
 
-    final search = AyahSearchQuery.parse(query);
+    final q = query.toLowerCase();
+    return source.where((task) {
+      bool matchesRange = false;
 
-    setState(() {
-      _filteredHistory = _history.where((task) {
-        bool matchesRange = false;
-
-        // structural/Range Search using parsed query
-        if (search != null) {
-          if (search.isSpecificAyah()) {
-            // Surah:Ayah (e.g. 2:200)
-            if (task.unitType == PlanUnitType.surah &&
-                task.unitId == search.surahNumber) {
-              final start = task.startAyah ?? 1;
-              final end = task.endAyah ?? 9999;
-              if (search.ayahNumber! >= start && search.ayahNumber! <= end) {
-                matchesRange = true;
-              }
-            }
-          } else if (search.surahNumber != null && search.ayahNumber == null) {
-            // Surah Number (e.g. 2)
-            if (task.unitType == PlanUnitType.surah &&
-                task.unitId == search.surahNumber) {
+      if (search != null) {
+        if (search.isSpecificAyah()) {
+          if (task.unitType == PlanUnitType.surah &&
+              task.unitId == search.surahNumber) {
+            final start = task.startAyah ?? 1;
+            final end = task.endAyah ?? 9999;
+            if (search.ayahNumber! >= start && search.ayahNumber! <= end) {
               matchesRange = true;
             }
           }
+        } else if (search.surahNumber != null && search.ayahNumber == null) {
+          if (task.unitType == PlanUnitType.surah &&
+              task.unitId == search.surahNumber) {
+            matchesRange = true;
+          }
         }
+      }
 
-        if (matchesRange) return true;
+      if (matchesRange) return true;
 
-        // Text Search (Fallback for Metadata & Notes)
-        final q = query.toLowerCase();
-        return task.title.toLowerCase().contains(q) ||
-            (task.subtitle?.toLowerCase().contains(q) ?? false) ||
-            (task.note?.toLowerCase().contains(q) ?? false) ||
-            task.id.toString() == q;
-      }).toList();
-    });
+      return task.title.toLowerCase().contains(q) ||
+          (task.subtitle?.toLowerCase().contains(q) ?? false) ||
+          (task.note?.toLowerCase().contains(q) ?? false) ||
+          task.id.toString() == q;
+    }).toList();
   }
 
   void _sortData(List<PlanTask> list) {
@@ -358,76 +393,81 @@ class _HistoryPageState extends State<HistoryPage> {
     List<MapEntry<String, List<PlanTask>>> groupedTasks,
     bool isDark,
   ) {
-    int revealIndex = 0;
     final l10n = AppLocalizations.of(context)!;
     final totalTasks = _filteredHistory.length;
     final memorizedTasks = _filteredHistory
         .where((t) => t.type == TaskType.memorize)
         .length;
     final revisionTasks = totalTasks - memorizedTasks;
+    final flatItems = _buildFlatHistoryItems(groupedTasks);
 
-    return ListView(
+    return ListView.builder(
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
-      children: [
-        _SlideFadeReveal(
-          index: revealIndex++,
-          child: LiquidGlass(
-            blur: 22,
-            borderRadius: BorderRadius.circular(20),
-            padding: const EdgeInsets.all(16),
-            tint: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.68),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryPill(
-                    label: l10n.total,
-                    value: '$totalTasks',
-                    color: AppColors.primaryNavy,
-                    isDark: isDark,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildSummaryPill(
-                    label: l10n.memorize,
-                    value: '$memorizedTasks',
-                    color: AppColors.successGreen,
-                    isDark: isDark,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildSummaryPill(
-                    label: l10n.revision,
-                    value: '$revisionTasks',
-                    color: AppColors.accentOrange,
-                    isDark: isDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...groupedTasks.map((entry) {
-          final dateKey = entry.key;
-          final tasks = entry.value;
+      itemCount: flatItems.length,
+      itemBuilder: (context, index) {
+        final item = flatItems[index];
 
-          final sectionChildren = <Widget>[
-            _SlideFadeReveal(
-              index: revealIndex++,
+        switch (item.type) {
+          case _HistoryListItemType.summary:
+            return Column(
+              children: [
+                _SlideFadeReveal(
+                  index: index,
+                  child: LiquidGlass(
+                    blur: 22,
+                    borderRadius: BorderRadius.circular(20),
+                    padding: const EdgeInsets.all(16),
+                    tint: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white.withValues(alpha: 0.68),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryPill(
+                            label: l10n.total,
+                            value: '$totalTasks',
+                            color: AppColors.primaryNavy,
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildSummaryPill(
+                            label: l10n.memorize,
+                            value: '$memorizedTasks',
+                            color: AppColors.successGreen,
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildSummaryPill(
+                            label: l10n.revision,
+                            value: '$revisionTasks',
+                            color: AppColors.accentOrange,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            );
+          case _HistoryListItemType.header:
+            return _SlideFadeReveal(
+              index: index,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 4,
                 ),
                 child: Text(
-                  dateKey,
+                  item.headerText!,
                   style: TextStyle(
                     color: AppColors.accentOrange,
                     fontWeight: FontWeight.bold,
@@ -436,25 +476,28 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                 ),
               ),
-            ),
-          ];
-
-          for (final task in tasks) {
-            sectionChildren.add(
-              _SlideFadeReveal(
-                index: revealIndex++,
-                child: _buildTaskItem(task, isDark),
-              ),
             );
-          }
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: sectionChildren,
-          );
-        }),
-      ],
+          case _HistoryListItemType.task:
+            return _SlideFadeReveal(
+              index: index,
+              child: _buildTaskItem(item.task!, isDark),
+            );
+        }
+      },
     );
+  }
+
+  List<_HistoryListItem> _buildFlatHistoryItems(
+    List<MapEntry<String, List<PlanTask>>> groupedTasks,
+  ) {
+    final items = <_HistoryListItem>[const _HistoryListItem.summary()];
+    for (final entry in groupedTasks) {
+      items.add(_HistoryListItem.header(entry.key));
+      for (final task in entry.value) {
+        items.add(_HistoryListItem.task(task));
+      }
+    }
+    return items;
   }
 
   Widget _buildSummaryPill({
@@ -1212,6 +1255,17 @@ class _SlideFadeReveal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final reduceMotion = mediaQuery?.disableAnimations ?? false;
+    final androidPhone =
+        defaultTargetPlatform == TargetPlatform.android &&
+        !kIsWeb &&
+        (mediaQuery?.size.shortestSide ?? 1000) < 600;
+
+    if (reduceMotion || androidPhone) {
+      return child;
+    }
+
     final clampedIndex = index.clamp(0, 14);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -1229,4 +1283,25 @@ class _SlideFadeReveal extends StatelessWidget {
       },
     );
   }
+}
+
+enum _HistoryListItemType { summary, header, task }
+
+class _HistoryListItem {
+  final _HistoryListItemType type;
+  final String? headerText;
+  final PlanTask? task;
+
+  const _HistoryListItem.summary()
+    : type = _HistoryListItemType.summary,
+      headerText = null,
+      task = null;
+
+  const _HistoryListItem.header(this.headerText)
+    : type = _HistoryListItemType.header,
+      task = null;
+
+  const _HistoryListItem.task(this.task)
+    : type = _HistoryListItemType.task,
+      headerText = null;
 }

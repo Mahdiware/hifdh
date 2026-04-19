@@ -121,13 +121,12 @@ class LiquidGlass extends StatelessWidget {
     final mediaQuery = MediaQuery.maybeOf(context);
     if (mediaQuery == null) return false;
 
-    final smallPhone = mediaQuery.size.shortestSide <= 430;
-    final lowerDensity = mediaQuery.devicePixelRatio <= 2.75;
+    final phoneClassDevice = mediaQuery.size.shortestSide < 600;
     final reduceMotion = mediaQuery.disableAnimations;
     final androidPhone =
         defaultTargetPlatform == TargetPlatform.android && !kIsWeb;
 
-    return androidPhone && (smallPhone && lowerDensity || reduceMotion);
+    return androidPhone && (phoneClassDevice || reduceMotion);
   }
 
   @override
@@ -135,7 +134,7 @@ class LiquidGlass extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final reducedEffects = _shouldUseReducedEffects(context);
 
-    final effectiveBlur = reducedEffects ? (blur * 0.45).clamp(0.0, 8.0) : blur;
+    final effectiveBlur = reducedEffects ? 0.0 : blur;
 
     final baseTint =
         tint ??
