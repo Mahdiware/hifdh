@@ -83,7 +83,7 @@ class AppTheme {
       dayPeriodTextColor: AppColors.primaryNavy,
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: const Color(0xCCF1F7FF),
+      color: const Color(0xF2F3F8FF),
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
       elevation: 0,
@@ -98,7 +98,7 @@ class AppTheme {
     ),
     menuTheme: MenuThemeData(
       style: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xCCF1F7FF)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xF2F3F8FF)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
@@ -114,7 +114,7 @@ class AppTheme {
     ),
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xCCF1F7FF)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xF2F3F8FF)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
@@ -255,7 +255,7 @@ class AppTheme {
       dayPeriodTextColor: Colors.white,
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: const Color(0xB3223D64),
+      color: const Color(0xEE223D64),
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
       elevation: 0,
@@ -270,7 +270,7 @@ class AppTheme {
     ),
     menuTheme: MenuThemeData(
       style: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xB3223D64)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xEE223D64)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
@@ -284,7 +284,7 @@ class AppTheme {
     ),
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xB3223D64)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xEE223D64)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
