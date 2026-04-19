@@ -129,10 +129,22 @@ class LiquidGlass extends StatelessWidget {
     return androidPhone && (phoneClassDevice || reduceMotion);
   }
 
+  bool _isInPopupRoute(BuildContext context) {
+    return ModalRoute.of(context) is PopupRoute;
+  }
+
+  Color _stabilizeTintForPopup(Color color, bool isDark) {
+    final minAlpha = isDark ? 0.78 : 0.84;
+    final maxAlpha = isDark ? 0.96 : 0.98;
+    final stabilizedAlpha = _clampAlpha(_alphaOf(color), minAlpha, maxAlpha);
+    return color.withValues(alpha: stabilizedAlpha);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final reducedEffects = _shouldUseReducedEffects(context);
+    final inPopupRoute = _isInPopupRoute(context);
 
     final effectiveBlur = reducedEffects ? 0.0 : blur;
 
@@ -143,6 +155,9 @@ class LiquidGlass extends StatelessWidget {
             : const Color(0x99E2EEFF));
 
     final resolvedTint = isDark ? baseTint : _normalizeLightTint(baseTint);
+    final effectiveTint = inPopupRoute
+        ? _stabilizeTintForPopup(resolvedTint, isDark)
+        : resolvedTint;
 
     final baseBorder =
         border ??
@@ -176,11 +191,15 @@ class LiquidGlass extends StatelessWidget {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: isDark
-          ? [resolvedTint, resolvedTint.withValues(alpha: 0.04)]
+          ? [effectiveTint, effectiveTint.withValues(alpha: 0.08)]
           : [
-              resolvedTint.withValues(alpha: 0.44),
-              const Color(0x99FFFFFF),
-              const Color(0x80D8EAFF),
+              effectiveTint.withValues(alpha: inPopupRoute ? 0.92 : 0.44),
+              const Color(
+                0x99FFFFFF,
+              ).withValues(alpha: inPopupRoute ? 0.9 : 0.6),
+              const Color(
+                0x80D8EAFF,
+              ).withValues(alpha: inPopupRoute ? 0.78 : 0.5),
             ],
       stops: isDark ? null : const [0.0, 0.45, 1.0],
     );
@@ -190,9 +209,13 @@ class LiquidGlass extends StatelessWidget {
         : (isDark ? gradient! : _normalizeGradientForLight(gradient!));
 
     final surfaceColor = isDark
-        ? resolvedTint
-        : resolvedTint.withValues(
-            alpha: _clampAlpha(_alphaOf(resolvedTint) * 0.42, 0.08, 0.28),
+        ? effectiveTint
+        : effectiveTint.withValues(
+            alpha: _clampAlpha(
+              _alphaOf(effectiveTint) * (inPopupRoute ? 0.84 : 0.42),
+              inPopupRoute ? 0.58 : 0.08,
+              inPopupRoute ? 0.88 : 0.28,
+            ),
           );
 
     final content = reducedEffects

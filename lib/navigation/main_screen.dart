@@ -94,6 +94,8 @@ class _MainScreenState extends State<MainScreen> {
     final navTextScale = MediaQuery.textScalerOf(
       context,
     ).scale(1).clamp(0.85, 1.0);
+    final isAndroidPhone =
+        defaultTargetPlatform == TargetPlatform.android && !kIsWeb;
     final navSelectedColor = isDark ? Colors.white : AppColors.primaryNavy;
     final navUnselectedColor = isDark
         ? Colors.white70
@@ -102,7 +104,22 @@ class _MainScreenState extends State<MainScreen> {
         ? Colors.white.withValues(alpha: 0.18)
         : const Color(0xFFBCD0EE);
     final lowMemoryMode = _isLowMemoryDevice(context);
-    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.padding.bottom;
+    final navHeight = isAndroidPhone ? 58.0 : 64.0;
+    final navHorizontalInset = isAndroidPhone ? 6.0 : 8.0;
+    final navBottomInset = isAndroidPhone
+        ? (bottomInset > 0 ? 0.0 : 4.0)
+        : (bottomInset > 0 ? 2.0 : 6.0);
+    final navMediaQuery = mediaQuery.copyWith(
+      textScaler: TextScaler.linear(navTextScale),
+      padding: isAndroidPhone
+          ? mediaQuery.padding.copyWith(bottom: 0)
+          : mediaQuery.padding,
+      viewPadding: isAndroidPhone
+          ? mediaQuery.viewPadding.copyWith(bottom: 0)
+          : mediaQuery.viewPadding,
+    );
 
     if (_configuredLowMemoryMode != lowMemoryMode) {
       _configuredLowMemoryMode = lowMemoryMode;
@@ -214,7 +231,12 @@ class _MainScreenState extends State<MainScreen> {
                   ),
           ),
           bottomNavigationBar: Padding(
-            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomInset > 0 ? 2 : 6),
+            padding: EdgeInsets.fromLTRB(
+              navHorizontalInset,
+              0,
+              navHorizontalInset,
+              navBottomInset,
+            ),
             child: LiquidGlass(
               padding: EdgeInsets.zero,
               blur: 20,
@@ -235,9 +257,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
               child: MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: TextScaler.linear(navTextScale)),
+                data: navMediaQuery,
                 child: NavigationBarTheme(
                   data: NavigationBarThemeData(
                     iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -263,12 +283,13 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                   child: NavigationBar(
-                    height: 64,
+                    height: navHeight,
                     backgroundColor: Colors.transparent,
                     selectedIndex: _selectedIndex,
                     onDestinationSelected: _onItemTapped,
-                    labelBehavior:
-                        NavigationDestinationLabelBehavior.alwaysShow,
+                    labelBehavior: isAndroidPhone
+                        ? NavigationDestinationLabelBehavior.onlyShowSelected
+                        : NavigationDestinationLabelBehavior.alwaysShow,
                     indicatorColor: navIndicatorColor,
                     destinations: [
                       NavigationDestination(
