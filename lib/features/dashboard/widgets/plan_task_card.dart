@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 import 'package:intl/intl.dart';
 
 class PlanTaskCard extends StatefulWidget {
@@ -71,39 +72,52 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
         btnIcon = Icons.check;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: LiquidGlass(
+        padding: const EdgeInsets.all(12),
+        borderRadius: BorderRadius.circular(16),
+        blur: 16,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [AppColors.surfaceDark, const Color(0xFF243C61)]
-              : [Colors.white, const Color(0xFFF8FBFF)],
+              ? [const Color(0xFF1C2B3F), const Color(0xFF162436)]
+              : [const Color(0xCCFFFFFF), const Color(0x99E8F2FF)],
         ),
+        tint: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : const Color(0x66DCEBFF),
         border: Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : AppColors.dividerLight,
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.primaryNavy.withValues(alpha: 0.22),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.16)
+                : AppColors.primaryNavy.withValues(alpha: 0.08),
+            blurRadius: isDark ? 9 : 14,
+            offset: Offset(0, isDark ? 4 : 6),
           ),
         ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Row(
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 3,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -113,7 +127,7 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                         statusColor.withValues(alpha: 0.08),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     task.unitType == PlanUnitType.surah
@@ -122,17 +136,20 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                               ? Icons.layers
                               : Icons.description),
                     color: statusColor,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         _getLocalizedTitle(context, task),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: isDark
                               ? Colors.white
@@ -141,12 +158,14 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                       ),
                       if (task.subtitle != null &&
                           task.unitType != PlanUnitType.juz) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           _getLocalizedSubtitle(context, task) ??
                               task.subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 11,
                             color: isDark
                                 ? AppColors.textSecondaryDark
                                 : AppColors.textSecondaryLight,
@@ -156,24 +175,30 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 92),
+                  child: LiquidGlass(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    blur: 8,
+                    tint: statusColor.withValues(alpha: isDark ? 0.22 : 0.12),
                     border: Border.all(
                       color: statusColor.withValues(alpha: 0.35),
                     ),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                    boxShadow: const [],
+                    child: Text(
+                      statusText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -182,13 +207,10 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                   PopupMenuButton<String>(
                     icon: Icon(
                       Icons.more_vert,
+                      size: 18,
                       color: isDark
                           ? AppColors.textSecondaryDark
                           : AppColors.textSecondaryLight,
-                    ),
-                    color: isDark ? AppColors.surfaceDark : Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
                     ),
                     onSelected: (value) {
                       if (value == 'edit') widget.onEdit?.call();
@@ -229,33 +251,47 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
                 ],
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildInfoPill(
-                  Icons.flag,
-                  task.type == TaskType.memorize
-                      ? l10n.memorize
-                      : l10n.revision,
-                  task.type == TaskType.memorize
-                      ? AppColors.primaryNavy
-                      : AppColors.accentOrange,
-                  isDark,
-                ),
-                _buildInfoPill(
-                  Icons.event,
-                  _formatDate(
-                    task.deadline,
-                    Localizations.localeOf(context).toString(),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _buildInfoPill(
+                      Icons.flag,
+                      task.type == TaskType.memorize
+                          ? l10n.memorize
+                          : l10n.revision,
+                      task.type == TaskType.memorize
+                          ? AppColors.primaryNavy
+                          : AppColors.accentOrange,
+                      isDark,
+                      maxWidth: 130,
+                    ),
                   ),
-                  isDark ? const Color(0xFFFFC857) : const Color(0xFFB42318),
-                  isDark,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _buildInfoPill(
+                      Icons.event,
+                      _formatDate(
+                        task.deadline,
+                        Localizations.localeOf(context).toString(),
+                      ),
+                      isDark
+                          ? const Color(0xFFFFC857)
+                          : const Color(0xFFB42318),
+                      isDark,
+                      maxWidth: 170,
+                    ),
+                  ),
                 ),
               ],
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Divider(
                 height: 1,
                 color: isDark
@@ -265,81 +301,107 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
             ),
             Row(
               children: [
-                InkWell(
-                  onTap: widget.onNote,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
+                Expanded(
+                  child: LiquidGlass(
+                    padding: EdgeInsets.zero,
+                    borderRadius: BorderRadius.circular(10),
+                    blur: 10,
+                    tint: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : AppColors.primaryNavy.withValues(alpha: 0.06),
+                    border: Border.all(
                       color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : AppColors.primaryNavy.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(12),
+                          ? Colors.white10
+                          : AppColors.primaryNavy.withValues(alpha: 0.12),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.edit_note_rounded,
-                          size: 18,
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.primaryNavy,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          l10n.notes,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.primaryNavy,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: widget.onNote,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.edit_note_rounded,
+                                size: 16,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.primaryNavy,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                l10n.notes,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.primaryNavy,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleAction,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: statusColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
+                const SizedBox(width: 8),
+                LiquidGlass(
+                  padding: const EdgeInsets.all(2),
+                  borderRadius: BorderRadius.circular(10),
+                  blur: 10,
+                  tint: statusColor.withValues(alpha: isDark ? 0.22 : 0.12),
+                  border: Border.all(
+                    color: statusColor.withValues(alpha: 0.35),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(btnIcon, size: 18, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Text(
-                              btnText,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleAction,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: statusColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
-                          ],
-                        ),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(btnIcon, size: 16, color: Colors.white),
+                              const SizedBox(width: 6),
+                              Text(
+                                btnText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
               ],
             ),
@@ -349,27 +411,44 @@ class _PlanTaskCardState extends State<PlanTaskCard> {
     );
   }
 
-  Widget _buildInfoPill(IconData icon, String text, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-        borderRadius: BorderRadius.circular(999),
-      ),
+  Widget _buildInfoPill(
+    IconData icon,
+    String text,
+    Color color,
+    bool isDark, {
+    double? maxWidth,
+  }) {
+    final pill = LiquidGlass(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      borderRadius: BorderRadius.circular(999),
+      blur: 8,
+      tint: color.withValues(alpha: isDark ? 0.2 : 0.1),
+      border: Border.all(color: color.withValues(alpha: 0.28)),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w600,
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
       ),
+    );
+
+    if (maxWidth == null) return pill;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: pill,
     );
   }
 

@@ -11,6 +11,7 @@ import 'package:hifdh/features/progress/widgets/activity_chart.dart';
 import 'package:hifdh/features/progress/widgets/progress_header_card.dart';
 import 'package:hifdh/features/progress/widgets/unit_details_sheet.dart';
 import 'package:hifdh/features/progress/widgets/unit_progress_list_item.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 
 class ProgressPage extends StatefulWidget {
@@ -461,22 +462,23 @@ class _ProgressPageState extends State<ProgressPage>
       padding: const EdgeInsetsDirectional.only(start: 6),
       child: IconButton(
         onPressed: onPressed,
-        icon: Container(
+        icon: SizedBox(
           width: 38,
           height: 38,
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.12)
-                : AppColors.primaryNavy.withValues(alpha: 0.1),
+          child: LiquidGlass(
+            padding: EdgeInsets.zero,
             borderRadius: BorderRadius.circular(12),
+            blur: 12,
+            tint: isDark
+                ? Colors.white.withValues(alpha: 0.09)
+                : Colors.white.withValues(alpha: 0.52),
             border: Border.all(
               color: isDark
                   ? Colors.white.withValues(alpha: 0.22)
                   : AppColors.primaryNavy.withValues(alpha: 0.16),
             ),
+            child: Center(child: Icon(icon, size: 20)),
           ),
-          alignment: Alignment.center,
-          child: Icon(icon, size: 20),
         ),
       ),
     );
@@ -805,8 +807,10 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   ) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 2, 16, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
+      child: LiquidGlass(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        borderRadius: BorderRadius.circular(14),
+        blur: 16,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -814,14 +818,13 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
               ? [AppColors.surfaceDark, const Color(0xFF22395C)]
               : [Colors.white, const Color(0xFFF1F6FF)],
         ),
-        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.1)
               : AppColors.dividerLight,
         ),
+        child: _tabBar,
       ),
-      child: _tabBar,
     );
   }
 

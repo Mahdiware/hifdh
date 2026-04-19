@@ -7,13 +7,8 @@ import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 
 class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onRefresh;
-  final VoidCallback? onOpenRevisionQueue;
 
-  const DashboardAppBar({
-    super.key,
-    required this.onRefresh,
-    this.onOpenRevisionQueue,
-  });
+  const DashboardAppBar({super.key, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -53,14 +48,6 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
       iconTheme: IconThemeData(color: iconColor),
 
       actions: [
-        if (onOpenRevisionQueue != null)
-          _ActionIconButton(
-            icon: Icons.auto_graph_rounded,
-            iconColor: iconColor,
-            isDark: isDark,
-            tooltip: l10n.revisionQueueTitle,
-            onPressed: onOpenRevisionQueue,
-          ),
         _ActionIconButton(
           icon: Icons.refresh_rounded,
           iconColor: iconColor,
@@ -74,10 +61,6 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
           builder: (context, localeProvider, child) {
             return PopupMenuButton<Locale>(
               tooltip: l10n.language,
-              color: isDark ? AppColors.surfaceDark : Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
               icon: _ActionIconSurface(
                 isDark: isDark,
                 iconColor: iconColor,
@@ -88,16 +71,34 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<Locale>>[
                 PopupMenuItem<Locale>(
-                  value: Locale('en'),
-                  child: Text(l10n.languageEnglish),
+                  value: const Locale('en'),
+                  child: Text(
+                    l10n.languageEnglish,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 PopupMenuItem<Locale>(
-                  value: Locale('ar'),
-                  child: Text(l10n.languageArabic),
+                  value: const Locale('ar'),
+                  child: Text(
+                    l10n.languageArabic,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 PopupMenuItem<Locale>(
-                  value: Locale('so'),
-                  child: Text(l10n.languageSomali),
+                  value: const Locale('so'),
+                  child: Text(
+                    l10n.languageSomali,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             );

@@ -3,6 +3,7 @@ import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/models/plan_task.dart'; // For PlanUnitType if needed mapping
 import 'package:hifdh/features/dashboard/models/dashboard_filter_types.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class DashboardHeader extends StatelessWidget {
   final int activeCount;
@@ -24,11 +25,12 @@ class DashboardHeader extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      child: LiquidGlass(
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        borderRadius: BorderRadius.circular(22),
+        blur: 20,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -36,6 +38,9 @@ class DashboardHeader extends StatelessWidget {
               ? [const Color(0xFF2A4266), const Color(0xFF1F3454)]
               : [const Color(0xFFF4F8FF), const Color(0xFFE9F1FF)],
         ),
+        tint: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.68),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.1)
@@ -48,54 +53,54 @@ class DashboardHeader extends StatelessWidget {
             offset: const Offset(0, 8),
           ),
         ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.activeTasks,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                    color: isDark ? Colors.white : AppColors.primaryNavy,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : AppColors.primaryNavy.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    "$activeCount ${l10n.pending}",
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.activeTasks,
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white70 : AppColors.primaryNavy,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                      color: isDark ? Colors.white : AppColors.primaryNavy,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : AppColors.primaryNavy.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      "$activeCount ${l10n.pending}",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : AppColors.primaryNavy,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                _buildFilterMenu(context, isDark, l10n),
+                _buildSortMenu(context, isDark, l10n),
               ],
             ),
-          ),
-          Row(
-            children: [
-              _buildFilterMenu(context, isDark, l10n),
-              _buildSortMenu(context, isDark, l10n),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -107,11 +112,8 @@ class DashboardHeader extends StatelessWidget {
   ) {
     return PopupMenuButton<SortUnitType>(
       offset: const Offset(0, 44),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       tooltip: l10n.filter,
       icon: _buildIconContainer(Icons.filter_list_rounded, isDark),
-      color: isDark ? AppColors.surfaceDark : Colors.white,
-      elevation: 4,
       onSelected: onFilterSelected,
       itemBuilder: (BuildContext context) {
         return [
@@ -131,11 +133,8 @@ class DashboardHeader extends StatelessWidget {
   ) {
     return PopupMenuButton<DashboardSort>(
       offset: const Offset(0, 44),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       tooltip: l10n.sort,
       icon: _buildIconContainer(Icons.sort_rounded, isDark),
-      color: isDark ? AppColors.surfaceDark : Colors.white,
-      elevation: 4,
       onSelected: onSortSelected,
       itemBuilder: (BuildContext context) => <PopupMenuEntry<DashboardSort>>[
         PopupMenuItem<DashboardSort>(
@@ -160,14 +159,15 @@ class DashboardHeader extends StatelessWidget {
   }
 
   Widget _buildIconContainer(IconData icon, bool isDark) {
-    return Container(
-      margin: const EdgeInsetsDirectional.only(start: 6),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isDark
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 4),
+      child: LiquidGlass(
+        padding: const EdgeInsets.all(8),
+        borderRadius: BorderRadius.circular(11),
+        blur: 10,
+        tint: isDark
             ? Colors.white.withValues(alpha: 0.12)
             : AppColors.primaryNavy.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.2)
@@ -180,11 +180,11 @@ class DashboardHeader extends StatelessWidget {
             offset: const Offset(0, 5),
           ),
         ],
-      ),
-      child: Icon(
-        icon,
-        color: isDark ? AppColors.textPrimaryDark : AppColors.primaryNavy,
-        size: 20,
+        child: Icon(
+          icon,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.primaryNavy,
+          size: 18,
+        ),
       ),
     );
   }

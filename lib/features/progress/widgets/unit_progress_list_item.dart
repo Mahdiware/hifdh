@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class UnitProgressListItem extends StatelessWidget {
   final int number;
@@ -31,34 +32,34 @@ class UnitProgressListItem extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isFull = isCompleted || progress >= 0.999;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      color: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [AppColors.surfaceDark, const Color(0xFF243B5E)]
-                : [Colors.white, const Color(0xFFF7FAFF)],
-          ),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.dividerLight.withValues(alpha: 0.9),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: LiquidGlass(
+        padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.circular(18),
+        blur: 16,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [AppColors.surfaceDark, const Color(0xFF243B5E)]
+              : [const Color(0xFFF4F8FF), const Color(0xFFE8F1FF)],
         ),
+        tint: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.58),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.primaryNavy.withValues(alpha: 0.16),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
         child: Column(
           children: [
             ListTile(
@@ -126,7 +127,7 @@ class UnitProgressListItem extends StatelessWidget {
             Text(
               progress > 0.0 ? "${(progress * 100).toInt()}%" : "$number",
               style: TextStyle(
-                fontSize: progress > 0.0 ? 10 : 14,
+                fontSize: progress > 0.0 ? 11 : 14,
                 fontWeight: FontWeight.bold,
                 color: isDark
                     ? (progress > 0.0
@@ -134,7 +135,7 @@ class UnitProgressListItem extends StatelessWidget {
                           : AppColors.textSecondaryDark)
                     : (progress > 0.0
                           ? AppColors.primaryNavy
-                          : AppColors.textSecondaryLight),
+                          : const Color(0xFF3F5876)),
               ),
             ),
           ],
@@ -202,7 +203,7 @@ class UnitProgressListItem extends StatelessWidget {
               fontSize: 12,
               color: isDark
                   ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
+                  : const Color(0xFF4B6280),
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -217,7 +218,7 @@ class UnitProgressListItem extends StatelessWidget {
             fontSize: 12,
             color: isDark
                 ? AppColors.textSecondaryDark
-                : AppColors.textSecondaryLight,
+                : const Color(0xFF4B6280),
           ),
         ),
       );

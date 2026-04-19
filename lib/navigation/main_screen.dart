@@ -9,6 +9,7 @@ import 'package:hifdh/features/settings/ui/settings_page.dart';
 import 'package:hifdh/core/theme/app_background.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/services/planner_database.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,6 +20,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  bool? _configuredLowMemoryMode;
 
   final List<Widget> _pages = [
     const DashboardPage(),
@@ -50,6 +52,20 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  String _compactNavLabel(String text) {
+    const maxChars = 10;
+    if (text.length <= maxChars) return text;
+    return '${text.substring(0, maxChars - 1)}…';
+  }
+
+  bool _isLowMemoryDevice(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final smallPhone = mediaQuery.size.shortestSide <= 430;
+    final lowDensity = mediaQuery.devicePixelRatio <= 2.75;
+
+    return smallPhone && lowDensity;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Dashboard, Progress, and History provide their own app bars.
@@ -59,6 +75,27 @@ class _MainScreenState extends State<MainScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
+    final navTextScale = MediaQuery.textScalerOf(
+      context,
+    ).scale(1).clamp(0.85, 1.0);
+    final navSelectedColor = isDark ? Colors.white : AppColors.primaryNavy;
+    final navUnselectedColor = isDark
+        ? Colors.white70
+        : const Color(0xFF4D5C71);
+    final navIndicatorColor = isDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : const Color(0xFFBCD0EE);
+    final lowMemoryMode = _isLowMemoryDevice(context);
+
+    if (_configuredLowMemoryMode != lowMemoryMode) {
+      _configuredLowMemoryMode = lowMemoryMode;
+      PlannerDatabase().configureMemoryMode(
+        lowMemoryMode: lowMemoryMode,
+        cacheIdleTtl: lowMemoryMode
+            ? const Duration(seconds: 45)
+            : const Duration(minutes: 3),
+      );
+    }
 
     return ValueListenableBuilder<bool>(
       valueListenable: PlannerDatabase().isUpgrading,
@@ -71,27 +108,36 @@ class _MainScreenState extends State<MainScreen> {
             body: DecoratedBox(
               decoration: AppBackground.pageDecoration(theme),
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 24),
-                    Text(
-                      "Upgrading Database...",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: LiquidGlass(
+                    blur: 24,
+                    borderRadius: BorderRadius.circular(28),
+                    padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 24),
+                        Text(
+                          "Upgrading Database...",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Please wait while we update your data.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Please wait while we update your data.",
-                      style: TextStyle(
-                        color: isDark ? Colors.grey[300] : Colors.grey[700],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -140,74 +186,105 @@ class _MainScreenState extends State<MainScreen> {
               : null,
           body: SafeArea(
             top: false,
-            child: IndexedStack(index: _selectedIndex, children: _pages),
+            child: lowMemoryMode
+                ? KeyedSubtree(
+                    key: ValueKey<int>(_selectedIndex),
+                    child: _pages[_selectedIndex],
+                  )
+                : IndexedStack(index: _selectedIndex, children: _pages),
           ),
           bottomNavigationBar: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [AppColors.surfaceDark, const Color(0xFF233A5C)]
-                        : [Colors.white, const Color(0xFFF1F6FF)],
-                  ),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : AppColors.dividerLight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.22 : 0.1,
-                      ),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+              child: LiquidGlass(
+                padding: EdgeInsets.zero,
+                blur: 20,
+                borderRadius: BorderRadius.circular(20),
+                tint: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.7),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.16)
+                      : Colors.white.withValues(alpha: 0.9),
                 ),
-                child: NavigationBar(
-                  height: 68,
-                  backgroundColor: Colors.transparent,
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: _onItemTapped,
-                  labelBehavior:
-                      NavigationDestinationLabelBehavior.onlyShowSelected,
-                  indicatorColor: isDark
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : AppColors.primaryNavy.withValues(alpha: 0.13),
-                  destinations: [
-                    NavigationDestination(
-                      icon: const Icon(Icons.home_outlined),
-                      selectedIcon: const Icon(Icons.home_filled),
-                      label: l10n.dashboard,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 9),
+                  ),
+                ],
+                child: MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(navTextScale)),
+                  child: NavigationBarTheme(
+                    data: NavigationBarThemeData(
+                      iconTheme: WidgetStateProperty.resolveWith((states) {
+                        final selected = states.contains(WidgetState.selected);
+                        return IconThemeData(
+                          color: selected
+                              ? navSelectedColor
+                              : navUnselectedColor,
+                          size: selected ? 23 : 22,
+                        );
+                      }),
+                      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                        final selected = states.contains(WidgetState.selected);
+                        return TextStyle(
+                          fontSize: selected ? 11 : 10,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          letterSpacing: -0.1,
+                          color: selected
+                              ? navSelectedColor
+                              : navUnselectedColor,
+                        );
+                      }),
+                      indicatorShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.quiz_outlined),
-                      selectedIcon: const Icon(Icons.quiz),
-                      label: l10n.quiz,
+                    child: NavigationBar(
+                      height: 68,
+                      backgroundColor: Colors.transparent,
+                      selectedIndex: _selectedIndex,
+                      onDestinationSelected: _onItemTapped,
+                      labelBehavior:
+                          NavigationDestinationLabelBehavior.alwaysShow,
+                      indicatorColor: navIndicatorColor,
+                      destinations: [
+                        NavigationDestination(
+                          icon: const Icon(Icons.home_outlined),
+                          selectedIcon: const Icon(Icons.home_filled),
+                          label: _compactNavLabel(l10n.dashboard),
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.quiz_outlined),
+                          selectedIcon: const Icon(Icons.quiz),
+                          label: _compactNavLabel(l10n.quiz),
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.donut_large_outlined),
+                          selectedIcon: const Icon(Icons.donut_large),
+                          label: _compactNavLabel(l10n.progress),
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.history_outlined),
+                          selectedIcon: const Icon(Icons.history),
+                          label: _compactNavLabel(l10n.history),
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.settings_outlined),
+                          selectedIcon: const Icon(Icons.settings),
+                          label: _compactNavLabel(l10n.settings),
+                        ),
+                      ],
                     ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.donut_large_outlined),
-                      selectedIcon: const Icon(Icons.donut_large),
-                      label: l10n.progress,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.history_outlined),
-                      selectedIcon: const Icon(Icons.history),
-                      label: l10n.history,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.settings_outlined),
-                      selectedIcon: const Icon(Icons.settings),
-                      label: l10n.settings,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

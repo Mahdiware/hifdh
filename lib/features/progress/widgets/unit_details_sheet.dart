@@ -6,6 +6,7 @@ import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/features/progress/widgets/ayah_analysis_sheet.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class UnitDetailsSheet extends StatefulWidget {
   final PlanUnitType type;
@@ -150,18 +151,24 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
         return FutureBuilder<List<TaskNote>>(
           future: _notesFuture,
           builder: (context, snapshot) {
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: isDark
-                      ? [const Color(0xFF1A2E4E), AppColors.backgroundDark]
-                      : [const Color(0xFFF3F8FF), AppColors.backgroundLight],
-                ),
+            return LiquidGlass(
+              padding: EdgeInsets.zero,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+              blur: 20,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [const Color(0xFF1A2E4E), AppColors.backgroundDark]
+                    : [const Color(0xFFECF4FF), const Color(0xFFDCEAFF)],
+              ),
+              tint: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.5),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black12,
               ),
               child: ScrollConfiguration(
                 behavior: ScrollConfiguration.of(
@@ -186,23 +193,31 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                       ),
                       const SizedBox(height: 24),
 
-                      Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppColors.primaryNavy,
+                      Center(
+                        child: Text(
+                          widget.title,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? Colors.white
+                                : AppColors.primaryNavy,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
 
-                      Text(
-                        "$typeName ${l10n.progressAndNotes}",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
+                      Center(
+                        child: Text(
+                          "$typeName ${l10n.progressAndNotes}",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : const Color(0xFF4D6380),
+                          ),
                         ),
                       ),
 
@@ -252,33 +267,60 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) => AyahAnalysisSheet(
-                                  unitType: widget.type,
-                                  unitId: widget.unitId,
-                                  title: widget.title,
+                          child: LiquidGlass(
+                            padding: const EdgeInsets.all(4),
+                            borderRadius: BorderRadius.circular(14),
+                            blur: 12,
+                            tint: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.58),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white12
+                                  : AppColors.primaryNavy.withValues(
+                                      alpha: 0.16,
+                                    ),
+                            ),
+                            child: OutlinedButton(
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) => AyahAnalysisSheet(
+                                    unitType: widget.type,
+                                    unitId: widget.unitId,
+                                    title: widget.title,
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
                                 ),
-                              );
-                            },
-                            icon: const Icon(Icons.analytics_outlined),
-                            label: Text(l10n.mistakesAnalysis),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: BorderSide(
-                                color: isDark
+                                alignment: Alignment.center,
+                                side: BorderSide(
+                                  color: isDark
+                                      ? AppColors.accentOrange
+                                      : AppColors.primaryNavy,
+                                ),
+                                foregroundColor: isDark
                                     ? AppColors.accentOrange
                                     : AppColors.primaryNavy,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                              foregroundColor: isDark
-                                  ? AppColors.accentOrange
-                                  : AppColors.primaryNavy,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.analytics_outlined),
+                                    const SizedBox(width: 8),
+                                    Text(l10n.mistakesAnalysis),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -325,101 +367,116 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                                       : 0.0;
                                   final isComplete = progress >= 0.99;
 
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Colors.white.withValues(alpha: 0.08)
-                                          : Colors.white,
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: LiquidGlass(
+                                      padding: const EdgeInsets.all(12),
                                       borderRadius: BorderRadius.circular(12),
+                                      blur: 12,
+                                      tint: isDark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.white.withValues(
+                                              alpha: 0.62,
+                                            ),
                                       border: Border.all(
                                         color: isDark
                                             ? Colors.white.withValues(
                                                 alpha: 0.14,
                                               )
-                                            : AppColors.dividerLight,
+                                            : AppColors.primaryNavy.withValues(
+                                                alpha: 0.12,
+                                              ),
                                       ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 32,
-                                          height: 32,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            color: isDark
-                                                ? Colors.black26
-                                                : Colors.white,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: isComplete
-                                                  ? AppColors.successGreen
-                                                  : (isDark
-                                                        ? Colors.white24
-                                                        : Colors.grey[300]!),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 32,
+                                            height: 32,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? Colors.black26
+                                                  : Colors.white,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: isComplete
+                                                    ? AppColors.successGreen
+                                                    : (isDark
+                                                          ? Colors.white24
+                                                          : Colors.grey[300]!),
+                                              ),
                                             ),
+                                            child: isComplete
+                                                ? const Icon(
+                                                    Icons.check,
+                                                    size: 16,
+                                                    color:
+                                                        AppColors.successGreen,
+                                                  )
+                                                : Text(
+                                                    "${data['number']}",
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: isDark
+                                                          ? Colors.white70
+                                                          : Colors.grey[600],
+                                                    ),
+                                                  ),
                                           ),
-                                          child: isComplete
-                                              ? const Icon(
-                                                  Icons.check,
-                                                  size: 16,
-                                                  color: AppColors.successGreen,
-                                                )
-                                              : Text(
-                                                  "${data['number']}",
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  "${data['englishName']} (${l10n.ayah} ${data['minAyah']} - ${data['maxAyah']})",
                                                   style: TextStyle(
-                                                    fontSize: 12,
                                                     fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
                                                     color: isDark
-                                                        ? Colors.white70
-                                                        : Colors.grey[600],
+                                                        ? AppColors
+                                                              .textPrimaryDark
+                                                        : AppColors
+                                                              .textPrimaryLight,
                                                   ),
                                                 ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                "${data['englishName']} (${l10n.ayah} ${data['minAyah']} - ${data['maxAyah']})",
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
+                                                const SizedBox(height: 4),
+                                                ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(2),
+                                                  child:
+                                                      LinearProgressIndicator(
+                                                        value: progress,
+                                                        minHeight: 4,
+                                                        backgroundColor: isDark
+                                                            ? Colors.black26
+                                                            : Colors.grey[200],
+                                                        color: isComplete
+                                                            ? AppColors
+                                                                  .successGreen
+                                                            : AppColors
+                                                                  .accentOrange,
+                                                      ),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(2),
-                                                child: LinearProgressIndicator(
-                                                  value: progress,
-                                                  minHeight: 4,
-                                                  backgroundColor: isDark
-                                                      ? Colors.black26
-                                                      : Colors.grey[200],
-                                                  color: isComplete
-                                                      ? AppColors.successGreen
-                                                      : AppColors.accentOrange,
-                                                ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          "${(progress * 100).toInt()}%",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            color: isComplete
-                                                ? AppColors.successGreen
-                                                : AppColors.accentOrange,
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            "${(progress * 100).toInt()}%",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              color: isComplete
+                                                  ? AppColors.successGreen
+                                                  : AppColors.accentOrange,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   );
                                 }),
@@ -430,27 +487,30 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
 
                       const SizedBox(height: 24),
                       // Notes Section Header
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.sticky_note_2_outlined,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.primaryNavy,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.notesHistory,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                      Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.sticky_note_2_outlined,
                               color: isDark
                                   ? AppColors.textPrimaryDark
                                   : AppColors.primaryNavy,
+                              size: 20,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.notesHistory,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.primaryNavy,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -472,20 +532,40 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark
-                                ? const Color(0xFF2F65BA)
-                                : AppColors.primaryNavy,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
+                        child: LiquidGlass(
+                          padding: const EdgeInsets.all(4),
+                          borderRadius: BorderRadius.circular(14),
+                          blur: 12,
+                          tint: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.white.withValues(alpha: 0.68),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white12
+                                : Colors.black.withValues(alpha: 0.08),
                           ),
-                          child: Text(l10n.close),
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark
+                                  ? const Color(0xFF5A7EA8)
+                                  : const Color(0xFF58779A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              elevation: 0,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: Text(
+                                l10n.close,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       SizedBox(
@@ -505,36 +585,45 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
   Widget _buildEmptyNotesState(bool isDark) {
     return Builder(
       builder: (context) {
-        return Container(
+        return SizedBox(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.backgroundDark
-                : AppColors.backgroundLight,
+          child: LiquidGlass(
+            padding: const EdgeInsets.symmetric(vertical: 24),
             borderRadius: BorderRadius.circular(12),
+            blur: 12,
+            tint: isDark
+                ? AppColors.backgroundDark.withValues(alpha: 0.75)
+                : Colors.white.withValues(alpha: 0.62),
             border: Border.all(
-              color: isDark ? Colors.transparent : AppColors.dividerLight,
+              color: isDark
+                  ? Colors.transparent
+                  : AppColors.primaryNavy.withValues(alpha: 0.14),
             ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                Icons.notes,
-                size: 40,
-                color: AppColors.textSecondaryLight.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                AppLocalizations.of(context)!.noNotesRecordedYet,
-                style: TextStyle(
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                  fontStyle: FontStyle.italic,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.notes,
+                  size: 40,
+                  color: AppColors.textSecondaryLight.withValues(alpha: 0.5),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    AppLocalizations.of(context)!.noNotesRecordedYet,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : const Color(0xFF4D6380),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -549,28 +638,32 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
     IconData icon,
     bool isDark,
   ) {
-    return Container(
+    return LiquidGlass(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [AppColors.surfaceDark, const Color(0xFF263F66)]
-              : [Colors.white, const Color(0xFFF7FAFF)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+      borderRadius: BorderRadius.circular(16),
+      blur: 14,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? [AppColors.surfaceDark, const Color(0xFF263F66)]
+            : [const Color(0xFFF4F8FF), const Color(0xFFE8F1FF)],
       ),
+      tint: isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.56),
+      border: Border.all(
+        color: isDark
+            ? Colors.white10
+            : AppColors.primaryNavy.withValues(alpha: 0.14),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
       child: Column(
         children: [
           Container(
@@ -597,7 +690,7 @@ class _UnitDetailsSheetState extends State<UnitDetailsSheet> {
               fontSize: 11,
               color: isDark
                   ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
+                  : const Color(0xFF3F5876),
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
