@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 import 'package:hifdh/features/dashboard/ui/dashboard_page.dart';
@@ -64,13 +63,9 @@ class _MainScreenState extends State<MainScreen> {
   bool _isLowMemoryDevice(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final smallPhone = mediaQuery.size.shortestSide <= 430;
-    final androidPhone =
-        defaultTargetPlatform == TargetPlatform.android &&
-        !kIsWeb &&
-        mediaQuery.size.shortestSide < 600;
     final reduceMotion = mediaQuery.disableAnimations;
 
-    return androidPhone && (smallPhone || reduceMotion);
+    return smallPhone || reduceMotion;
   }
 
   List<Widget> _buildLazyPages() {
@@ -94,8 +89,6 @@ class _MainScreenState extends State<MainScreen> {
     final navTextScale = MediaQuery.textScalerOf(
       context,
     ).scale(1).clamp(0.85, 1.0);
-    final isAndroidPhone =
-        defaultTargetPlatform == TargetPlatform.android && !kIsWeb;
     final navSelectedColor = isDark ? Colors.white : AppColors.primaryNavy;
     final navUnselectedColor = isDark
         ? Colors.white70
@@ -106,19 +99,11 @@ class _MainScreenState extends State<MainScreen> {
     final lowMemoryMode = _isLowMemoryDevice(context);
     final mediaQuery = MediaQuery.of(context);
     final bottomInset = mediaQuery.padding.bottom;
-    final navHeight = isAndroidPhone ? 58.0 : 64.0;
-    final navHorizontalInset = isAndroidPhone ? 6.0 : 8.0;
-    final navBottomInset = isAndroidPhone
-        ? (bottomInset > 0 ? 0.0 : 4.0)
-        : (bottomInset > 0 ? 2.0 : 6.0);
+    const navHeight = 64.0;
+    const navHorizontalInset = 8.0;
+    final navBottomInset = bottomInset > 0 ? 2.0 : 6.0;
     final navMediaQuery = mediaQuery.copyWith(
       textScaler: TextScaler.linear(navTextScale),
-      padding: isAndroidPhone
-          ? mediaQuery.padding.copyWith(bottom: 0)
-          : mediaQuery.padding,
-      viewPadding: isAndroidPhone
-          ? mediaQuery.viewPadding.copyWith(bottom: 0)
-          : mediaQuery.viewPadding,
     );
 
     if (_configuredLowMemoryMode != lowMemoryMode) {
@@ -287,9 +272,8 @@ class _MainScreenState extends State<MainScreen> {
                     backgroundColor: Colors.transparent,
                     selectedIndex: _selectedIndex,
                     onDestinationSelected: _onItemTapped,
-                    labelBehavior: isAndroidPhone
-                        ? NavigationDestinationLabelBehavior.onlyShowSelected
-                        : NavigationDestinationLabelBehavior.alwaysShow,
+                    labelBehavior:
+                        NavigationDestinationLabelBehavior.alwaysShow,
                     indicatorColor: navIndicatorColor,
                     destinations: [
                       NavigationDestination(
