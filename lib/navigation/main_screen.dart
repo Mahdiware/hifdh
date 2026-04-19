@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/shared/widgets/theme_toggle_button.dart';
 import 'package:hifdh/features/dashboard/ui/dashboard_page.dart';
@@ -21,6 +22,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool? _configuredLowMemoryMode;
+  final Set<int> _loadedPageIndices = {0};
 
   final List<Widget> _pages = [
     const DashboardPage(),
@@ -33,6 +35,7 @@ class _MainScreenState extends State<MainScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      _loadedPageIndices.add(index);
     });
   }
 
@@ -61,9 +64,22 @@ class _MainScreenState extends State<MainScreen> {
   bool _isLowMemoryDevice(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final smallPhone = mediaQuery.size.shortestSide <= 430;
-    final lowDensity = mediaQuery.devicePixelRatio <= 2.75;
+    final androidPhone =
+        defaultTargetPlatform == TargetPlatform.android &&
+        !kIsWeb &&
+        mediaQuery.size.shortestSide < 600;
+    final reduceMotion = mediaQuery.disableAnimations;
 
-    return smallPhone && lowDensity;
+    return androidPhone && (smallPhone || reduceMotion);
+  }
+
+  List<Widget> _buildLazyPages() {
+    return List<Widget>.generate(_pages.length, (index) {
+      if (_loadedPageIndices.contains(index)) {
+        return _pages[index];
+      }
+      return const SizedBox.shrink();
+    });
   }
 
   @override
@@ -192,7 +208,10 @@ class _MainScreenState extends State<MainScreen> {
                     key: ValueKey<int>(_selectedIndex),
                     child: _pages[_selectedIndex],
                   )
-                : IndexedStack(index: _selectedIndex, children: _pages),
+                : IndexedStack(
+                    index: _selectedIndex,
+                    children: _buildLazyPages(),
+                  ),
           ),
           bottomNavigationBar: Padding(
             padding: EdgeInsets.fromLTRB(8, 0, 8, bottomInset > 0 ? 2 : 6),
