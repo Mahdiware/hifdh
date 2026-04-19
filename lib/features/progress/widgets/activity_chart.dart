@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class ActivityChart extends StatelessWidget {
   final List<Map<String, dynamic>> chartData;
@@ -81,32 +82,34 @@ class ActivityChart extends StatelessWidget {
     final rangeLabels = _getRangeLabels(context);
     final primary = isDark ? const Color(0xFF8DB2FF) : AppColors.primaryNavy;
 
-    return Container(
+    return LiquidGlass(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [AppColors.surfaceDark, const Color(0xFF243C60)]
-              : [Colors.white, const Color(0xFFF6FAFF)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : AppColors.dividerLight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.2)
-                : Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+      borderRadius: BorderRadius.circular(20),
+      blur: 18,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? [AppColors.surfaceDark, const Color(0xFF243C60)]
+            : [Colors.white, const Color(0xFFF6FAFF)],
       ),
+      tint: isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.6),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.1)
+            : AppColors.dividerLight,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.grey.withValues(alpha: 0.1),
+          blurRadius: 15,
+          offset: const Offset(0, 5),
+        ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

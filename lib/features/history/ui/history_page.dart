@@ -6,6 +6,7 @@ import 'package:hifdh/core/theme/app_background.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/ayah_search_query.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 enum HistorySort { newest, oldest, typeMemorize, typeRevision }
@@ -157,52 +158,49 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildSearchField(bool isDark) {
-    return Container(
-      height: 42,
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.15)
-              : AppColors.dividerLight,
-        ),
-      ),
-      child: TextField(
-        controller: _searchController,
-        style: TextStyle(
-          color: isDark
-              ? AppColors.textPrimaryDark
-              : AppColors.textPrimaryLight,
-          fontSize: 14,
-        ),
-        decoration: InputDecoration(
-          hintText: AppLocalizations.of(context)!.searchHistory,
-          hintStyle: TextStyle(
+    return LiquidGlass(
+      padding: EdgeInsets.zero,
+      blur: 18,
+      borderRadius: BorderRadius.circular(14),
+      tint: isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.68),
+      child: SizedBox(
+        height: 42,
+        child: TextField(
+          controller: _searchController,
+          style: TextStyle(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.65)
-                : AppColors.textSecondaryLight,
-            fontSize: 13,
+                ? AppColors.textPrimaryDark
+                : AppColors.textPrimaryLight,
+            fontSize: 14,
           ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            size: 18,
-            color: isDark ? Colors.white70 : AppColors.primaryNavy,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.searchHistory,
+            hintStyle: TextStyle(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.65)
+                  : AppColors.textSecondaryLight,
+              fontSize: 13,
+            ),
+            prefixIcon: Icon(
+              Icons.search_rounded,
+              size: 18,
+              color: isDark ? Colors.white70 : AppColors.primaryNavy,
+            ),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 16),
+                    color: Colors.grey,
+                    onPressed: () {
+                      _searchController.clear();
+                      FocusScope.of(context).unfocus();
+                    },
+                  )
+                : null,
           ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 16),
-                  color: Colors.grey,
-                  onPressed: () {
-                    _searchController.clear();
-                    FocusScope.of(context).unfocus();
-                  },
-                )
-              : null,
         ),
       ),
     );
@@ -274,29 +272,25 @@ class _HistoryPageState extends State<HistoryPage> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: PopupMenuButton<HistorySort>(
-              icon: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : AppColors.primaryNavy.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
+              icon: LiquidGlass(
+                padding: EdgeInsets.zero,
+                blur: 16,
+                borderRadius: BorderRadius.circular(12),
+                tint: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.68),
+                child: SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Icon(
+                    Icons.sort,
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.2)
-                        : AppColors.primaryNavy.withValues(alpha: 0.16),
+                        ? AppColors.textPrimaryDark
+                        : AppColors.primaryNavy,
+                    size: 20,
                   ),
                 ),
-                child: Icon(
-                  Icons.sort,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.primaryNavy,
-                  size: 20,
-                ),
               ),
-              color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
               onSelected: _onSortChanged,
               itemBuilder: (BuildContext context) =>
                   <PopupMenuEntry<HistorySort>>[
@@ -380,24 +374,13 @@ class _HistoryPageState extends State<HistoryPage> {
       children: [
         _SlideFadeReveal(
           index: revealIndex++,
-          child: Container(
-            width: double.infinity,
+          child: LiquidGlass(
+            blur: 22,
+            borderRadius: BorderRadius.circular(20),
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [AppColors.surfaceDark, const Color(0xFF243B5E)]
-                    : [Colors.white, const Color(0xFFF1F7FF)],
-              ),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : AppColors.dividerLight,
-              ),
-            ),
+            tint: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.68),
             child: Row(
               children: [
                 Expanded(
@@ -480,12 +463,13 @@ class _HistoryPageState extends State<HistoryPage> {
     required Color color,
     required bool isDark,
   }) {
-    return Container(
+    return LiquidGlass(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.2 : 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      borderRadius: BorderRadius.circular(12),
+      blur: 10,
+      tint: color.withValues(alpha: isDark ? 0.24 : 0.12),
+      border: Border.all(color: color.withValues(alpha: 0.25)),
+      boxShadow: const [],
       child: Column(
         children: [
           Text(
@@ -513,35 +497,49 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildEmptyState(bool isDark) {
     final l10n = AppLocalizations.of(context)!;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.history_toggle_off,
-            size: 60,
-            color: AppColors.textSecondaryLight,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.noHistory,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
+      child: LiquidGlass(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+        borderRadius: BorderRadius.circular(18),
+        blur: 16,
+        tint: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.7),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : AppColors.dividerLight,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.history_toggle_off,
+              size: 60,
+              color: AppColors.textSecondaryLight,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.completeSomeMemorizationToSeeHistory,
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.textSecondaryDark.withValues(alpha: 0.7)
-                  : AppColors.textSecondaryLight,
+            const SizedBox(height: 16),
+            Text(
+              l10n.noHistory,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              l10n.completeSomeMemorizationToSeeHistory,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondaryDark.withValues(alpha: 0.7)
+                    : AppColors.textSecondaryLight,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -549,11 +547,20 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildTaskItem(PlanTask task, bool isDark) {
     final isMemorize = task.type == TaskType.memorize;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: LiquidGlass(
+        padding: EdgeInsets.zero,
         borderRadius: BorderRadius.circular(16),
+        blur: 14,
+        tint: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.7),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : AppColors.dividerLight.withValues(alpha: 0.7),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -561,154 +568,179 @@ class _HistoryPageState extends State<HistoryPage> {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: isDark
-              ? Colors.transparent
-              : AppColors.dividerLight.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _showTaskDetails(task),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: isMemorize
-                        ? AppColors.successGreen.withValues(alpha: 0.1)
-                        : AppColors.accentOrange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _showTaskDetails(task),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: isMemorize
+                          ? AppColors.successGreen.withValues(alpha: 0.1)
+                          : AppColors.accentOrange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isMemorize ? Icons.menu_book : Icons.cached,
+                      color: isMemorize
+                          ? AppColors.successGreen
+                          : AppColors.accentOrange,
+                      size: 24,
+                    ),
                   ),
-                  child: Icon(
-                    isMemorize ? Icons.menu_book : Icons.cached,
-                    color: isMemorize
-                        ? AppColors.successGreen
-                        : AppColors.accentOrange,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              task.title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimaryLight,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                task.title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
+                                ),
                               ),
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? AppColors.backgroundDark
-                                  : AppColors.backgroundLight,
+                            LiquidGlass(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               borderRadius: BorderRadius.circular(8),
+                              blur: 8,
+                              tint: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.white.withValues(alpha: 0.65),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white10
+                                    : AppColors.dividerLight,
+                              ),
+                              boxShadow: const [],
+                              child: Text(
+                                DateFormat(
+                                  'hh:mm a',
+                                  Localizations.localeOf(
+                                            context,
+                                          ).languageCode ==
+                                          'ar'
+                                      ? 'ar'
+                                      : 'en',
+                                ).format(task.completedAt!),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondaryLight,
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        if (task.subtitle != null && task.subtitle!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
-                              DateFormat(
-                                'hh:mm a',
-                                Localizations.localeOf(context).languageCode ==
-                                        'ar'
-                                    ? 'ar'
-                                    : 'en',
-                              ).format(task.completedAt!),
+                              task.subtitle!,
                               style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
                                 color: isDark
                                     ? AppColors.textSecondaryDark
                                     : AppColors.textSecondaryLight,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      if (task.subtitle != null && task.subtitle!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            task.subtitle!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight,
+                        Row(
+                          children: [
+                            _buildChip(
+                              isMemorize
+                                  ? AppLocalizations.of(context)!.memorize
+                                  : AppLocalizations.of(context)!.revision,
+                              isMemorize
+                                  ? AppColors.successGreen
+                                  : AppColors.accentOrange,
+                              isDark,
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            if (task.unitType == PlanUnitType.surah)
+                              _buildChip(
+                                AppLocalizations.of(context)!.surah,
+                                AppColors.primaryNavy,
+                                isDark,
+                              ),
+                            if (task.unitType == PlanUnitType.juz)
+                              _buildChip(
+                                AppLocalizations.of(context)!.juz,
+                                AppColors.primaryNavy,
+                                isDark,
+                              ),
+                          ],
                         ),
-                      Row(
-                        children: [
-                          _buildChip(
-                            isMemorize
-                                ? AppLocalizations.of(context)!.memorize
-                                : AppLocalizations.of(context)!.revision,
-                            isMemorize
-                                ? AppColors.successGreen
-                                : AppColors.accentOrange,
-                            isDark,
-                          ),
-                          const SizedBox(width: 8),
-                          if (task.unitType == PlanUnitType.surah)
-                            _buildChip(
-                              AppLocalizations.of(context)!.surah,
-                              AppColors.primaryNavy,
-                              isDark,
-                            ),
-                          if (task.unitType == PlanUnitType.juz)
-                            _buildChip(
-                              AppLocalizations.of(context)!.juz,
-                              AppColors.primaryNavy,
-                              isDark,
-                            ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                if (task.completedAt != null &&
-                    task.completedAt!.year == DateTime.now().year &&
-                    task.completedAt!.month == DateTime.now().month &&
-                    task.completedAt!.day == DateTime.now().day)
-                  _processingTaskId == task.id
-                      ? const Padding(
-                          padding: EdgeInsets.all(12.0),
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                  if (task.completedAt != null &&
+                      task.completedAt!.year == DateTime.now().year &&
+                      task.completedAt!.month == DateTime.now().month &&
+                      task.completedAt!.day == DateTime.now().day)
+                    _processingTaskId == task.id
+                        ? const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: LiquidGlass(
+                              padding: EdgeInsets.zero,
+                              borderRadius: BorderRadius.circular(10),
+                              blur: 8,
+                              tint: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.white.withValues(alpha: 0.68),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white10
+                                    : AppColors.dividerLight,
+                              ),
+                              boxShadow: const [],
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.undo,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondaryLight,
+                                  size: 18,
+                                ),
+                                onPressed: _processingTaskId == null
+                                    ? () => _confirmUndoTask(task)
+                                    : null,
+                                tooltip: AppLocalizations.of(
+                                  context,
+                                )!.undoCompletion,
+                              ),
+                            ),
                           ),
-                        )
-                      : IconButton(
-                          icon: const Icon(
-                            Icons.undo,
-                            color: AppColors.textSecondaryLight,
-                          ),
-                          onPressed: _processingTaskId == null
-                              ? () => _confirmUndoTask(task)
-                              : null,
-                          tooltip: AppLocalizations.of(context)!.undoCompletion,
-                        ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -724,35 +756,74 @@ class _HistoryPageState extends State<HistoryPage> {
       context: context,
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark
-              ? AppColors.surfaceDark
-              : AppColors.surfaceLight,
-          title: Text(
-            AppLocalizations.of(context)!.undoCompletion,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black),
-          ),
-          content: Text(
-            AppLocalizations.of(context)!.moveTaskBackToDashboard(task.title),
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(AppLocalizations.of(context)!.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(
-                AppLocalizations.of(context)!.undo,
-                style: const TextStyle(color: AppColors.accentOrange),
+        final l10n = AppLocalizations.of(context)!;
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: LiquidGlass(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              borderRadius: BorderRadius.circular(18),
+              blur: 16,
+              tint: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.74),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black26,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.undoCompletion,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.moveTaskBackToDashboard(task.title),
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
+                        ),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(l10n.cancel),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.accentOrange,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(l10n.undo),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -777,13 +848,13 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildChip(String label, Color color, bool isDark) {
-    return Container(
+    return LiquidGlass(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5),
-      ),
+      borderRadius: BorderRadius.circular(6),
+      blur: 8,
+      tint: color.withValues(alpha: isDark ? 0.2 : 0.1),
+      border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5),
+      boxShadow: const [],
       child: Text(
         label,
         style: TextStyle(
@@ -798,13 +869,10 @@ class _HistoryPageState extends State<HistoryPage> {
   void _showTaskDetails(PlanTask task) {
     if (task.id == null) return;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -864,137 +932,176 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
         return FutureBuilder<List<TaskNote>>(
           future: _notesFuture,
           builder: (context, snapshot) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white24 : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
+            return LiquidGlass(
+              padding: EdgeInsets.zero,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              blur: 20,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [const Color(0xFF1A2E4D), AppColors.backgroundDark]
+                    : [const Color(0xFFF2F7FF), AppColors.backgroundLight],
+              ),
+              tint: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.64),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black12,
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white24 : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    widget.task.title,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.primaryNavy,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildDetailRow(
-                    Icons.calendar_today,
-                    l10n.completedOn,
-                    DateFormat.yMMMd(
-                      Localizations.localeOf(context).languageCode == 'ar'
-                          ? 'ar'
-                          : 'en',
-                    ).add_jm().format(widget.task.completedAt!),
-                    isDark,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDetailRow(
-                    Icons.category,
-                    l10n.taskType,
-                    widget.task.type == TaskType.memorize
-                        ? AppLocalizations.of(context)!.memorize
-                        : AppLocalizations.of(context)!.revision,
-                    isDark,
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.sticky_note_2_outlined,
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.primaryNavy,
-                        size: 20,
+                    const SizedBox(height: 24),
+                    Text(
+                      widget.task.title,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppColors.primaryNavy,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        AppLocalizations.of(context)!.notesHistory,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildDetailRow(
+                      Icons.calendar_today,
+                      l10n.completedOn,
+                      DateFormat.yMMMd(
+                        Localizations.localeOf(context).languageCode == 'ar'
+                            ? 'ar'
+                            : 'en',
+                      ).add_jm().format(widget.task.completedAt!),
+                      isDark,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRow(
+                      Icons.category,
+                      l10n.taskType,
+                      widget.task.type == TaskType.memorize
+                          ? AppLocalizations.of(context)!.memorize
+                          : AppLocalizations.of(context)!.revision,
+                      isDark,
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.sticky_note_2_outlined,
                           color: isDark
                               ? AppColors.textPrimaryDark
                               : AppColors.primaryNavy,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          AppLocalizations.of(context)!.notesHistory,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.primaryNavy,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (!snapshot.hasData)
+                      const Center(child: CircularProgressIndicator())
+                    else if (snapshot.data!.isEmpty &&
+                        (widget.task.note == null ||
+                            widget.task.note!.isEmpty ||
+                            _legacyNoteDeleted))
+                      _buildEmptyNotesState(isDark)
+                    else ...[
+                      if (widget.task.note != null &&
+                          widget.task.note!.isNotEmpty &&
+                          !_legacyNoteDeleted &&
+                          !snapshot.data!.any(
+                            (n) => n.content == widget.task.note,
+                          ))
+                        CollapsibleNoteCard(
+                          note: TaskNote(
+                            id: -1,
+                            taskId: widget.task.id!,
+                            content: widget.task.note!,
+                            type: NoteType.mistake,
+                            createdAt:
+                                widget.task.completedAt ?? DateTime.now(),
+                          ),
+                          onDelete: () async {
+                            await PlannerDatabase().updateTaskNote(
+                              widget.task.id!,
+                              '',
+                            );
+                            if (mounted) {
+                              setState(() {
+                                _legacyNoteDeleted = true;
+                              });
+                            }
+                          },
+                        ),
+                      ...snapshot.data!.map(
+                        (note) => CollapsibleNoteCard(
+                          note: note,
+                          onDelete: () => _deleteNote(note.id!),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (!snapshot.hasData)
-                    const Center(child: CircularProgressIndicator())
-                  else if (snapshot.data!.isEmpty &&
-                      (widget.task.note == null ||
-                          widget.task.note!.isEmpty ||
-                          _legacyNoteDeleted))
-                    _buildEmptyNotesState(isDark)
-                  else ...[
-                    if (widget.task.note != null &&
-                        widget.task.note!.isNotEmpty &&
-                        !_legacyNoteDeleted &&
-                        !snapshot.data!.any(
-                          (n) => n.content == widget.task.note,
-                        ))
-                      CollapsibleNoteCard(
-                        note: TaskNote(
-                          id: -1,
-                          taskId: widget.task.id!,
-                          content: widget.task.note!,
-                          type: NoteType.mistake,
-                          createdAt: widget.task.completedAt ?? DateTime.now(),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: LiquidGlass(
+                        padding: const EdgeInsets.all(4),
+                        borderRadius: BorderRadius.circular(14),
+                        blur: 12,
+                        tint: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.white.withValues(alpha: 0.68),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white12
+                              : Colors.black.withValues(alpha: 0.08),
                         ),
-                        onDelete: () async {
-                          await PlannerDatabase().updateTaskNote(
-                            widget.task.id!,
-                            '',
-                          );
-                          if (mounted) {
-                            setState(() {
-                              _legacyNoteDeleted = true;
-                            });
-                          }
-                        },
-                      ),
-                    ...snapshot.data!.map(
-                      (note) => CollapsibleNoteCard(
-                        note: note,
-                        onDelete: () => _deleteNote(note.id!),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark
+                                  ? const Color(0xFF5A7EA8)
+                                  : const Color(0xFF58779A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              elevation: 0,
+                            ),
+                            child: Text(l10n.close),
+                          ),
+                        ),
                       ),
                     ),
+                    SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
                   ],
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryNavy,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(l10n.close),
-                    ),
-                  ),
-                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-                ],
+                ),
               ),
             );
           },
@@ -1004,34 +1111,39 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
   }
 
   Widget _buildEmptyNotesState(bool isDark) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      child: LiquidGlass(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         borderRadius: BorderRadius.circular(12),
+        blur: 12,
+        tint: isDark
+            ? AppColors.backgroundDark.withValues(alpha: 0.74)
+            : AppColors.backgroundLight.withValues(alpha: 0.76),
         border: Border.all(
           color: isDark ? Colors.transparent : AppColors.dividerLight,
         ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.notes,
-            size: 40,
-            color: AppColors.textSecondaryLight.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context)!.noNotesRecordedYet,
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-              fontSize: 14,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.notes,
+              size: 40,
+              color: AppColors.textSecondaryLight.withValues(alpha: 0.5),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              AppLocalizations.of(context)!.noNotesRecordedYet,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1042,40 +1154,52 @@ class _TaskHistoryDetailsSheetState extends State<_TaskHistoryDetailsSheet> {
     String value,
     bool isDark,
   ) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: isDark
-              ? AppColors.textSecondaryDark
-              : AppColors.textSecondaryLight,
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondaryLight,
+    return LiquidGlass(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      borderRadius: BorderRadius.circular(12),
+      blur: 10,
+      tint: isDark
+          ? Colors.white.withValues(alpha: 0.06)
+          : Colors.white.withValues(alpha: 0.68),
+      border: Border.all(
+        color: isDark ? Colors.white10 : AppColors.dividerLight,
+      ),
+      boxShadow: const [],
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight,
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : AppColors.textPrimaryLight,
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

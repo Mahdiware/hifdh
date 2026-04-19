@@ -3,6 +3,7 @@ import 'package:hifdh/core/services/app_version_info.dart';
 import 'package:hifdh/core/services/backup_service.dart';
 import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 import 'package:provider/provider.dart';
 
 import '../logic/locale_provider.dart';
@@ -16,21 +17,75 @@ class SettingsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.resetDataConfirmation),
-        content: Text(l10n.resetDataWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: LiquidGlass(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              borderRadius: BorderRadius.circular(18),
+              blur: 16,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF213A5F), const Color(0xFF172B47)]
+                    : [const Color(0xFFEFF5FF), const Color(0xFFDDEAFF)],
+              ),
+              tint: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0x66DCEBFF),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black26,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.resetDataConfirmation,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.resetDataWarning,
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text(l10n.cancel),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(l10n.resetEverything),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.resetEverything),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed == true) {
@@ -103,23 +158,16 @@ class SettingsPage extends StatelessWidget {
           icon: Icons.tune_rounded,
           title: l10n.settings,
           children: [
-            _buildLanguageSelector(localeProvider, l10n),
+            _buildLanguageSelector(context, localeProvider, l10n),
             const Divider(height: 20),
-            _buildThemeSelector(themeProvider, l10n),
+            _buildThemeSelector(context, themeProvider, l10n),
             const Divider(height: 20),
-            _buildFontSelector(themeProvider),
+            _buildFontSelector(context, themeProvider),
             const Divider(height: 20),
             _buildFontSizeSelector(context, themeProvider),
             const Divider(height: 20),
             _buildReadModeToggle(context, l10n),
           ],
-        ),
-        const SizedBox(height: 12),
-        _buildSectionCard(
-          context,
-          icon: Icons.auto_graph_rounded,
-          title: l10n.revisionQueueTitle,
-          children: [_buildRevisionQueueSettings(context, l10n)],
         ),
         const SizedBox(height: 12),
         _buildSectionCard(
@@ -151,20 +199,17 @@ class SettingsPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      width: double.infinity,
+    return LiquidGlass(
+      blur: 22,
+      borderRadius: BorderRadius.circular(18),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: [
-            colorScheme.primary.withValues(alpha: 0.18),
-            colorScheme.tertiary.withValues(alpha: 0.18),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+      gradient: LinearGradient(
+        colors: [
+          colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.24),
+          colorScheme.tertiary.withValues(alpha: isDark ? 0.16 : 0.2),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
       child: Row(
         children: [
@@ -172,7 +217,7 @@ class SettingsPage extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.16),
+              color: colorScheme.primary.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(Icons.settings_rounded, color: colorScheme.primary),
@@ -191,7 +236,7 @@ class SettingsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${l10n.language} • ${l10n.theme} • ${l10n.revisionQueueTitle}',
+                  '${l10n.language} • ${l10n.theme} • ${l10n.settings}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -212,23 +257,15 @@ class SettingsPage extends StatelessWidget {
     required String title,
     required List<Widget> children,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
+    return LiquidGlass(
+      blur: 20,
+      borderRadius: BorderRadius.circular(18),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+      tint: isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.66),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -269,44 +306,53 @@ class SettingsPage extends StatelessWidget {
   Widget _buildVersionInfo(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
+    return LiquidGlass(
+      borderRadius: BorderRadius.circular(14),
+      blur: 16,
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.appVersion,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+      tint: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.46),
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              l10n.appVersion,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${AppVersionInfo().version} (${AppVersionInfo().buildNumber})',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 6),
+            Text(
+              '${AppVersionInfo().version} (${AppVersionInfo().buildNumber})',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildLanguageSelector(
+    BuildContext context,
     LocaleProvider provider,
     AppLocalizations l10n,
   ) {
+    final menuColor = Theme.of(context).popupMenuTheme.color;
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(l10n.language),
       leading: const Icon(Icons.language),
       trailing: DropdownButton<String>(
         value: provider.locale.languageCode,
+        borderRadius: BorderRadius.circular(16),
+        dropdownColor: menuColor,
         underline: const SizedBox.shrink(),
         onChanged: (String? newValue) {
           if (newValue != null) {
@@ -323,7 +369,13 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeSelector(ThemeProvider provider, AppLocalizations l10n) {
+  Widget _buildThemeSelector(
+    BuildContext context,
+    ThemeProvider provider,
+    AppLocalizations l10n,
+  ) {
+    final menuColor = Theme.of(context).popupMenuTheme.color;
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(l10n.theme),
@@ -335,6 +387,8 @@ class SettingsPage extends StatelessWidget {
       ),
       trailing: DropdownButton<ThemeMode>(
         value: provider.themeMode,
+        borderRadius: BorderRadius.circular(16),
+        dropdownColor: menuColor,
         underline: const SizedBox.shrink(),
         onChanged: (ThemeMode? newValue) {
           if (newValue != null) {
@@ -351,7 +405,9 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFontSelector(ThemeProvider provider) {
+  Widget _buildFontSelector(BuildContext context, ThemeProvider provider) {
+    final menuColor = Theme.of(context).popupMenuTheme.color;
+
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: const Text('App Font'),
@@ -359,6 +415,8 @@ class SettingsPage extends StatelessWidget {
       leading: const Icon(Icons.text_fields_rounded),
       trailing: DropdownButton<String>(
         value: provider.fontOption,
+        borderRadius: BorderRadius.circular(16),
+        dropdownColor: menuColor,
         underline: const SizedBox.shrink(),
         onChanged: (String? newValue) {
           if (newValue != null) {
@@ -495,60 +553,6 @@ class SettingsPage extends StatelessWidget {
           ),
           value: isEnabled,
           onChanged: (val) => prefs.toggleDefaultReadMode(val),
-        );
-      },
-    );
-  }
-
-  Widget _buildRevisionQueueSettings(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Consumer<PreferencesProvider>(
-      builder: (context, prefs, _) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.queueSettingsDescription,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.queueIncludeMastered),
-              subtitle: Text(l10n.queueIncludeMasteredDescription),
-              value: prefs.revisionQueueIncludeMastered,
-              onChanged: (value) {
-                prefs.toggleRevisionQueueIncludeMastered(value);
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Text(
-                l10n.queueDailyTarget(prefs.revisionQueueDailyTarget),
-                style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Slider(
-              min: 5,
-              max: 100,
-              divisions: 19,
-              value: prefs.revisionQueueDailyTarget.toDouble(),
-              label: '${prefs.revisionQueueDailyTarget}',
-              onChanged: (value) {
-                prefs.setRevisionQueueDailyTarget(value.round());
-              },
-            ),
-          ],
         );
       },
     );

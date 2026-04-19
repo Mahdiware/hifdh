@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/core/utils/ayah_search_query.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class AyahSearchDialog extends StatefulWidget {
   final List<Map<String, dynamic>> ayahs;
@@ -110,236 +111,254 @@ class _AyahSearchDialogState extends State<AyahSearchDialog> {
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      clipBehavior: Clip.antiAlias,
-      backgroundColor: isDark ? const Color(0xFF1A2B47) : Colors.white,
+      backgroundColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(18, 14, 10, 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [const Color(0xFF264B84), const Color(0xFF1F3965)]
-                    : [const Color(0xFFEAF1FF), const Color(0xFFDCE8FF)],
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.travel_explore_rounded,
-                  color: isDark ? Colors.white : AppColors.primaryNavy,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: LiquidGlass(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(24),
+          blur: 20,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [const Color(0xFF1A2B47), const Color(0xFF14233B)]
+                : [const Color(0xFFEFF5FF), const Color(0xFFDCEAFF)],
+          ),
+          tint: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.72),
+          border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(18, 14, 10, 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [const Color(0xFF264B84), const Color(0xFF1F3965)]
+                        : [
+                            const Color(0xFFBFD7FF).withValues(alpha: 0.7),
+                            const Color(0xFFA9C6F5).withValues(alpha: 0.56),
+                          ],
+                  ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    l10n.selectSearchAyah,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.travel_explore_rounded,
                       color: isDark ? Colors.white : AppColors.primaryNavy,
                     ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icon(
-                    Icons.close_rounded,
-                    color: isDark ? Colors.white : AppColors.primaryNavy,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: TextField(
-              controller: _searchController,
-              autofocus: true,
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.textPrimaryLight,
-              ),
-              decoration: InputDecoration(
-                hintText: l10n.searchAyahExamplesHint,
-                hintStyle: TextStyle(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.55)
-                      : AppColors.textSecondaryLight,
-                ),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.75)
-                      : AppColors.primaryNavy,
-                ),
-                filled: true,
-                fillColor: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : const Color(0xFFF5F8FF),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : AppColors.dividerLight,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : AppColors.dividerLight,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.35)
-                        : AppColors.primaryNavy,
-                    width: 1.4,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 420,
-            child: _listItems.isEmpty
-                ? Center(
-                    child: Text(
-                      l10n.noMatches,
-                      style: TextStyle(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.72)
-                            : AppColors.textSecondaryLight,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.selectSearchAyah,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : AppColors.primaryNavy,
+                        ),
                       ),
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: _listItems.length,
-                    padding: const EdgeInsets.only(bottom: 10),
-                    itemBuilder: (context, index) {
-                      final item = _listItems[index];
-                      if (item['type'] == 'header') {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 9,
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: isDark ? Colors.white : AppColors.primaryNavy,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: LiquidGlass(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  borderRadius: BorderRadius.circular(14),
+                  blur: 10,
+                  tint: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.78),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.16)
+                        : AppColors.primaryNavy.withValues(alpha: 0.12),
+                  ),
+                  boxShadow: const [],
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: l10n.searchAyahExamplesHint,
+                      hintStyle: TextStyle(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.55)
+                            : AppColors.textSecondaryLight,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.75)
+                            : AppColors.primaryNavy,
+                      ),
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 420,
+                child: _listItems.isEmpty
+                    ? Center(
+                        child: Text(
+                          l10n.noMatches,
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.72)
+                                : AppColors.textSecondaryLight,
                           ),
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.06)
-                              : AppColors.primaryNavy.withValues(alpha: 0.06),
-                          child: Row(
-                            children: [
-                              Text(
-                                isArabic ? item['titleAr'] : item['titleEn'],
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.primaryNavy,
-                                ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _listItems.length,
+                        padding: const EdgeInsets.only(bottom: 10),
+                        itemBuilder: (context, index) {
+                          final item = _listItems[index];
+                          if (item['type'] == 'header') {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 9,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '(${l10n.ayahs} ${item['subtitle']})',
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white70
-                                      : AppColors.textSecondaryLight,
-                                  fontSize: 13,
-                                ),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : AppColors.primaryNavy.withValues(
+                                      alpha: 0.06,
+                                    ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    isArabic
+                                        ? item['titleAr']
+                                        : item['titleEn'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.primaryNavy,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '(${l10n.ayahs} ${item['subtitle']})',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white70
+                                          : AppColors.textSecondaryLight,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                      } else {
-                        final row = item['data'] as Map<String, dynamic>;
-                        final surahTitle =
-                            ((isArabic
-                                    ? row['surahArabicName']
-                                    : row['surahEnglishName'])
-                                as String?) ??
-                            'Surah ${row['surahNumber']}';
+                            );
+                          } else {
+                            final row = item['data'] as Map<String, dynamic>;
+                            final surahTitle =
+                                ((isArabic
+                                        ? row['surahArabicName']
+                                        : row['surahEnglishName'])
+                                    as String?) ??
+                                'Surah ${row['surahNumber']}';
 
-                        return Column(
-                          children: [
-                            ListTile(
-                              dense: true,
-                              leading: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.08)
-                                      : AppColors.primaryNavy.withValues(
-                                          alpha: 0.08,
-                                        ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  "${row['surahNumber']}:${row['ayahNumber']}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
+                            return Column(
+                              children: [
+                                ListTile(
+                                  dense: true,
+                                  leading: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : AppColors.primaryNavy.withValues(
+                                              alpha: 0.08,
+                                            ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      "${row['surahNumber']}:${row['ayahNumber']}",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.primaryNavy,
+                                      ),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    surahTitle,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.textPrimaryLight,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    row['text'],
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: 'QuranFont',
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.78)
+                                          : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                  trailing: Icon(
+                                    Icons.chevron_right_rounded,
                                     color: isDark
-                                        ? Colors.white
+                                        ? Colors.white70
                                         : AppColors.primaryNavy,
                                   ),
+                                  onTap: () {
+                                    widget.onSelected(row['id'] as int);
+                                    Navigator.pop(context);
+                                  },
                                 ),
-                              ),
-                              title: Text(
-                                surahTitle,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                              ),
-                              subtitle: Text(
-                                row['text'],
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'QuranFont',
+                                Divider(
+                                  height: 1,
+                                  indent: 16,
+                                  endIndent: 16,
                                   color: isDark
-                                      ? Colors.white.withValues(alpha: 0.78)
-                                      : Colors.black54,
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : AppColors.dividerLight,
                                 ),
-                              ),
-                              trailing: Icon(
-                                Icons.chevron_right_rounded,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppColors.primaryNavy,
-                              ),
-                              onTap: () {
-                                widget.onSelected(row['id'] as int);
-                                Navigator.pop(context);
-                              },
-                            ),
-                            Divider(
-                              height: 1,
-                              indent: 16,
-                              endIndent: 16,
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.1)
-                                  : AppColors.dividerLight,
-                            ),
-                          ],
-                        );
-                      }
-                    },
-                  ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

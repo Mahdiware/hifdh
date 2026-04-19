@@ -4,6 +4,7 @@ import 'package:hifdh/core/services/export_statistics.dart';
 import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class ProgressHeaderCard extends StatelessWidget {
   final Map<String, int> memPercentage;
@@ -49,23 +50,26 @@ class ProgressHeaderCard extends StatelessWidget {
         ? Colors.black.withValues(alpha: 0.35)
         : Colors.grey.withValues(alpha: 0.2);
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.12)
-              : AppColors.primaryNavy.withValues(alpha: 0.12),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: cardShadow,
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+    return LiquidGlass(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(32),
+      blur: 20,
+      gradient: gradient,
+      tint: isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.6),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.12)
+            : AppColors.primaryNavy.withValues(alpha: 0.12),
       ),
+      boxShadow: [
+        BoxShadow(
+          color: cardShadow,
+          blurRadius: 24,
+          offset: const Offset(0, 12),
+        ),
+      ],
       child: Stack(
         children: [
           // Decorative background circle for visual interest
@@ -124,27 +128,45 @@ class ProgressHeaderCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Tooltip(
                           message: "Export as PDF", // Shows on hover/long press
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final data = await PlannerDatabase()
-                                  .buildDynamicJuzRows();
-                              await exportJuzRevisionPdf(
-                                data['rows'],
-                                maxRevisions: data['maxRevisions'],
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.all(12),
-                              backgroundColor: AppColors.primaryNavy,
-                              elevation: 0,
+                          child: LiquidGlass(
+                            padding: const EdgeInsets.all(2),
+                            borderRadius: BorderRadius.circular(12),
+                            blur: 10,
+                            tint: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.7),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white10
+                                  : AppColors.primaryNavy.withValues(
+                                      alpha: 0.12,
+                                    ),
                             ),
-                            child: const Icon(
-                              Icons.picture_as_pdf,
-                              color: Colors.white,
-                              size: 24,
+                            boxShadow: const [],
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final data = await PlannerDatabase()
+                                    .buildDynamicJuzRows();
+                                await exportJuzRevisionPdf(
+                                  data['rows'],
+                                  maxRevisions: data['maxRevisions'],
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                backgroundColor: isDark
+                                    ? const Color(0xFF5A7EA8)
+                                    : const Color(0xFF58779A),
+                                elevation: 0,
+                              ),
+                              child: const Icon(
+                                Icons.picture_as_pdf,
+                                color: Colors.white,
+                                size: 24,
+                              ),
                             ),
                           ),
                         ),
@@ -200,25 +222,28 @@ class ProgressHeaderCard extends StatelessWidget {
   }
 
   Widget _buildMetricSelector(BuildContext context, Color textColor) {
-    return Container(
+    final menuColor = Theme.of(context).popupMenuTheme.color;
+
+    return LiquidGlass(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      blur: 8,
+      tint: isDark
+          ? Colors.black.withValues(alpha: 0.2)
+          : Colors.white.withValues(alpha: 0.82),
+      border: Border.all(
         color: isDark
-            ? Colors.black.withValues(alpha: 0.2)
-            : AppColors.primaryNavy.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : AppColors.primaryNavy.withValues(alpha: 0.12),
-          width: 1,
-        ),
+            ? Colors.white.withValues(alpha: 0.1)
+            : AppColors.primaryNavy.withValues(alpha: 0.2),
+        width: 1,
       ),
+      boxShadow: const [],
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: selectedMetric,
           isDense: true,
-          dropdownColor: isDark ? AppColors.surfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          dropdownColor: menuColor,
           icon: Padding(
             padding: const EdgeInsets.only(left: 8),
             child: Icon(

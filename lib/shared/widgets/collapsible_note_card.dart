@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/quran_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 
 class CollapsibleNoteCard extends StatefulWidget {
@@ -99,9 +100,12 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
         ? AppColors.surfaceDark.withValues(alpha: 0.75)
         : Colors.white;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: LiquidGlass(
+        padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.circular(16),
+        blur: 14,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -110,7 +114,9 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
             color.withValues(alpha: _isDark ? 0.16 : 0.08),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        tint: _isDark
+            ? AppColors.surfaceDark.withValues(alpha: 0.24)
+            : Colors.white.withValues(alpha: 0.72),
         border: Border.all(
           color: _isDark
               ? color.withValues(alpha: 0.3)
@@ -123,46 +129,49 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
             offset: const Offset(0, 4),
           ),
         ],
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: _hasContent
-                ? () => setState(() => _isExpanded = !_isExpanded)
-                : null,
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.14),
-                      shape: BoxShape.circle,
+        child: Column(
+          children: [
+            InkWell(
+              onTap: _hasContent
+                  ? () => setState(() => _isExpanded = !_isExpanded)
+                  : null,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(icon, color: color, size: 18),
                     ),
-                    alignment: Alignment.center,
-                    child: Icon(icon, color: color, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildHeaderInfo(color)),
-                  _buildActionMenu(color),
-                  if (_hasContent) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      _isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      color: color.withValues(alpha: 0.5),
-                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildHeaderInfo(color)),
+                    _buildActionMenu(color),
+                    if (_hasContent) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: color.withValues(alpha: 0.5),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-          if (_isExpanded && _hasContent) _buildExpandedContent(color),
-        ],
+            if (_isExpanded && _hasContent) _buildExpandedContent(color),
+          ],
+        ),
       ),
     );
   }
@@ -195,8 +204,6 @@ class _CollapsibleNoteCardState extends State<CollapsibleNoteCard> {
 
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert, color: color),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: _isDark ? AppColors.surfaceDark : Colors.white,
       onSelected: (value) {
         if (value == 'edit') {
           widget.onEdit?.call();

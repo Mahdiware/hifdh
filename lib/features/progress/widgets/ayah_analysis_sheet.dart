@@ -6,6 +6,7 @@ import 'package:hifdh/core/utils/open_quran.dart';
 import 'package:hifdh/features/progress/models/ayah_color.dart';
 import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/shared/widgets/collapsible_note_card.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:hifdh/features/settings/logic/preferences_provider.dart';
@@ -133,117 +134,130 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
       maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDark
-                  ? [const Color(0xFF1A2E4D), AppColors.backgroundDark]
-                  : [const Color(0xFFF2F7FF), AppColors.backgroundLight],
-            ),
+        return LiquidGlass(
+          padding: EdgeInsets.zero,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          blur: 20,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [const Color(0xFF1A2E4D), AppColors.backgroundDark]
+                : [const Color(0xFFF2F7FF), AppColors.backgroundLight],
           ),
+          tint: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.64),
+          border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
           child: Column(
             children: [
               // Header
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.02)
-                      : Colors.white.withValues(alpha: 0.55),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : AppColors.dividerLight,
-                    ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: LiquidGlass(
+                  padding: const EdgeInsets.all(16),
+                  borderRadius: BorderRadius.circular(18),
+                  blur: 14,
+                  tint: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.white.withValues(alpha: 0.7),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : AppColors.dividerLight,
                   ),
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 24),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white24 : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white24 : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.title,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: "QuranFont",
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                l10n.mistakesAnalysis,
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.grey[400]
-                                      : Colors.grey[600],
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : AppColors.primaryNavy.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.all(2),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildToggleItem(
-                                l10n.analyze,
-                                Icons.analytics_outlined,
-                                !_isReadMode,
-                                () => setState(() => _isReadMode = false),
-                                isDark,
-                              ),
-                              _buildToggleItem(
-                                l10n.read,
-                                Icons.menu_book_rounded,
-                                _isReadMode,
-                                () => setState(() => _isReadMode = true),
-                                isDark,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(width: 8),
-                          _buildLegendItem(AyahColor.level1, "1"),
-                          const SizedBox(width: 8),
-                          _buildLegendItem(AyahColor.level2, "2"),
-                          const SizedBox(width: 8),
-                          _buildLegendItem(AyahColor.level3, "3"),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.title,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: "QuranFont",
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  l10n.mistakesAnalysis,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : const Color(0xFF4D6380),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          LiquidGlass(
+                            padding: const EdgeInsets.all(3),
+                            borderRadius: BorderRadius.circular(11),
+                            blur: 10,
+                            tint: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.7),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white10
+                                  : AppColors.primaryNavy.withValues(
+                                      alpha: 0.1,
+                                    ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildToggleItem(
+                                  l10n.analyze,
+                                  Icons.analytics_outlined,
+                                  !_isReadMode,
+                                  () => setState(() => _isReadMode = false),
+                                  isDark,
+                                ),
+                                const SizedBox(width: 4),
+                                _buildToggleItem(
+                                  l10n.read,
+                                  Icons.menu_book_rounded,
+                                  _isReadMode,
+                                  () => setState(() => _isReadMode = true),
+                                  isDark,
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 14),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildLegendItem(AyahColor.level1, "1"),
+                            const SizedBox(width: 8),
+                            _buildLegendItem(AyahColor.level2, "2"),
+                            const SizedBox(width: 8),
+                            _buildLegendItem(AyahColor.level3, "3"),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -340,34 +354,22 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                               isScrollControlled: true,
                                               backgroundColor:
                                                   Colors.transparent,
-                                              builder: (context) => Container(
-                                                decoration: BoxDecoration(
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).scaffoldBackgroundColor,
-                                                  borderRadius:
-                                                      const BorderRadius.vertical(
-                                                        top: Radius.circular(
-                                                          24,
-                                                        ),
-                                                      ),
-                                                ),
-                                                child: _AyahHistorySheet(
-                                                  surahNumber: sNum,
-                                                  surahName: sName,
-                                                  ayahNumber: number,
-                                                  initialNotes:
-                                                      _ayahNotes[id] ?? [],
-                                                  onDeleteNote:
-                                                      (int noteId) async {
-                                                        await PlannerDatabase()
-                                                            .deleteTaskNote(
-                                                              noteId,
-                                                            );
-                                                        hasChanges = true;
-                                                      },
-                                                ),
-                                              ),
+                                              builder: (context) =>
+                                                  _AyahHistorySheet(
+                                                    surahNumber: sNum,
+                                                    surahName: sName,
+                                                    ayahNumber: number,
+                                                    initialNotes:
+                                                        _ayahNotes[id] ?? [],
+                                                    onDeleteNote:
+                                                        (int noteId) async {
+                                                          await PlannerDatabase()
+                                                              .deleteTaskNote(
+                                                                noteId,
+                                                              );
+                                                          hasChanges = true;
+                                                        },
+                                                  ),
                                             );
                                             if (hasChanges) {
                                               _refreshMistakes();
@@ -376,11 +378,15 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
-                                          child: Container(
+                                          child: SizedBox(
                                             width: 44,
                                             height: 28,
-                                            decoration: BoxDecoration(
-                                              color: pillColor,
+                                            child: LiquidGlass(
+                                              padding: EdgeInsets.zero,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              blur: 8,
+                                              tint: pillColor,
                                               border: Border.all(
                                                 color:
                                                     color == Colors.transparent
@@ -394,16 +400,15 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                                         alpha: 0.5,
                                                       ),
                                               ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              "$number",
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: textColor,
+                                              child: Center(
+                                                child: Text(
+                                                  "$number",
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: textColor,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -428,23 +433,32 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
   Widget _buildLegendItem(Color color, String label) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+    return LiquidGlass(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      borderRadius: BorderRadius.circular(999),
+      blur: 8,
+      tint: isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.7),
+      border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+      child: Row(
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-        ),
-      ],
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : const Color(0xFF3F5876),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -457,14 +471,21 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 10 : 8,
+          vertical: 7,
+        ),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? Colors.white.withValues(alpha: 0.26) : Colors.white)
+              ? (isDark
+                    ? Colors.white.withValues(alpha: 0.24)
+                    : Colors.white.withValues(alpha: 0.92))
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
                 ? (isDark
@@ -472,17 +493,9 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                       : AppColors.primaryNavy.withValues(alpha: 0.16))
                 : Colors.transparent,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
@@ -491,17 +504,16 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                   ? (isDark ? Colors.white : AppColors.primaryNavy)
                   : (isDark ? Colors.grey[400] : Colors.grey[600]),
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 4),
+            if (isSelected) const SizedBox(width: 5),
+            if (isSelected)
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : AppColors.primaryNavy,
                 ),
               ),
-            ],
           ],
         ),
       ),
@@ -560,13 +572,14 @@ class _AyahHistorySheetState extends State<_AyahHistorySheet> {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
+    return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.7,
       ),
-      decoration: BoxDecoration(
+      child: LiquidGlass(
+        padding: const EdgeInsets.all(24),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        blur: 20,
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -574,93 +587,118 @@ class _AyahHistorySheetState extends State<_AyahHistorySheet> {
               ? [const Color(0xFF1D3253), AppColors.backgroundDark]
               : [const Color(0xFFF3F8FF), AppColors.backgroundLight],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white24 : Colors.grey[350],
-                borderRadius: BorderRadius.circular(8),
+        tint: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.66),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey[350],
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "${widget.surahName} : ${widget.ayahNumber}",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "QuranFont",
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "${_notes.length} ${l10n.notesHistory}",
-                      style: TextStyle(
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () =>
-                    openQuranLink(widget.surahNumber, widget.ayahNumber),
-                icon: Icon(
-                  Icons.menu_book_rounded,
-                  color: isDark ? Colors.white : AppColors.primaryNavy,
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 32),
-          Expanded(
-            child: _notes.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 48,
-                          color: AppColors.successGreen.withValues(alpha: 0.5),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${widget.surahName} : ${widget.ayahNumber}",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: "QuranFont",
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.noMistakesRecorded,
-                          style: TextStyle(
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${_notes.length} ${l10n.notesHistory}",
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                         ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    itemCount: _notes.length,
-                    itemBuilder: (context, index) {
-                      final note = _notes[index];
-                      return CollapsibleNoteCard(
-                        note: note,
-                        onDelete: note.id == null
-                            ? () {}
-                            : () => _handleDelete(note.id!),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-          ),
-        ],
+                ),
+                SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: LiquidGlass(
+                    padding: EdgeInsets.zero,
+                    borderRadius: BorderRadius.circular(12),
+                    blur: 10,
+                    tint: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white.withValues(alpha: 0.7),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white10
+                          : AppColors.primaryNavy.withValues(alpha: 0.12),
+                    ),
+                    child: IconButton(
+                      onPressed: () =>
+                          openQuranLink(widget.surahNumber, widget.ayahNumber),
+                      icon: Icon(
+                        Icons.menu_book_rounded,
+                        color: isDark ? Colors.white : AppColors.primaryNavy,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 32),
+            Expanded(
+              child: _notes.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline,
+                            size: 48,
+                            color: AppColors.successGreen.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.noMistakesRecorded,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _notes.length,
+                      itemBuilder: (context, index) {
+                        final note = _notes[index];
+                        return CollapsibleNoteCard(
+                          note: note,
+                          onDelete: note.id == null
+                              ? () {}
+                              : () => _handleDelete(note.id!),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

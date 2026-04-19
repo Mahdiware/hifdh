@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class SelectionCard extends StatelessWidget {
   final String title;
@@ -41,33 +42,37 @@ class SelectionCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+        child: LiquidGlass(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isSelected
-                  ? (isDark
-                        ? [const Color(0xFF2E4F82), const Color(0xFF223D66)]
-                        : [const Color(0xFFEFF5FF), const Color(0xFFE4EEFF)])
-                  : (isDark
-                        ? [AppColors.surfaceDark, const Color(0xFF243855)]
-                        : [Colors.white, const Color(0xFFF9FBFF)]),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: (isSelected ? colorScheme.primary : Colors.black)
-                    .withValues(alpha: isDark ? 0.24 : 0.08),
-                blurRadius: isSelected ? 18 : 10,
-                offset: const Offset(0, 6),
-              ),
-            ],
+          borderRadius: BorderRadius.circular(18),
+          blur: isSelected ? 16 : 12,
+          tint: isSelected
+              ? (isDark
+                    ? const Color(0xFF2F4A6E).withValues(alpha: 0.44)
+                    : const Color(0xFFE7F0FD).withValues(alpha: 0.78))
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.07)
+                    : Colors.white.withValues(alpha: 0.72)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isSelected
+                ? (isDark
+                      ? [const Color(0xFF2E4F82), const Color(0xFF223D66)]
+                      : [const Color(0xFFEFF5FF), const Color(0xFFE4EEFF)])
+                : (isDark
+                      ? [AppColors.surfaceDark, const Color(0xFF243855)]
+                      : [Colors.white, const Color(0xFFF9FBFF)]),
           ),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: (isSelected ? colorScheme.primary : Colors.black)
+                  .withValues(alpha: isDark ? 0.24 : 0.08),
+              blurRadius: isSelected ? 18 : 10,
+              offset: const Offset(0, 6),
+            ),
+          ],
           child: Row(
             children: [
               if (icon != null) ...[

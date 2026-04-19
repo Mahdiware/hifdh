@@ -6,11 +6,11 @@ import 'package:hifdh/shared/models/plan_task.dart';
 import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/features/dashboard/widgets/plan_task_card.dart';
 import 'package:hifdh/features/dashboard/widgets/notes_sheet.dart';
-import 'package:hifdh/features/revision_queue/ui/revision_queue_page.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
 import 'package:hifdh/features/dashboard/widgets/dashboard_app_bar.dart';
 import 'package:hifdh/features/dashboard/widgets/dashboard_header.dart';
 import 'package:hifdh/features/dashboard/models/dashboard_filter_types.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -112,6 +112,7 @@ class _DashboardPageState extends State<DashboardPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -132,21 +133,73 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _deleteTask(PlanTask task) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.delete),
-        content: Text(AppLocalizations.of(context)!.confirmDeleteTask),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(AppLocalizations.of(context)!.cancel),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final l10n = AppLocalizations.of(context)!;
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: LiquidGlass(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              borderRadius: BorderRadius.circular(18),
+              blur: 16,
+              tint: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.74),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black26,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.delete,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.confirmDeleteTask,
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(l10n.cancel),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.errorRed,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(l10n.delete),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(AppLocalizations.of(context)!.delete),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirm == true) {
@@ -160,16 +213,6 @@ class _DashboardPageState extends State<DashboardPage> {
     return _tasks.where((t) => t.unitType == _selectedFilter).toList();
   }
 
-  Future<void> _openRevisionQueue() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const RevisionQueuePage()),
-    );
-    if (mounted) {
-      _fetchTasks(showLoading: false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -180,13 +223,10 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: isDark
           ? AppColors.backgroundDark
           : AppColors.backgroundLight,
-      appBar: DashboardAppBar(
-        onRefresh: _fetchTasks,
-        onOpenRevisionQueue: _openRevisionQueue,
-      ),
+      appBar: DashboardAppBar(onRefresh: _fetchTasks),
       floatingActionButton: FloatingActionButton(
         elevation: 0,
-        backgroundColor: AppColors.primaryNavy,
+        backgroundColor: const Color(0xFF58779A),
         child: Icon(Icons.add_rounded, color: Colors.white, size: 28),
         onPressed: () async {
           final res = await Navigator.push(
@@ -251,45 +291,41 @@ class _DashboardPageState extends State<DashboardPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.white.withValues(alpha: 0.85),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: LiquidGlass(
+          blur: 20,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : AppColors.dividerLight,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+          tint: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.72),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryNavy.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.spa_outlined,
+                  size: 30,
+                  color: AppColors.primaryNavy,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                l10n.noActiveTasks,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                ),
+              ),
+            ],
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: AppColors.primaryNavy.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.spa_outlined,
-                size: 30,
-                color: AppColors.primaryNavy,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              l10n.noActiveTasks,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : AppColors.textPrimaryLight,
-              ),
-            ),
-          ],
         ),
       ),
     );

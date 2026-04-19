@@ -9,6 +9,7 @@ import 'package:hifdh/core/services/planner_database.dart';
 import 'package:hifdh/core/theme/app_colors.dart';
 import 'package:hifdh/features/quiz/ui/surah_selection_dialog.dart';
 import 'package:hifdh/l10n/generated/app_localizations.dart';
+import 'package:hifdh/shared/widgets/liquid_glass.dart';
 import 'package:hifdh/shared/widgets/selection_card.dart';
 
 class AssignPage extends StatefulWidget {
@@ -250,12 +251,47 @@ class _AssignPageState extends State<AssignPage> {
       initialDate: now.add(const Duration(days: 7)),
       firstDate: now,
       lastDate: now.add(const Duration(days: 365 * 5)),
+      builder: (context, child) {
+        final baseTheme = Theme.of(context);
+        final themed = baseTheme.copyWith(
+          dialogTheme: const DialogThemeData(
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+          ),
+          datePickerTheme: baseTheme.datePickerTheme.copyWith(
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+        );
+
+        return Theme(data: themed, child: _buildGlassPickerWrapper(child));
+      },
     );
 
     if (pickedDate != null && mounted) {
       final pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
+        builder: (context, child) {
+          final baseTheme = Theme.of(context);
+          final themed = baseTheme.copyWith(
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+            ),
+            timePickerTheme: baseTheme.timePickerTheme.copyWith(
+              backgroundColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          );
+
+          return Theme(data: themed, child: _buildGlassPickerWrapper(child));
+        },
       );
 
       if (pickedTime != null) {
@@ -280,6 +316,33 @@ class _AssignPageState extends State<AssignPage> {
         });
       }
     }
+  }
+
+  Widget _buildGlassPickerWrapper(Widget? child) {
+    if (child == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: LiquidGlass(
+            padding: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(24),
+            blur: 20,
+            tint: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.white.withValues(alpha: 0.76),
+            border: Border.all(color: isDark ? Colors.white12 : Colors.black26),
+            child: child,
+          ),
+        ),
+      ),
+    );
   }
 
   void _onUnitChanged(int index) {
@@ -509,6 +572,7 @@ class _AssignPageState extends State<AssignPage> {
   Widget _buildJuzSelector() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
+    final menuColor = Theme.of(context).popupMenuTheme.color;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,23 +582,27 @@ class _AssignPageState extends State<AssignPage> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Container(
+        LiquidGlass(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            border: Border.all(
-              color: isDark ? Colors.transparent : AppColors.dividerLight,
-            ),
-            borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12),
+          blur: 14,
+          tint: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.72),
+          border: Border.all(
+            color: isDark ? Colors.white12 : AppColors.dividerLight,
           ),
           child: DropdownButton<int>(
             value: _selectedJuz,
             isExpanded: true,
             underline: Container(),
-            dropdownColor: isDark
-                ? AppColors.surfaceDark
-                : AppColors.surfaceLight,
-            style: Theme.of(context).textTheme.bodyLarge,
+            borderRadius: BorderRadius.circular(16),
+            dropdownColor: menuColor,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight,
+            ),
             items: List.generate(30, (i) => i + 1).map((idx) {
               return DropdownMenuItem(
                 value: idx,
@@ -555,23 +623,27 @@ class _AssignPageState extends State<AssignPage> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Container(
+        LiquidGlass(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            border: Border.all(
-              color: isDark ? Colors.transparent : AppColors.dividerLight,
-            ),
-            borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12),
+          blur: 14,
+          tint: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.72),
+          border: Border.all(
+            color: isDark ? Colors.white12 : AppColors.dividerLight,
           ),
           child: DropdownButton<String>(
             value: _juzSubdivision,
             isExpanded: true,
             underline: Container(),
-            dropdownColor: isDark
-                ? AppColors.surfaceDark
-                : AppColors.surfaceLight,
-            style: Theme.of(context).textTheme.bodyLarge,
+            borderRadius: BorderRadius.circular(16),
+            dropdownColor: menuColor,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight,
+            ),
             items: _juzSubdivisions.map((s) {
               String label = s;
               if (s == 'Full Juz') {
