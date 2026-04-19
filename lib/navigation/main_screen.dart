@@ -86,6 +86,7 @@ class _MainScreenState extends State<MainScreen> {
         ? Colors.white.withValues(alpha: 0.18)
         : const Color(0xFFBCD0EE);
     final lowMemoryMode = _isLowMemoryDevice(context);
+    final bottomInset = MediaQuery.of(context).padding.bottom;
 
     if (_configuredLowMemoryMode != lowMemoryMode) {
       _configuredLowMemoryMode = lowMemoryMode;
@@ -193,97 +194,90 @@ class _MainScreenState extends State<MainScreen> {
                   )
                 : IndexedStack(index: _selectedIndex, children: _pages),
           ),
-          bottomNavigationBar: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-              child: LiquidGlass(
-                padding: EdgeInsets.zero,
-                blur: 20,
-                borderRadius: BorderRadius.circular(20),
-                tint: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.white.withValues(alpha: 0.7),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.16)
-                      : Colors.white.withValues(alpha: 0.9),
+          bottomNavigationBar: Padding(
+            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomInset > 0 ? 2 : 6),
+            child: LiquidGlass(
+              padding: EdgeInsets.zero,
+              blur: 20,
+              borderRadius: BorderRadius.circular(20),
+              tint: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.7),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.16)
+                    : Colors.white.withValues(alpha: 0.9),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 9),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 9),
+              ],
+              child: MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(navTextScale)),
+                child: NavigationBarTheme(
+                  data: NavigationBarThemeData(
+                    iconTheme: WidgetStateProperty.resolveWith((states) {
+                      final selected = states.contains(WidgetState.selected);
+                      return IconThemeData(
+                        color: selected ? navSelectedColor : navUnselectedColor,
+                        size: selected ? 23 : 22,
+                      );
+                    }),
+                    labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                      final selected = states.contains(WidgetState.selected);
+                      return TextStyle(
+                        fontSize: selected ? 11 : 10,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                        letterSpacing: -0.1,
+                        color: selected ? navSelectedColor : navUnselectedColor,
+                      );
+                    }),
+                    indicatorShape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                ],
-                child: MediaQuery(
-                  data: MediaQuery.of(
-                    context,
-                  ).copyWith(textScaler: TextScaler.linear(navTextScale)),
-                  child: NavigationBarTheme(
-                    data: NavigationBarThemeData(
-                      iconTheme: WidgetStateProperty.resolveWith((states) {
-                        final selected = states.contains(WidgetState.selected);
-                        return IconThemeData(
-                          color: selected
-                              ? navSelectedColor
-                              : navUnselectedColor,
-                          size: selected ? 23 : 22,
-                        );
-                      }),
-                      labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                        final selected = states.contains(WidgetState.selected);
-                        return TextStyle(
-                          fontSize: selected ? 11 : 10,
-                          fontWeight: selected
-                              ? FontWeight.w700
-                              : FontWeight.w600,
-                          letterSpacing: -0.1,
-                          color: selected
-                              ? navSelectedColor
-                              : navUnselectedColor,
-                        );
-                      }),
-                      indicatorShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  child: NavigationBar(
+                    height: 64,
+                    backgroundColor: Colors.transparent,
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _onItemTapped,
+                    labelBehavior:
+                        NavigationDestinationLabelBehavior.alwaysShow,
+                    indicatorColor: navIndicatorColor,
+                    destinations: [
+                      NavigationDestination(
+                        icon: const Icon(Icons.home_outlined),
+                        selectedIcon: const Icon(Icons.home_filled),
+                        label: _compactNavLabel(l10n.dashboard),
                       ),
-                    ),
-                    child: NavigationBar(
-                      height: 68,
-                      backgroundColor: Colors.transparent,
-                      selectedIndex: _selectedIndex,
-                      onDestinationSelected: _onItemTapped,
-                      labelBehavior:
-                          NavigationDestinationLabelBehavior.alwaysShow,
-                      indicatorColor: navIndicatorColor,
-                      destinations: [
-                        NavigationDestination(
-                          icon: const Icon(Icons.home_outlined),
-                          selectedIcon: const Icon(Icons.home_filled),
-                          label: _compactNavLabel(l10n.dashboard),
-                        ),
-                        NavigationDestination(
-                          icon: const Icon(Icons.quiz_outlined),
-                          selectedIcon: const Icon(Icons.quiz),
-                          label: _compactNavLabel(l10n.quiz),
-                        ),
-                        NavigationDestination(
-                          icon: const Icon(Icons.donut_large_outlined),
-                          selectedIcon: const Icon(Icons.donut_large),
-                          label: _compactNavLabel(l10n.progress),
-                        ),
-                        NavigationDestination(
-                          icon: const Icon(Icons.history_outlined),
-                          selectedIcon: const Icon(Icons.history),
-                          label: _compactNavLabel(l10n.history),
-                        ),
-                        NavigationDestination(
-                          icon: const Icon(Icons.settings_outlined),
-                          selectedIcon: const Icon(Icons.settings),
-                          label: _compactNavLabel(l10n.settings),
-                        ),
-                      ],
-                    ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.quiz_outlined),
+                        selectedIcon: const Icon(Icons.quiz),
+                        label: _compactNavLabel(l10n.quiz),
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.donut_large_outlined),
+                        selectedIcon: const Icon(Icons.donut_large),
+                        label: _compactNavLabel(l10n.progress),
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.history_outlined),
+                        selectedIcon: const Icon(Icons.history),
+                        label: _compactNavLabel(l10n.history),
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.settings_outlined),
+                        selectedIcon: const Icon(Icons.settings),
+                        label: _compactNavLabel(l10n.settings),
+                      ),
+                    ],
                   ),
                 ),
               ),
