@@ -185,28 +185,13 @@ class _MainScreenState extends State<MainScreen> {
         return Scaffold(
           appBar: showMainAppBar
               ? AppBar(
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: isDark
+                      ? AppColors.backgroundDark
+                      : AppColors.backgroundLight,
                   elevation: 0,
                   scrolledUnderElevation: 0,
                   centerTitle: false,
                   titleSpacing: 20,
-                  flexibleSpace: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: isDark
-                            ? [
-                                const Color(0xFF152B4C),
-                                AppColors.backgroundDark,
-                              ]
-                            : [
-                                const Color(0xFFEAF1FF),
-                                AppColors.backgroundLight,
-                              ],
-                      ),
-                    ),
-                  ),
                   iconTheme: IconThemeData(
                     color: isDark ? Colors.white : AppColors.primaryNavy,
                   ),

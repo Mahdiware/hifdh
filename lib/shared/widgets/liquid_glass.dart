@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class LiquidGlass extends StatelessWidget {
@@ -42,13 +41,6 @@ class LiquidGlass extends StatelessWidget {
     return Color.alphaBlend(coolCast, softened);
   }
 
-  Color _normalizeLightColor(Color color) {
-    final normalizedAlpha = _clampAlpha(_alphaOf(color), 0.08, 0.52);
-    final softened = color.withValues(alpha: normalizedAlpha);
-    final coolCast = const Color(0xFFCFE2FF).withValues(alpha: 0.14);
-    return Color.alphaBlend(coolCast, softened);
-  }
-
   Border _normalizeLightBorder(Border input) {
     BorderSide normalize(BorderSide side) {
       if (side.style == BorderStyle.none) return side;
@@ -75,75 +67,57 @@ class LiquidGlass extends StatelessWidget {
     }).toList();
   }
 
-  Gradient _normalizeGradientForLight(Gradient source) {
-    if (source is LinearGradient) {
-      return LinearGradient(
-        begin: source.begin,
-        end: source.end,
-        colors: source.colors.map(_normalizeLightColor).toList(),
-        stops: source.stops,
-        tileMode: source.tileMode,
-        transform: source.transform,
-      );
-    }
-
-    if (source is RadialGradient) {
-      return RadialGradient(
-        center: source.center,
-        radius: source.radius,
-        colors: source.colors.map(_normalizeLightColor).toList(),
-        stops: source.stops,
-        tileMode: source.tileMode,
-        focal: source.focal,
-        focalRadius: source.focalRadius,
-        transform: source.transform,
-      );
-    }
-
-    if (source is SweepGradient) {
-      return SweepGradient(
-        center: source.center,
-        startAngle: source.startAngle,
-        endAngle: source.endAngle,
-        colors: source.colors.map(_normalizeLightColor).toList(),
-        stops: source.stops,
-        tileMode: source.tileMode,
-        transform: source.transform,
-      );
-    }
-
-    return source;
-  }
-
-  bool _shouldUseReducedEffects(BuildContext context) {
-    if (!adaptivePerformance) return false;
-
-    final mediaQuery = MediaQuery.maybeOf(context);
-    if (mediaQuery == null) return false;
-
-    final phoneClassDevice = mediaQuery.size.shortestSide < 600;
-    final reduceMotion = mediaQuery.disableAnimations;
-    final androidPhone =
-        defaultTargetPlatform == TargetPlatform.android && !kIsWeb;
-
-    return androidPhone && (phoneClassDevice || reduceMotion);
-  }
-
   bool _isInPopupRoute(BuildContext context) {
     return ModalRoute.of(context) is PopupRoute;
   }
 
-  Color _stabilizeTintForPopup(Color color, bool isDark) {
-    final minAlpha = isDark ? 0.78 : 0.84;
-    final maxAlpha = isDark ? 0.96 : 0.98;
-    final stabilizedAlpha = _clampAlpha(_alphaOf(color), minAlpha, maxAlpha);
-    return color.withValues(alpha: stabilizedAlpha);
+  bool _shouldPreserveSemanticTint(Color input) {
+    final alpha = _alphaOf(input);
+    if (alpha < 0.2) return false;
+
+    final hsl = HSLColor.fromColor(input);
+    return hsl.saturation >= 0.2;
+  }
+
+  Color _resolveSemanticTint(Color input, bool isDark, bool inPopupRoute) {
+    final minAlpha = inPopupRoute
+        ? (isDark ? 0.84 : 0.9)
+        : (isDark ? 0.58 : 0.52);
+    final maxAlpha = inPopupRoute ? 1.0 : (isDark ? 0.88 : 0.82);
+
+    return input.withValues(
+      alpha: _clampAlpha(_alphaOf(input), minAlpha, maxAlpha),
+    );
+  }
+
+  Color _resolveSurfaceTint(Color input, bool isDark, bool inPopupRoute) {
+    if (_shouldPreserveSemanticTint(input)) {
+      return _resolveSemanticTint(input, isDark, inPopupRoute);
+    }
+
+    if (inPopupRoute) {
+      return isDark ? const Color(0xFF2B3E5A) : Colors.white;
+    }
+
+    if (isDark) {
+      final base = const Color(0xFF27364C);
+      final softened = input.withValues(
+        alpha: _clampAlpha(_alphaOf(input), 0.06, 0.24),
+      );
+      return Color.alphaBlend(softened, base);
+    }
+
+    final base = const Color(0xFFF2F6FC);
+    final softened = _normalizeLightTint(
+      input,
+    ).withValues(alpha: _clampAlpha(_alphaOf(input), 0.08, 0.22));
+    return Color.alphaBlend(softened, base);
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final reducedEffects = _shouldUseReducedEffects(context);
+    final reducedEffects = adaptivePerformance;
     final inPopupRoute = _isInPopupRoute(context);
 
     final effectiveBlur = reducedEffects ? 0.0 : blur;
@@ -151,20 +125,17 @@ class LiquidGlass extends StatelessWidget {
     final baseTint =
         tint ??
         (isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : const Color(0x99E2EEFF));
+            ? Colors.white.withValues(alpha: 0.1)
+            : const Color(0xFFDCE9FA).withValues(alpha: 0.16));
 
-    final resolvedTint = isDark ? baseTint : _normalizeLightTint(baseTint);
-    final effectiveTint = inPopupRoute
-        ? _stabilizeTintForPopup(resolvedTint, isDark)
-        : resolvedTint;
+    final effectiveTint = _resolveSurfaceTint(baseTint, isDark, inPopupRoute);
 
     final baseBorder =
         border ??
         Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.18)
-              : const Color(0x6B5E84BA),
+              ? Colors.white.withValues(alpha: 0.24)
+              : const Color(0xFFB7C5D6),
           width: 1,
         );
 
@@ -172,14 +143,14 @@ class LiquidGlass extends StatelessWidget {
         ? baseBorder
         : _normalizeLightBorder(baseBorder);
 
-    final baseShadow = reducedEffects
+    final baseShadow = reducedEffects || inPopupRoute
         ? const <BoxShadow>[]
         : (boxShadow ??
               [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
                 ),
               ]);
 
@@ -187,87 +158,14 @@ class LiquidGlass extends StatelessWidget {
         ? baseShadow
         : _normalizeLightShadows(baseShadow);
 
-    final defaultGradient = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: isDark
-          ? [effectiveTint, effectiveTint.withValues(alpha: 0.08)]
-          : [
-              effectiveTint.withValues(alpha: inPopupRoute ? 0.92 : 0.44),
-              const Color(
-                0x99FFFFFF,
-              ).withValues(alpha: inPopupRoute ? 0.9 : 0.6),
-              const Color(
-                0x80D8EAFF,
-              ).withValues(alpha: inPopupRoute ? 0.78 : 0.5),
-            ],
-      stops: isDark ? null : const [0.0, 0.45, 1.0],
-    );
+    final surfaceColor = effectiveTint;
 
-    final resolvedGradient = gradient == null
-        ? defaultGradient
-        : (isDark ? gradient! : _normalizeGradientForLight(gradient!));
-
-    final surfaceColor = isDark
-        ? effectiveTint
-        : effectiveTint.withValues(
-            alpha: _clampAlpha(
-              _alphaOf(effectiveTint) * (inPopupRoute ? 0.84 : 0.42),
-              inPopupRoute ? 0.58 : 0.08,
-              inPopupRoute ? 0.88 : 0.28,
-            ),
-          );
-
-    final content = reducedEffects
-        ? Padding(padding: padding, child: child)
-        : Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: isDark ? 0.08 : 0.22),
-                          Colors.white.withValues(alpha: 0),
-                          (isDark ? Colors.black : const Color(0xFFADC9F6))
-                              .withValues(alpha: isDark ? 0.06 : 0.12),
-                        ],
-                        stops: const [0, 0.42, 1],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: -30,
-                right: -20,
-                child: IgnorePointer(
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: isDark ? 0.24 : 0.42),
-                          Colors.white.withValues(alpha: 0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Padding(padding: padding, child: child),
-            ],
-          );
+    final content = Padding(padding: padding, child: child);
 
     Widget surface = Container(
       decoration: BoxDecoration(
         color: surfaceColor,
-        gradient: resolvedGradient,
+        gradient: null,
         border: resolvedBorder,
         borderRadius: borderRadius,
         boxShadow: resolvedShadow,

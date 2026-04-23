@@ -20,7 +20,9 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       automaticallyImplyLeading: false,
-      backgroundColor: Colors.transparent,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
@@ -32,17 +34,6 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: titleColor,
           fontSize: 24,
           letterSpacing: -0.4,
-        ),
-      ),
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [const Color(0xFF13284A), AppColors.backgroundDark]
-                : [const Color(0xFFE9F1FF), AppColors.backgroundLight],
-          ),
         ),
       ),
       iconTheme: IconThemeData(color: iconColor),

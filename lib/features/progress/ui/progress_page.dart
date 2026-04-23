@@ -451,21 +451,12 @@ class _ProgressPageState extends State<ProgressPage>
           ? AppColors.backgroundDark
           : AppColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark
+            ? AppColors.backgroundDark
+            : AppColors.backgroundLight,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleSpacing: 20,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDark
-                  ? [const Color(0xFF152C4E), AppColors.backgroundDark]
-                  : [const Color(0xFFEAF1FF), AppColors.backgroundLight],
-            ),
-          ),
-        ),
         title: Text(
           AppLocalizations.of(context)!.progress,
           style: TextStyle(
