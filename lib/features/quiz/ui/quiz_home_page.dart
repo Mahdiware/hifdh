@@ -320,12 +320,18 @@ class _QuizHomePageState extends State<QuizHomePage> {
     required bool isDark,
     required VoidCallback onTap,
   }) {
+    final buttonTint = accent.withValues(alpha: isDark ? 0.74 : 0.68);
+    final foreground =
+        ThemeData.estimateBrightnessForColor(buttonTint) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
+
     return LiquidGlass(
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(12),
       blur: 10,
-      tint: accent.withValues(alpha: isDark ? 0.24 : 0.14),
-      border: Border.all(color: accent.withValues(alpha: 0.34)),
+      tint: buttonTint,
+      border: Border.all(color: accent.withValues(alpha: isDark ? 0.56 : 0.5)),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -336,11 +342,14 @@ class _QuizHomePageState extends State<QuizHomePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 18, color: accent),
+                Icon(icon, size: 18, color: foreground),
                 const SizedBox(width: 7),
                 Text(
                   label,
-                  style: TextStyle(fontWeight: FontWeight.w700, color: accent),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: foreground,
+                  ),
                 ),
               ],
             ),
