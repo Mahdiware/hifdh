@@ -32,6 +32,7 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   void _onItemTapped(int index) {
+    if (_selectedIndex == index) return;
     setState(() {
       _selectedIndex = index;
       _loadedPageIndices.add(index);
@@ -52,12 +53,6 @@ class _MainScreenState extends State<MainScreen> {
       default:
         return "";
     }
-  }
-
-  String _compactNavLabel(String text) {
-    const maxChars = 10;
-    if (text.length <= maxChars) return text;
-    return '${text.substring(0, maxChars - 1)}…';
   }
 
   bool _isLowMemoryDevice(BuildContext context) {
@@ -96,12 +91,36 @@ class _MainScreenState extends State<MainScreen> {
     final navIndicatorColor = isDark
         ? Colors.white.withValues(alpha: 0.18)
         : const Color(0xFFBCD0EE);
+    final navItems = <_BottomNavItemData>[
+      _BottomNavItemData(
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home_filled,
+        label: l10n.dashboard,
+      ),
+      _BottomNavItemData(
+        icon: Icons.quiz_outlined,
+        selectedIcon: Icons.quiz,
+        label: l10n.quiz,
+      ),
+      _BottomNavItemData(
+        icon: Icons.donut_large_outlined,
+        selectedIcon: Icons.donut_large,
+        label: l10n.progress,
+      ),
+      _BottomNavItemData(
+        icon: Icons.history_outlined,
+        selectedIcon: Icons.history,
+        label: l10n.history,
+      ),
+      _BottomNavItemData(
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+        label: l10n.settings,
+      ),
+    ];
     final lowMemoryMode = _isLowMemoryDevice(context);
     final mediaQuery = MediaQuery.of(context);
-    final bottomInset = mediaQuery.padding.bottom;
-    const navHeight = 64.0;
-    const navHorizontalInset = 8.0;
-    final navBottomInset = bottomInset > 0 ? 2.0 : 6.0;
+    const navHeight = 56.0;
     final navMediaQuery = mediaQuery.copyWith(
       textScaler: TextScaler.linear(navTextScale),
     );
@@ -215,15 +234,11 @@ class _MainScreenState extends State<MainScreen> {
                     children: _buildLazyPages(),
                   ),
           ),
-          bottomNavigationBar: Padding(
-            padding: EdgeInsets.fromLTRB(
-              navHorizontalInset,
-              0,
-              navHorizontalInset,
-              navBottomInset,
-            ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(8, 0, 8, 6),
             child: LiquidGlass(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               blur: 20,
               borderRadius: BorderRadius.circular(20),
               tint: isDark
@@ -243,65 +258,20 @@ class _MainScreenState extends State<MainScreen> {
               ],
               child: MediaQuery(
                 data: navMediaQuery,
-                child: NavigationBarTheme(
-                  data: NavigationBarThemeData(
-                    iconTheme: WidgetStateProperty.resolveWith((states) {
-                      final selected = states.contains(WidgetState.selected);
-                      return IconThemeData(
-                        color: selected ? navSelectedColor : navUnselectedColor,
-                        size: selected ? 23 : 22,
+                child: SizedBox(
+                  height: navHeight,
+                  child: Row(
+                    children: List.generate(navItems.length, (index) {
+                      final item = navItems[index];
+                      return _BottomNavItem(
+                        data: item,
+                        selected: _selectedIndex == index,
+                        selectedColor: navSelectedColor,
+                        unselectedColor: navUnselectedColor,
+                        indicatorColor: navIndicatorColor,
+                        onTap: () => _onItemTapped(index),
                       );
                     }),
-                    labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                      final selected = states.contains(WidgetState.selected);
-                      return TextStyle(
-                        fontSize: selected ? 11 : 10,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                        letterSpacing: -0.1,
-                        color: selected ? navSelectedColor : navUnselectedColor,
-                      );
-                    }),
-                    indicatorShape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: NavigationBar(
-                    height: navHeight,
-                    backgroundColor: Colors.transparent,
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: _onItemTapped,
-                    labelBehavior:
-                        NavigationDestinationLabelBehavior.alwaysShow,
-                    indicatorColor: navIndicatorColor,
-                    destinations: [
-                      NavigationDestination(
-                        icon: const Icon(Icons.home_outlined),
-                        selectedIcon: const Icon(Icons.home_filled),
-                        label: _compactNavLabel(l10n.dashboard),
-                      ),
-                      NavigationDestination(
-                        icon: const Icon(Icons.quiz_outlined),
-                        selectedIcon: const Icon(Icons.quiz),
-                        label: _compactNavLabel(l10n.quiz),
-                      ),
-                      NavigationDestination(
-                        icon: const Icon(Icons.donut_large_outlined),
-                        selectedIcon: const Icon(Icons.donut_large),
-                        label: _compactNavLabel(l10n.progress),
-                      ),
-                      NavigationDestination(
-                        icon: const Icon(Icons.history_outlined),
-                        selectedIcon: const Icon(Icons.history),
-                        label: _compactNavLabel(l10n.history),
-                      ),
-                      NavigationDestination(
-                        icon: const Icon(Icons.settings_outlined),
-                        selectedIcon: const Icon(Icons.settings),
-                        label: _compactNavLabel(l10n.settings),
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -309,6 +279,99 @@ class _MainScreenState extends State<MainScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _BottomNavItemData {
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+
+  const _BottomNavItemData({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
+}
+
+class _BottomNavItem extends StatelessWidget {
+  final _BottomNavItemData data;
+  final bool selected;
+  final Color selectedColor;
+  final Color unselectedColor;
+  final Color indicatorColor;
+  final VoidCallback onTap;
+
+  const _BottomNavItem({
+    required this.data,
+    required this.selected,
+    required this.selectedColor,
+    required this.unselectedColor,
+    required this.indicatorColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = selected ? selectedColor : unselectedColor;
+
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: data.label,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+              decoration: BoxDecoration(
+                color: selected ? indicatorColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    selected ? data.selectedIcon : data.icon,
+                    color: iconColor,
+                    size: selected ? 20 : 19,
+                  ),
+                  const SizedBox(height: 2),
+                  SizedBox(
+                    height: 13,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          data.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.visible,
+                          style: TextStyle(
+                            fontSize: selected ? 10 : 9.5,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            letterSpacing: -0.1,
+                            color: iconColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
