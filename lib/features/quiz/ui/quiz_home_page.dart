@@ -28,6 +28,15 @@ class _QuizHomePageState extends State<QuizHomePage> {
   final List<ResultItem> _results = [];
   int _questionCount = 1;
 
+  Color _foregroundFor(
+    Color background, {
+    Color dark = Colors.white,
+    Color light = Colors.black87,
+  }) {
+    final brightness = ThemeData.estimateBrightnessForColor(background);
+    return brightness == Brightness.dark ? dark : light;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -131,6 +140,12 @@ class _QuizHomePageState extends State<QuizHomePage> {
 
             final theme = Theme.of(context);
             final isDark = theme.brightness == Brightness.dark;
+            final dialogTextColor = isDark
+                ? Colors.white
+                : AppColors.textPrimaryLight;
+            final dialogSubTextColor = isDark
+                ? Colors.white.withValues(alpha: 0.82)
+                : AppColors.textSecondaryLight;
 
             return Dialog(
               backgroundColor: Colors.transparent,
@@ -160,9 +175,10 @@ class _QuizHomePageState extends State<QuizHomePage> {
                             currentDialogAyah.text,
                             textAlign: TextAlign.center,
                             textDirection: TextDirection.rtl,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'QuranFont',
                               fontSize: 24,
+                              color: dialogTextColor,
                             ),
                           ),
                         ),
@@ -174,17 +190,21 @@ class _QuizHomePageState extends State<QuizHomePage> {
                           IconButton(
                             icon: Icon(
                               Icons.arrow_back_ios,
-                              color: theme.colorScheme.onSurface,
+                              color: dialogTextColor,
                             ),
                             onPressed: () => navigateAyah(1),
                           ),
                           Text(
                             "${currentDialogAyah.surahNumber}:${currentDialogAyah.ayahNumber}",
+                            style: TextStyle(
+                              color: dialogSubTextColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           IconButton(
                             icon: Icon(
                               Icons.arrow_forward_ios,
-                              color: theme.colorScheme.onSurface,
+                              color: dialogTextColor,
                             ),
                             onPressed: () => navigateAyah(-1),
                           ),
@@ -219,9 +239,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                                   AppLocalizations.of(context)!.close,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.primaryNavy,
+                                    color: dialogTextColor,
                                   ),
                                 ),
                               ),
@@ -272,6 +290,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -320,11 +339,8 @@ class _QuizHomePageState extends State<QuizHomePage> {
     required bool isDark,
     required VoidCallback onTap,
   }) {
-    final buttonTint = accent.withValues(alpha: isDark ? 0.74 : 0.68);
-    final foreground =
-        ThemeData.estimateBrightnessForColor(buttonTint) == Brightness.dark
-        ? Colors.white
-        : Colors.black87;
+    final buttonTint = accent.withValues(alpha: isDark ? 0.82 : 0.74);
+    final foreground = _foregroundFor(buttonTint);
 
     return LiquidGlass(
       padding: EdgeInsets.zero,
@@ -369,18 +385,26 @@ class _QuizHomePageState extends State<QuizHomePage> {
     final accent = isPrimary
         ? (isDark ? const Color(0xFF8EB9E9) : const Color(0xFF1D4A8C))
         : (isDark ? Colors.white : AppColors.textPrimaryLight);
+    final buttonTint = isPrimary
+        ? (isDark
+              ? const Color(0xFF3B5D84).withValues(alpha: 0.72)
+              : const Color(0xFFDCEBFF).withValues(alpha: 0.92))
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.14)
+              : Colors.white.withValues(alpha: 0.78));
+    final foreground = isPrimary
+        ? _foregroundFor(
+            buttonTint,
+            dark: Colors.white,
+            light: const Color(0xFF12365D),
+          )
+        : (isDark ? Colors.white : AppColors.textPrimaryLight);
 
     return LiquidGlass(
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(12),
       blur: 12,
-      tint: isPrimary
-          ? (isDark
-                ? const Color(0xFF3B5D84).withValues(alpha: 0.52)
-                : const Color(0xFFDCEBFF).withValues(alpha: 0.86))
-          : (isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.72)),
+      tint: buttonTint,
       gradient: isPrimary
           ? LinearGradient(
               begin: Alignment.topLeft,
@@ -392,8 +416,8 @@ class _QuizHomePageState extends State<QuizHomePage> {
           : null,
       border: Border.all(
         color: isPrimary
-            ? accent.withValues(alpha: 0.32)
-            : (isDark ? Colors.white12 : Colors.black26),
+            ? accent.withValues(alpha: isDark ? 0.5 : 0.42)
+            : (isDark ? Colors.white24 : Colors.black26),
       ),
       child: Material(
         color: Colors.transparent,
@@ -405,14 +429,14 @@ class _QuizHomePageState extends State<QuizHomePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 18, color: accent),
+                Icon(icon, size: 18, color: foreground),
                 const SizedBox(width: 8),
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: accent,
+                    color: foreground,
                   ),
                 ),
               ],
@@ -456,6 +480,14 @@ class _QuizHomePageState extends State<QuizHomePage> {
     final colorScheme = theme.colorScheme;
     final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final lightAccentText = const Color(0xFF153A61);
+    final topBarTint = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.7);
+    final topBarForeground = _foregroundFor(
+      topBarTint,
+      dark: Colors.white,
+      light: AppColors.primaryNavy,
+    );
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -473,9 +505,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                   ),
                   borderRadius: BorderRadius.circular(16),
                   blur: 16,
-                  tint: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.white.withValues(alpha: 0.7),
+                  tint: topBarTint,
                   border: Border.all(
                     color: isDark ? Colors.white12 : Colors.black26,
                   ),
@@ -484,7 +514,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                       IconButton(
                         icon: Icon(
                           Icons.arrow_back_ios_new_rounded,
-                          color: theme.colorScheme.onSurface,
+                          color: topBarForeground,
                         ),
                         onPressed: () => Navigator.pop(context),
                         tooltip: AppLocalizations.of(context)!.back,
@@ -539,28 +569,7 @@ class _QuizHomePageState extends State<QuizHomePage> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.12)
-                              : const Color(0xFFD3E4F8),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_results.length}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : lightAccentText,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           AppLocalizations.of(context)!.completeVersePrompt,

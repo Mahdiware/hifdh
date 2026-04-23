@@ -74,7 +74,11 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
 
     noteMap.forEach((ayahId, notes) {
       // Sort oldest to newest (ascending by date)
-      notes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      notes.sort((a, b) {
+        final dateCompare = a.createdAt.compareTo(b.createdAt);
+        if (dateCompare != 0) return dateCompare;
+        return (a.id ?? 0).compareTo(b.id ?? 0);
+      });
 
       // 1. Calculate Streak (Consecutive Rights from end)
       int streak = 0;
@@ -248,6 +252,8 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
+                            _buildLegendItem(AyahColor.mastered, "0"),
+                            const SizedBox(width: 8),
                             _buildLegendItem(AyahColor.level1, "1"),
                             const SizedBox(width: 8),
                             _buildLegendItem(AyahColor.level2, "2"),
@@ -321,25 +327,36 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                             ayah['surahArabicName'] as String;
 
                                         final color = _getAyahColor(id, isDark);
-                                        Color pillColor;
+                                        Color pillBackground;
+                                        Color borderColor;
                                         Color textColor;
 
                                         if (color == Colors.transparent) {
-                                          pillColor = isDark
+                                          pillBackground = isDark
                                               ? Colors.white10
                                               : const Color(0xFFE9EFFA);
+                                          borderColor = isDark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.22,
+                                                )
+                                              : const Color(0xFF9DB3CC);
                                           textColor = isDark
                                               ? Colors.white70
                                               : Colors.black87;
                                         } else {
-                                          pillColor = color;
-                                          // Calculate text contrast
-                                          if (pillColor.computeLuminance() >
-                                              0.5) {
-                                            textColor = Colors.black87;
-                                          } else {
-                                            textColor = Colors.white;
-                                          }
+                                          pillBackground = isDark
+                                              ? color.withValues(alpha: 0.42)
+                                              : color.withValues(alpha: 0.24);
+                                          borderColor = isDark
+                                              ? color.withValues(alpha: 0.95)
+                                              : color.withValues(alpha: 0.64);
+                                          textColor =
+                                              ThemeData.estimateBrightnessForColor(
+                                                    pillBackground,
+                                                  ) ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : Colors.black87;
                                         }
 
                                         return InkWell(
@@ -381,24 +398,18 @@ class _AyahAnalysisSheetState extends State<AyahAnalysisSheet> {
                                           child: SizedBox(
                                             width: 44,
                                             height: 28,
-                                            child: LiquidGlass(
-                                              padding: EdgeInsets.zero,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              blur: 8,
-                                              tint: pillColor,
-                                              border: Border.all(
-                                                color:
-                                                    color == Colors.transparent
-                                                    ? (isDark
-                                                          ? Colors.white
-                                                                .withValues(
-                                                                  alpha: 0.05,
-                                                                )
-                                                          : Colors.transparent)
-                                                    : color.withValues(
-                                                        alpha: 0.5,
-                                                      ),
+                                            child: AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 180,
+                                              ),
+                                              curve: Curves.easeOut,
+                                              decoration: BoxDecoration(
+                                                color: pillBackground,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: borderColor,
+                                                ),
                                               ),
                                               child: Center(
                                                 child: Text(
