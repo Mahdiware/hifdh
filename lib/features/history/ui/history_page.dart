@@ -287,21 +287,12 @@ class _HistoryPageState extends State<HistoryPage> {
           ? AppColors.backgroundDark
           : AppColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark
+            ? AppColors.backgroundDark
+            : AppColors.backgroundLight,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDark
-                  ? [const Color(0xFF152B4D), AppColors.backgroundDark]
-                  : [const Color(0xFFEAF1FF), AppColors.backgroundLight],
-            ),
-          ),
-        ),
         title: _buildSearchField(isDark), // Replaced title with search
         actions: [
           Padding(
@@ -506,19 +497,24 @@ class _HistoryPageState extends State<HistoryPage> {
     required Color color,
     required bool isDark,
   }) {
+    final valueColor = isDark ? Colors.white : color.withValues(alpha: 0.95);
+    final labelColor = isDark
+        ? Colors.white.withValues(alpha: 0.92)
+        : color.withValues(alpha: 0.85);
+
     return LiquidGlass(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       borderRadius: BorderRadius.circular(12),
       blur: 10,
-      tint: color.withValues(alpha: isDark ? 0.24 : 0.12),
-      border: Border.all(color: color.withValues(alpha: 0.25)),
+      tint: color.withValues(alpha: isDark ? 0.2 : 0.12),
+      border: Border.all(color: color.withValues(alpha: isDark ? 0.34 : 0.25)),
       boxShadow: const [],
       child: Column(
         children: [
           Text(
             value,
             style: TextStyle(
-              color: color,
+              color: valueColor,
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
@@ -527,7 +523,7 @@ class _HistoryPageState extends State<HistoryPage> {
           Text(
             label,
             style: TextStyle(
-              color: color,
+              color: labelColor,
               fontWeight: FontWeight.w600,
               fontSize: 11,
             ),

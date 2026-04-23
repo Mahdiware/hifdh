@@ -295,27 +295,6 @@ class _SurahSelectionDialogState extends State<SurahSelectionDialog> {
                   ),
                 ),
               ),
-              if (!widget.isSingleSelection && _selectedSurahs.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: SizedBox(
-                      width: 150,
-                      child: _buildFooterButton(
-                        label: '${l10n.delete} ${l10n.all}',
-                        icon: Icons.clear_all_rounded,
-                        onTap: () {
-                          setState(() {
-                            _selectedSurahs.clear();
-                          });
-                        },
-                        isPrimary: false,
-                        isDark: isDark,
-                      ),
-                    ),
-                  ),
-                ),
               const SizedBox(height: 10),
               Expanded(
                 child: ListView.builder(

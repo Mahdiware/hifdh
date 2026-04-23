@@ -63,7 +63,7 @@ class AppTheme {
       hintStyle: const TextStyle(color: AppColors.textSecondaryLight),
     ),
     datePickerTheme: DatePickerThemeData(
-      backgroundColor: const Color(0xEEF2F7FF),
+      backgroundColor: const Color(0xFFF2F7FF),
       surfaceTintColor: Colors.transparent,
       headerBackgroundColor: const Color(0xFF3A68A9),
       headerForegroundColor: Colors.white,
@@ -73,7 +73,7 @@ class AppTheme {
       ),
     ),
     timePickerTheme: TimePickerThemeData(
-      backgroundColor: const Color(0xEEF2F7FF),
+      backgroundColor: const Color(0xFFF2F7FF),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       dialHandColor: AppColors.primaryNavy,
       dialBackgroundColor: const Color(0xFFDCE9FF),
@@ -83,7 +83,7 @@ class AppTheme {
       dayPeriodTextColor: AppColors.primaryNavy,
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: const Color(0xF2F3F8FF),
+      color: const Color(0xFFF3F8FF),
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
       elevation: 0,
@@ -98,7 +98,7 @@ class AppTheme {
     ),
     menuTheme: MenuThemeData(
       style: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xF2F3F8FF)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xFFF3F8FF)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
@@ -114,7 +114,7 @@ class AppTheme {
     ),
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xF2F3F8FF)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xFFF3F8FF)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
@@ -129,7 +129,12 @@ class AppTheme {
       ),
     ),
     dialogTheme: const DialogThemeData(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.surfaceLight,
+      surfaceTintColor: Colors.transparent,
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColors.surfaceLight,
+      modalBackgroundColor: AppColors.surfaceLight,
       surfaceTintColor: Colors.transparent,
     ),
 
@@ -235,7 +240,7 @@ class AppTheme {
       hintStyle: const TextStyle(color: AppColors.textSecondaryDark),
     ),
     datePickerTheme: DatePickerThemeData(
-      backgroundColor: const Color(0xEE1E3557),
+      backgroundColor: const Color(0xFF1E3557),
       surfaceTintColor: Colors.transparent,
       headerBackgroundColor: const Color(0xFF325F9E),
       headerForegroundColor: Colors.white,
@@ -245,7 +250,7 @@ class AppTheme {
       ),
     ),
     timePickerTheme: TimePickerThemeData(
-      backgroundColor: const Color(0xEE1E3557),
+      backgroundColor: const Color(0xFF1E3557),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       dialHandColor: AppColors.accentOrange,
       dialBackgroundColor: const Color(0xFF1B2D4A),
@@ -255,7 +260,7 @@ class AppTheme {
       dayPeriodTextColor: Colors.white,
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: const Color(0xEE223D64),
+      color: const Color(0xFF223D64),
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
       elevation: 0,
@@ -270,7 +275,7 @@ class AppTheme {
     ),
     menuTheme: MenuThemeData(
       style: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xEE223D64)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xFF223D64)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
@@ -284,7 +289,7 @@ class AppTheme {
     ),
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(Color(0xEE223D64)),
+        backgroundColor: const WidgetStatePropertyAll(Color(0xFF223D64)),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         shadowColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
@@ -344,7 +349,12 @@ class AppTheme {
       ),
     ),
     dialogTheme: const DialogThemeData(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.surfaceDark,
+      surfaceTintColor: Colors.transparent,
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColors.surfaceDark,
+      modalBackgroundColor: AppColors.surfaceDark,
       surfaceTintColor: Colors.transparent,
     ),
   );

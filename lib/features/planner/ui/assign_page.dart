@@ -246,52 +246,31 @@ class _AssignPageState extends State<AssignPage> {
 
   Future<void> _selectDate() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastAllowedDate = DateTime(now.year + 5, now.month, now.day);
+
+    DateTime initialDate = _targetDate ?? now;
+    if (initialDate.isBefore(today)) {
+      initialDate = today;
+    } else if (initialDate.isAfter(lastAllowedDate)) {
+      initialDate = lastAllowedDate;
+    }
+
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: now.add(const Duration(days: 7)),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365 * 5)),
-      builder: (context, child) {
-        final baseTheme = Theme.of(context);
-        final themed = baseTheme.copyWith(
-          dialogTheme: const DialogThemeData(
-            backgroundColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-          ),
-          datePickerTheme: baseTheme.datePickerTheme.copyWith(
-            backgroundColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
-        );
-
-        return Theme(data: themed, child: _buildGlassPickerWrapper(child));
-      },
+      initialDate: initialDate,
+      firstDate: today,
+      lastDate: lastAllowedDate,
     );
 
     if (pickedDate != null && mounted) {
+      final initialTime = _targetDate != null
+          ? TimeOfDay.fromDateTime(_targetDate!)
+          : TimeOfDay.now();
+
       final pickedTime = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.now(),
-        builder: (context, child) {
-          final baseTheme = Theme.of(context);
-          final themed = baseTheme.copyWith(
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-            ),
-            timePickerTheme: baseTheme.timePickerTheme.copyWith(
-              backgroundColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-          );
-
-          return Theme(data: themed, child: _buildGlassPickerWrapper(child));
-        },
+        initialTime: initialTime,
       );
 
       if (pickedTime != null) {
@@ -316,33 +295,6 @@ class _AssignPageState extends State<AssignPage> {
         });
       }
     }
-  }
-
-  Widget _buildGlassPickerWrapper(Widget? child) {
-    if (child == null) {
-      return const SizedBox.shrink();
-    }
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: LiquidGlass(
-            padding: EdgeInsets.zero,
-            borderRadius: BorderRadius.circular(24),
-            blur: 20,
-            tint: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.76),
-            border: Border.all(color: isDark ? Colors.white12 : Colors.black26),
-            child: child,
-          ),
-        ),
-      ),
-    );
   }
 
   void _onUnitChanged(int index) {
@@ -376,7 +328,9 @@ class _AssignPageState extends State<AssignPage> {
         ),
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDark
+            ? AppColors.backgroundDark
+            : AppColors.backgroundLight,
         iconTheme: IconThemeData(
           color: isDark
               ? AppColors.textPrimaryDark
