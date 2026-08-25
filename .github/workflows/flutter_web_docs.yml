@@ -40,7 +40,7 @@ jobs:
         run: flutter build web --release --base-href "/"
 
       - name: Add CNAME
-        run: echo "mahdiware.me" > build/web/CNAME
+        run: echo "mahdiware.me/hifdh" > build/web/CNAME
 
       # Deploy the generated web files to GitHub Pages
       # This uses the same action you used in your snake workflow
